@@ -19,6 +19,13 @@ let currentMode = "PLAYER_CAM";
 let selectedTeam = "Arsenal";
 let focusPlayer = "Bukayo Saka";
 
+// REPLAY & PLAYBACK STATE
+let ws = null;
+let isPaused = false;
+let isReplayMode = false;
+let matchHistory = [];
+let currentPlaybackIndex = -1;
+
 const canvas = document.getElementById("pitchCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -54,20 +61,17 @@ function drawPitch() {
     ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
     ctx.lineWidth = 2.5;
 
-    const m = 30; // Touchline Margin
+    const m = 30;
     const pitchW = w - m * 2;
     const pitchH = h - m * 2;
 
-    // Outer Boundary
     ctx.strokeRect(m, m, pitchW, pitchH);
 
-    // Halfway Line
     ctx.beginPath();
     ctx.moveTo(w / 2, m);
     ctx.lineTo(w / 2, h - m);
     ctx.stroke();
 
-    // Center Circle & Spot
     const centerRadius = pitchH * 0.18;
     ctx.beginPath();
     ctx.arc(w / 2, h / 2, centerRadius, 0, Math.PI * 2);
@@ -78,7 +82,6 @@ function drawPitch() {
     ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
     ctx.fill();
 
-    // 18-Yard Penalty Areas
     const boxH = pitchH * 0.54;
     const boxW = pitchW * 0.16;
     const boxY = (h - boxH) / 2;
@@ -89,7 +92,6 @@ function drawPitch() {
     ctx.strokeRect(m, boxY, boxW, boxH);
     ctx.strokeRect(rightBoxLeftX, boxY, boxW, boxH);
 
-    // 6-Yard Boxes
     const smallBoxH = pitchH * 0.26;
     const smallBoxW = pitchW * 0.055;
     const smallBoxY = (h - smallBoxH) / 2;
@@ -97,7 +99,6 @@ function drawPitch() {
     ctx.strokeRect(m, smallBoxY, smallBoxW, smallBoxH);
     ctx.strokeRect(w - m - smallBoxW, smallBoxY, smallBoxW, smallBoxH);
 
-    // Penalty Spots
     const spotDist = pitchW * 0.11;
     const leftSpotX = m + spotDist;
     const rightSpotX = w - m - spotDist;
@@ -107,27 +108,21 @@ function drawPitch() {
     ctx.arc(rightSpotX, h / 2, 2.5, 0, Math.PI * 2);
     ctx.fill();
 
-    // 🎯 CORRECTED PENALTY D-ARCS (FLUSH TO 18-YARD BOX LINE)
-    const arcRadius = centerRadius; // Standard 9.15m / 10-yard radius from spot
+    const arcRadius = centerRadius;
     const dx = leftBoxRightX - leftSpotX;
     if (arcRadius > dx) {
-        const arcAngle = Math.acos(dx / arcRadius); // Exact angle connecting arc to box line
+        const arcAngle = Math.acos(dx / arcRadius);
 
-        // Left Penalty Arc (D)
         ctx.beginPath();
         ctx.arc(leftSpotX, h / 2, arcRadius, -arcAngle, arcAngle);
         ctx.stroke();
 
-        // Right Penalty Arc (D)
         ctx.beginPath();
         ctx.arc(rightSpotX, h / 2, arcRadius, Math.PI - arcAngle, Math.PI + arcAngle);
         ctx.stroke();
     }
 
-    // 3. GOAL NETS & POSTS
     drawGoalNets(ctx, m, h, pitchH);
-
-    // 4. PLAYERS, VECTORS & BALL
     renderPlayers(w, h, m, pitchW, pitchH);
 }
 
@@ -140,11 +135,9 @@ function drawGoalNets(ctx, m, h, pitchH) {
     ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
     ctx.lineWidth = 3;
 
-    // Goal Post Frames
     ctx.strokeRect(m - depth, goalY, depth, goalH);
     ctx.strokeRect(renderW - m, goalY, depth, goalH);
 
-    // Net Mesh Effect
     ctx.lineWidth = 0.8;
     ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
     for (let y = goalY; y <= goalY + goalH; y += 5) {
@@ -181,9 +174,9 @@ function renderPlayers(w, h, m, pitchW, pitchH) {
     // WHITE DASHED PASSING VECTOR
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(m + pitchW * 0.40, m + pitchH * 0.48); // From R
-    ctx.lineTo(m + pitchW * 0.32, m + pitchH * 0.34); // To Ø
-    ctx.lineTo(m + pitchW * 0.78, m + pitchH * 0.22); // To S (Saka)
+    ctx.moveTo(m + pitchW * 0.40, m + pitchH * 0.48);
+    ctx.lineTo(m + pitchW * 0.32, m + pitchH * 0.34);
+    ctx.lineTo(m + pitchW * 0.78, m + pitchH * 0.22);
     
     ctx.strokeStyle = "#FFFFFF";
     ctx.lineWidth = 3;
@@ -193,7 +186,7 @@ function renderPlayers(w, h, m, pitchW, pitchH) {
     ctx.stroke();
     ctx.restore();
 
-    // ARSENAL PLAYERS (RED)
+    // ARSENAL PLAYERS
     arsenalPlayers.forEach(p => {
         const px = m + pitchW * p.x;
         const py = m + pitchH * p.y;
@@ -218,7 +211,7 @@ function renderPlayers(w, h, m, pitchW, pitchH) {
         ctx.shadowBlur = 6;
         ctx.beginPath();
         ctx.arc(px, py, 12, 0, Math.PI * 2);
-        ctx.fillStyle = "#EF4444"; // Arsenal Red
+        ctx.fillStyle = "#EF4444";
         ctx.fill();
         ctx.restore();
 
@@ -236,7 +229,7 @@ function renderPlayers(w, h, m, pitchW, pitchH) {
         }
     });
 
-    // MAN CITY PLAYERS (SKY BLUE)
+    // MAN CITY PLAYERS
     cityPlayers.forEach(p => {
         const px = m + pitchW * p.x;
         const py = m + pitchH * p.y;
@@ -246,7 +239,7 @@ function renderPlayers(w, h, m, pitchW, pitchH) {
         ctx.shadowBlur = 6;
         ctx.beginPath();
         ctx.arc(px, py, 12, 0, Math.PI * 2);
-        ctx.fillStyle = "#38BDF8"; // Sky Blue
+        ctx.fillStyle = "#38BDF8";
         ctx.fill();
         ctx.restore();
 
@@ -276,28 +269,134 @@ function updatePlayerDropdown(teamKey) {
 window.addEventListener("resize", drawPitch);
 document.addEventListener("DOMContentLoaded", drawPitch);
 
-const ws = new WebSocket(`ws://${window.location.host}/ws/telemetry`);
+// MANUAL KICK OFF BUTTON CONTROLLER
+document.getElementById("kickoff-btn").addEventListener("click", () => {
+    if (ws) return;
 
-ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
+    document.getElementById("kickoff-btn").style.display = "none";
+    
+    const livePill = document.getElementById("live-indicator");
+    livePill.innerText = "LIVE";
+    livePill.classList.add("active-live");
+
+    const connBadge = document.getElementById("connection-badge");
+    connBadge.classList.add("connected");
+    document.getElementById("connection-text").innerText = "WS CONNECTED";
+
+    // ESTABLISH WEBSOCKET STREAM ON CLICK
+    ws = new WebSocket(`ws://${window.location.host}/ws/telemetry`);
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        matchHistory.push(data);
+
+        const slider = document.getElementById("timeline-slider");
+        slider.max = matchHistory.length - 1;
+
+        if (!isReplayMode && !isPaused) {
+            currentPlaybackIndex = matchHistory.length - 1;
+            slider.value = currentPlaybackIndex;
+            updateUIWithEvent(data);
+        }
+    };
+});
+
+function updateUIWithEvent(data) {
+    if (!data) return;
     
     document.getElementById("ai-commentary").innerText = `"${data.ai_commentary}"`;
     document.getElementById("ai-source").innerText = data.source;
 
-    if (data.event && data.event.metrics) {
-        const m = data.event.metrics;
-        document.getElementById("val-xg").innerText = m.xg;
-        document.getElementById("bar-xg").style.width = `${m.xg * 100}%`;
-        
-        document.getElementById("val-pass-diff").innerText = `${m.pass_difficulty}/100`;
-        document.getElementById("bar-pass-diff").style.width = `${m.pass_difficulty}%`;
-        
-        document.getElementById("val-pressure").innerText = m.pressure;
+    if (data.event) {
+        if (data.event.timestamp) {
+            document.getElementById("replay-time").innerText = data.event.timestamp;
+        }
+
+        if (data.event.metrics) {
+            const m = data.event.metrics;
+            document.getElementById("val-xg").innerText = m.xg;
+            document.getElementById("bar-xg").style.width = `${m.xg * 100}%`;
+            
+            document.getElementById("val-pass-diff").innerText = `${m.pass_difficulty}/100`;
+            document.getElementById("bar-pass-diff").style.width = `${m.pass_difficulty}%`;
+            
+            document.getElementById("val-pressure").innerText = m.pressure;
+        }
     }
-};
+
+    drawPitch();
+}
+
+// TIMELINE SCRUBBER
+const timelineSlider = document.getElementById("timeline-slider");
+timelineSlider.addEventListener("input", (e) => {
+    enterReplayMode();
+    currentPlaybackIndex = parseInt(e.target.value, 10);
+    if (matchHistory[currentPlaybackIndex]) {
+        updateUIWithEvent(matchHistory[currentPlaybackIndex]);
+    }
+});
+
+// PLAY / PAUSE BUTTON
+const playPauseBtn = document.getElementById("play-pause-btn");
+playPauseBtn.addEventListener("click", () => {
+    isPaused = !isPaused;
+    playPauseBtn.innerHTML = isPaused ? `<i class="fa-solid fa-play"></i>` : `<i class="fa-solid fa-pause"></i>`;
+});
+
+// EVENT LOG REPLAY
+document.getElementById("event-log-container").addEventListener("click", (e) => {
+    const item = e.target.closest(".event-item");
+    if (!item) return;
+
+    document.querySelectorAll(".event-item").forEach(el => el.classList.remove("active-replay"));
+    item.classList.add("active-replay");
+
+    enterReplayMode();
+    
+    if (matchHistory.length > 0) {
+        currentPlaybackIndex = Math.floor(matchHistory.length / 2);
+        timelineSlider.value = currentPlaybackIndex;
+        updateUIWithEvent(matchHistory[currentPlaybackIndex]);
+    }
+});
+
+function enterReplayMode() {
+    isReplayMode = true;
+    const livePill = document.getElementById("live-indicator");
+    const returnBtn = document.getElementById("return-live-btn");
+
+    livePill.innerText = "REPLAY";
+    livePill.classList.remove("active-live");
+    livePill.classList.add("replay-mode");
+    returnBtn.style.display = "flex";
+}
+
+document.getElementById("return-live-btn").addEventListener("click", () => {
+    isReplayMode = false;
+    isPaused = false;
+
+    playPauseBtn.innerHTML = `<i class="fa-solid fa-pause"></i>`;
+
+    const livePill = document.getElementById("live-indicator");
+    const returnBtn = document.getElementById("return-live-btn");
+
+    livePill.innerText = "LIVE";
+    livePill.classList.remove("replay-mode");
+    livePill.classList.add("active-live");
+    returnBtn.style.display = "none";
+
+    document.querySelectorAll(".event-item").forEach(el => el.classList.remove("active-replay"));
+
+    if (matchHistory.length > 0) {
+        currentPlaybackIndex = matchHistory.length - 1;
+        timelineSlider.value = currentPlaybackIndex;
+        updateUIWithEvent(matchHistory[currentPlaybackIndex]);
+    }
+});
 
 function sendConfig() {
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ mode: currentMode, team: selectedTeam, player: focusPlayer }));
     }
 }
@@ -325,6 +424,7 @@ document.querySelectorAll(".mode-btn").forEach(btn => {
     });
 });
 
+// TAB SWITCHER CONTROLLER (5 TABS)
 document.querySelectorAll(".drawer-tab-btn").forEach(btn => {
     btn.addEventListener("click", () => {
         document.querySelectorAll(".drawer-tab-btn").forEach(b => b.classList.remove("active"));

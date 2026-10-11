@@ -17,9 +17,9 @@
             </div>
 
             <div class="header-controls">
-                <div class="connection-status">
+                <div class="connection-status" id="connection-badge">
                     <span class="status-dot"></span>
-                    <span>WS CONNECTED</span>
+                    <span id="connection-text">IDLE</span>
                 </div>
 
                 <div class="mode-switcher">
@@ -58,8 +58,11 @@
                         <span class="score" id="score-home">1</span>
                     </div>
                     <div class="match-meta">
-                        <span class="live-pill">LIVE</span>
+                        <span class="live-pill" id="live-indicator">IDLE</span>
                         <span class="match-clock" id="match-clock">64'</span>
+                        <button id="kickoff-btn" class="kickoff-btn">
+                            <i class="fa-solid fa-play"></i> START MATCH
+                        </button>
                     </div>
                     <div class="team-col away">
                         <span class="score" id="score-away">0</span>
@@ -74,6 +77,33 @@
                     <canvas id="pitchCanvas"></canvas>
                 </div>
 
+                <!-- VIDEO REPLAY SCRUBBER CONTROLS -->
+                <div class="replay-controls-bar">
+                    <button id="play-pause-btn" class="control-btn" title="Play / Pause">
+                        <i class="fa-solid fa-pause"></i>
+                    </button>
+                    
+                    <span class="time-display" id="replay-time">27:00</span>
+                    
+                    <div class="slider-wrapper">
+                        <input type="range" id="timeline-slider" min="0" max="100" value="100" step="1">
+                    </div>
+                    
+                    <span class="time-display" id="replay-duration">28:00</span>
+
+                    <div class="speed-selector">
+                        <select id="speed-select" class="speed-dropdown">
+                            <option value="1">1x</option>
+                            <option value="4">4x</option>
+                            <option value="10">10x</option>
+                        </select>
+                    </div>
+
+                    <button id="return-live-btn" class="return-live-btn" style="display: none;">
+                        <i class="fa-solid fa-play"></i> LIVE
+                    </button>
+                </div>
+
                 <!-- PITCH LEGEND -->
                 <div class="pitch-legend">
                     <div class="legend-item"><span class="legend-dot home-red"></span> ARSENAL (RED)</div>
@@ -86,8 +116,8 @@
             <aside class="sidebar">
                 <div class="card ai-card">
                     <h3><i class="fa-solid fa-brain"></i> Live AI Match Intelligence</h3>
-                    <p class="commentary-text" id="ai-commentary">"Odegaard bypasses City's mid-block with a diagonal line-breaker."</p>
-                    <span class="ai-source" id="ai-source">AZURE OPENAI · LIVE TACTICAL ANALYSIS</span>
+                    <p class="commentary-text" id="ai-commentary">"Press 'START MATCH' to initiate real-time telemetry stream and AI tactical analysis."</p>
+                    <span class="ai-source" id="ai-source">AZURE OPENAI · TACTICAL ENGINE</span>
                 </div>
 
                 <div class="card telemetry-card">
@@ -108,9 +138,9 @@
                         <span class="badge" id="event-count">3 events</span>
                     </div>
                     <div class="event-list" id="event-log-container">
-                        <div class="event-item"><span class="event-time">64'</span> <span>⚽ <strong>GOAL</strong> - Haaland</span></div>
-                        <div class="event-item"><span class="event-time">58'</span> <span>🟨 <strong>Card</strong> - Rodri</span></div>
-                        <div class="event-item"><span class="event-time">42'</span> <span>⚽ <strong>GOAL</strong> - Saka</span></div>
+                        <div class="event-item clickable" data-time="64'"><span class="event-time">64'</span> <span>⚽ <strong>GOAL</strong> - Haaland</span></div>
+                        <div class="event-item clickable" data-time="58'"><span class="event-time">58'</span> <span>🟨 <strong>Card</strong> - Rodri</span></div>
+                        <div class="event-item clickable" data-time="42'"><span class="event-time">42'</span> <span>⚽ <strong>GOAL</strong> - Saka</span></div>
                     </div>
                 </div>
             </aside>
@@ -121,32 +151,117 @@
             <div class="drawer-tabs">
                 <button class="drawer-tab-btn active" data-tab="stats"><i class="fa-solid fa-chart-column"></i> Match Stats</button>
                 <button class="drawer-tab-btn" data-tab="tactics"><i class="fa-solid fa-shield-halved"></i> Tactics</button>
-                <button class="drawer-tab-btn" data-tab="ask-ai"><i class="fa-solid fa-comments"></i> Tactical Q&A Assistant</button>
+                <button class="drawer-tab-btn" data-tab="events"><i class="fa-solid fa-bolt"></i> Events</button>
+                <button class="drawer-tab-btn" data-tab="analysis"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Analysis</button>
+                <button class="drawer-tab-btn" data-tab="ask-ai"><i class="fa-solid fa-comments"></i> Talk to AI</button>
             </div>
+
             <div class="drawer-content">
+                <!-- TAB 1: MATCH STATS -->
                 <div class="tab-panel active" id="panel-stats">
-                    <div class="side-by-side-grid">
+                    <div class="stats-overview-grid">
                         <div class="team-card home-border">
-                            <h4 class="team-header-red"><span class="legend-dot home-red"></span> ARSENAL</h4>
-                            <p>Saka 42' (Goal)</p>
-                            <p>Ødegaard: 8.4 Rating</p>
+                            <div class="team-card-header">
+                                <h4 class="team-header-red"><span class="legend-dot home-red"></span> ARSENAL</h4>
+                                <span class="rating-badge red">8.4 Rating</span>
+                            </div>
+                            <div class="stat-comparison-list">
+                                <div class="stat-bar-item">
+                                    <div class="stat-label-flex"><span>Possession</span><span>54%</span></div>
+                                    <div class="progress-bar-bg"><div class="progress-bar-fill red" style="width: 54%;"></div></div>
+                                </div>
+                                <div class="stat-bar-item">
+                                    <div class="stat-label-flex"><span>Total Shots (On Target)</span><span>11 (5)</span></div>
+                                    <div class="progress-bar-bg"><div class="progress-bar-fill red" style="width: 65%;"></div></div>
+                                </div>
+                                <div class="stat-bar-item">
+                                    <div class="stat-label-flex"><span>Expected Goals (xG)</span><span>1.84</span></div>
+                                    <div class="progress-bar-bg"><div class="progress-bar-fill red" style="width: 58%;"></div></div>
+                                </div>
+                                <div class="stat-bar-item">
+                                    <div class="stat-label-flex"><span>Pass Completion</span><span>88%</span></div>
+                                    <div class="progress-bar-bg"><div class="progress-bar-fill red" style="width: 88%;"></div></div>
+                                </div>
+                            </div>
                         </div>
+
                         <div class="team-card away-border">
-                            <h4 class="team-header-blue"><span class="legend-dot away-blue"></span> MANCHESTER CITY</h4>
-                            <p>Haaland 58' (Goal)</p>
-                            <p>De Bruyne: 7.6 Rating</p>
+                            <div class="team-card-header">
+                                <h4 class="team-header-blue"><span class="legend-dot away-blue"></span> MANCHESTER CITY</h4>
+                                <span class="rating-badge blue">7.8 Rating</span>
+                            </div>
+                            <div class="stat-comparison-list">
+                                <div class="stat-bar-item">
+                                    <div class="stat-label-flex"><span>Possession</span><span>46%</span></div>
+                                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" style="width: 46%;"></div></div>
+                                </div>
+                                <div class="stat-bar-item">
+                                    <div class="stat-label-flex"><span>Total Shots (On Target)</span><span>9 (3)</span></div>
+                                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" style="width: 45%;"></div></div>
+                                </div>
+                                <div class="stat-bar-item">
+                                    <div class="stat-label-flex"><span>Expected Goals (xG)</span><span>1.12</span></div>
+                                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" style="width: 40%;"></div></div>
+                                </div>
+                                <div class="stat-bar-item">
+                                    <div class="stat-label-flex"><span>Pass Completion</span><span>82%</span></div>
+                                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" style="width: 82%;"></div></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- TAB 2: TACTICS -->
                 <div class="tab-panel" id="panel-tactics">
-                    <p>Arsenal (4-3-3) exploiting half-spaces vs City (3-2-4-1) high defensive line.</p>
+                    <div class="tactical-pills-grid">
+                        <div class="tactical-card">
+                            <h5>Arsenal: Right Flank Overload (4-3-3)</h5>
+                            <p>Ødegaard drifting into right half-space to support Saka. Creating 2v1 advantages against Gvardiol under transition.</p>
+                        </div>
+                        <div class="tactical-card">
+                            <h5>City: High Mid-Block (3-2-4-1)</h5>
+                            <p>Operating a compact press with Rodri anchoring. Haaland cutting off central passing lanes to Rice.</p>
+                        </div>
+                    </div>
                 </div>
 
+                <!-- TAB 3: EVENTS -->
+                <div class="tab-panel" id="panel-events">
+                    <div class="events-log-full">
+                        <ul class="event-timeline-list">
+                            <li><span class="time-tag">64'</span> ⚽ <strong>GOAL!</strong> Haaland headers home from a De Bruyne corner (0.38 xG)</li>
+                            <li><span class="time-tag">58'</span> 🟨 <strong>YELLOW CARD</strong> Rodri for tactical shirt-pull on Rice</li>
+                            <li><span class="time-tag">51'</span> 🧱 <strong>BLOCKED SHOT</strong> Foden attempt blocked by Saliba inside penalty box</li>
+                            <li><span class="time-tag">42'</span> ⚽ <strong>GOAL!</strong> Saka curls bottom corner following Ødegaard line-breaker</li>
+                            <li><span class="time-tag">38'</span> 🧤 <strong>SAVE!</strong> Raya tips De Bruyne long-range strike over the crossbar</li>
+                            <li><span class="time-tag">29'</span> 🎯 <strong>SHOT OFF TARGET</strong> Martinelli misses narrowly past left post</li>
+                            <li><span class="time-tag">18'</span> 🟨 <strong>YELLOW CARD</strong> Saliba (Tactical Foul)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- TAB 4: IN-DEPTH ANALYSIS -->
+                <div class="tab-panel" id="panel-analysis">
+                    <div class="analysis-grid">
+                        <div class="analysis-card">
+                            <span class="analysis-tag red">CONTROL VS CHAOS</span>
+                            <h5>Flank Penetration Index</h5>
+                            <p>Arsenal's expected threat (xT) increases by +0.31 whenever passes enter the final third via Saka on the right wing.</p>
+                        </div>
+                        <div class="analysis-card">
+                            <span class="analysis-tag yellow">PRESSING EFFICIENCY</span>
+                            <h5>High Pressure Recovery</h5>
+                            <p>City recovering possession within 6 seconds on 62% of lost balls inside the midfield third.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 5: TALK TO AI -->
                 <div class="tab-panel" id="panel-ask-ai">
                     <div class="ai-query-box">
                         <input type="text" id="ai-query-input" placeholder="Ask a tactical question (e.g. 'Why is Saka drifting so wide right now?')..." />
-                        <button id="ai-query-send-btn"><i class="fa-solid fa-paper-plane"></i> Ask Assistant</button>
+                        <button id="ai-query-send-btn"><i class="fa-solid fa-paper-plane"></i> Ask AI</button>
                     </div>
                     <div class="ai-query-response" id="ai-query-response">
                         <p class="placeholder-text">Type a question above to get real-time tactical reasoning powered by Azure OpenAI.</p>
