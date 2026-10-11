@@ -1,58 +1,75 @@
 import asyncio
 import json
 from pathlib import Path
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import uvicorn
 
-from generator import generate_match_event
+import uvicorn
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+try:  # optional: load AZURE_OPENAI_* from .env
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+except ImportError:
+    pass
+
 from agent_reasoner import generate_ai_commentary
+from generator import MatchSim
+
+HERE = Path(__file__).resolve().parent
+FRONTEND_DIR = next(
+    (d for d in (HERE.parent / "frontend", HERE / "frontend", HERE) if (d / "index.html").exists()),
+    HERE.parent / "frontend",
+)
 
 app = FastAPI(title="SecondTouch")
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
-
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+
 
 @app.get("/")
 async def get_dashboard():
     return FileResponse(str(FRONTEND_DIR / "index.html"))
 
+
 @app.websocket("/ws/telemetry")
-async def websocket_telemetry_endpoint(websocket: WebSocket):
-    await websocket.accept()
-    current_mode = "PLAYER_CAM"
-    focus_player = "Saka"
+async def telemetry(ws: WebSocket):
+    await ws.accept()
+    cfg = {"mode": "PLAYER_CAM", "team": "Arsenal", "player": "Saka", "speed": 1}
+    sim = MatchSim()
 
-    try:
+    async def receiver():
+        # Runs alongside the sender, so config messages are never dropped.
         while True:
-            # Receive active mode configuration from frontend
             try:
-                data_str = await asyncio.wait_for(websocket.receive_text(), timeout=0.1)
-                config = json.loads(data_str)
-                current_mode = config.get("mode", current_mode)
-                focus_player = config.get("player", focus_player)
-            except asyncio.TimeoutError:
-                pass
+                msg = json.loads(await ws.receive_text())
+            except ValueError:
+                continue
+            if isinstance(msg, dict):
+                for k in cfg:
+                    if k in msg:
+                        cfg[k] = msg[k]
 
-            event = generate_match_event()
-            commentary = generate_ai_commentary(event, mode=current_mode, focus_player=focus_player)
-
-            payload = {
-                "event": event,
-                "mode": current_mode,
-                "focus_player": focus_player,
-                "ai_commentary": commentary,
-                "source": f"AZURE OPENAI · LIVE {current_mode} ANALYSIS"
-            }
-
-            await websocket.send_text(json.dumps(payload))
-            await asyncio.sleep(2.5)
-
-    except WebSocketDisconnect:
+    recv_task = asyncio.create_task(receiver())
+    try:
+        while not recv_task.done():
+            if sim.finished:
+                sim = MatchSim()
+            speed = cfg["speed"] if cfg["speed"] in (1, 4, 10) else 1
+            focus_on = cfg["mode"] == "PLAYER_CAM"
+            event = sim.next_event(cfg["team"], cfg["player"], 0.5 if focus_on else 0.0)
+            text, source = await asyncio.to_thread(
+                generate_ai_commentary, event, cfg["mode"], cfg["player"], speed == 1
+            )
+            await ws.send_text(json.dumps({
+                "event": event, "mode": cfg["mode"], "focus_player": cfg["player"],
+                "ai_commentary": text, "source": source,
+            }, ensure_ascii=False))
+            await asyncio.sleep(2.5 / speed)
+    except (WebSocketDisconnect, RuntimeError):
         pass
+    finally:
+        recv_task.cancel()
+
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)

@@ -53,13 +53,13 @@
                 <div class="scoreboard-banner">
                     <div class="team-col home">
                         <span class="team-color-indicator home-red"></span>
-                        <img src="https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg" alt="Arsenal" class="team-logo-img">
+                        <img src="/static/arsenal.png" alt="Arsenal" class="team-logo-img">
                         <span class="team-name">ARSENAL</span>
-                        <span class="score" id="score-home">1</span>
+                        <span class="score" id="score-home">0</span>
                     </div>
                     <div class="match-meta">
                         <span class="live-pill" id="live-indicator">IDLE</span>
-                        <span class="match-clock" id="match-clock">64'</span>
+                        <span class="match-clock" id="match-clock">0'</span>
                         <button id="kickoff-btn" class="kickoff-btn">
                             <i class="fa-solid fa-play"></i> START MATCH
                         </button>
@@ -67,7 +67,7 @@
                     <div class="team-col away">
                         <span class="score" id="score-away">0</span>
                         <span class="team-name">MAN CITY</span>
-                        <img src="https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg" alt="Man City" class="team-logo-img">
+                        <img src="/static/mancity.png" alt="Man City" class="team-logo-img">
                         <span class="team-color-indicator away-blue"></span>
                     </div>
                 </div>
@@ -83,13 +83,13 @@
                         <i class="fa-solid fa-pause"></i>
                     </button>
                     
-                    <span class="time-display" id="replay-time">27:00</span>
+                    <span class="time-display" id="replay-time">0:00</span>
                     
                     <div class="slider-wrapper">
                         <input type="range" id="timeline-slider" min="0" max="100" value="100" step="1">
                     </div>
                     
-                    <span class="time-display" id="replay-duration">28:00</span>
+                    <span class="time-display" id="replay-duration">0:00</span>
 
                     <div class="speed-selector">
                         <select id="speed-select" class="speed-dropdown">
@@ -135,12 +135,9 @@
                 <div class="card event-log-card">
                     <div class="card-header-flex">
                         <h3>Live Event Log</h3>
-                        <span class="badge" id="event-count">3 events</span>
+                        <span class="badge" id="event-count">0 events</span>
                     </div>
                     <div class="event-list" id="event-log-container">
-                        <div class="event-item clickable" data-time="64'"><span class="event-time">64'</span> <span>⚽ <strong>GOAL</strong> - Haaland</span></div>
-                        <div class="event-item clickable" data-time="58'"><span class="event-time">58'</span> <span>🟨 <strong>Card</strong> - Rodri</span></div>
-                        <div class="event-item clickable" data-time="42'"><span class="event-time">42'</span> <span>⚽ <strong>GOAL</strong> - Saka</span></div>
                     </div>
                 </div>
             </aside>
