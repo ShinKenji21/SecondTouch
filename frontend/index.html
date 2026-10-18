@@ -17,30 +17,40 @@
             </div>
 
             <div class="header-controls">
-                <div class="connection-status" id="connection-badge">
+                <div class="connection-status" id="connection-badge" title="Event-to-render latency (95th percentile of the last 100 events)">
                     <span class="status-dot"></span>
                     <span id="connection-text">IDLE</span>
                 </div>
+                <div class="ai-status" id="ai-status" title="Where impact-moment commentary comes from">
+                    <i class="fa-solid fa-microchip"></i> <span id="ai-status-text">AI: —</span>
+                </div>
 
-                <div class="mode-switcher">
+                <div class="mode-switcher" role="group" aria-label="Commentary style">
                     <button class="mode-btn" data-mode="ANALYST"><i class="fa-solid fa-chart-line"></i> Analyst</button>
                     <button class="mode-btn" data-mode="CASUAL"><i class="fa-solid fa-bolt"></i> Casual</button>
-                    <button class="mode-btn active" data-mode="PLAYER_CAM"><i class="fa-solid fa-crosshair"></i> Player Cam</button>
+                    <button class="mode-btn active" data-mode="PLAYER_CAM"><i class="fa-solid fa-crosshairs"></i> Player Cam</button>
+                </div>
+
+                <div class="select-wrapper">
+                    <i class="fa-solid fa-language select-icon"></i>
+                    <select id="lang-select" class="custom-select" aria-label="Commentary language">
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="ja">日本語</option>
+                    </select>
                 </div>
 
                 <div class="player-focus-group" id="player-focus-container">
                     <div class="select-wrapper">
                         <i class="fa-solid fa-shield-halved select-icon"></i>
-                        <select id="team-select" class="custom-select">
+                        <select id="team-select" class="custom-select" aria-label="Player Cam team">
                             <option value="Arsenal">Arsenal FC</option>
                             <option value="ManCity">Manchester City</option>
                         </select>
                     </div>
                     <div class="select-wrapper">
                         <i class="fa-solid fa-user select-icon"></i>
-                        <select id="player-select" class="custom-select">
-                            <!-- Dynamically populated via JS -->
-                        </select>
+                        <select id="player-select" class="custom-select" aria-label="Player Cam player"></select>
                     </div>
                 </div>
             </div>
@@ -53,7 +63,7 @@
                 <div class="scoreboard-banner">
                     <div class="team-col home">
                         <span class="team-color-indicator home-red"></span>
-                        <img src="/static/arsenal.png" alt="Arsenal" class="team-logo-img">
+                        <img src="/static/images/arsenal.png" alt="Arsenal" class="team-logo-img">
                         <span class="team-name">ARSENAL</span>
                         <span class="score" id="score-home">0</span>
                     </div>
@@ -67,88 +77,112 @@
                     <div class="team-col away">
                         <span class="score" id="score-away">0</span>
                         <span class="team-name">MAN CITY</span>
-                        <img src="/static/mancity.png" alt="Man City" class="team-logo-img">
+                        <img src="/static/images/mancity.png" alt="Man City" class="team-logo-img">
                         <span class="team-color-indicator away-blue"></span>
                     </div>
+                </div>
+                <div class="possession-strip" aria-label="Possession">
+                    <span id="poss-home-label">50%</span>
+                    <div class="possession-bar"><div id="poss-home-bar" style="width:50%"></div></div>
+                    <span id="poss-away-label">50%</span>
                 </div>
 
                 <!-- CANVAS CONTAINER -->
                 <div class="canvas-container">
-                    <canvas id="pitchCanvas"></canvas>
+                    <canvas id="pitchCanvas" aria-label="Live 2D pitch"></canvas>
                 </div>
 
-                <!-- VIDEO REPLAY SCRUBBER CONTROLS -->
+                <!-- REPLAY CONTROLS -->
                 <div class="replay-controls-bar">
-                    <button id="play-pause-btn" class="control-btn" title="Play / Pause">
+                    <button id="step-back-btn" class="control-btn" title="Previous event (←)" aria-label="Previous event">
+                        <i class="fa-solid fa-backward-step"></i>
+                    </button>
+                    <button id="play-pause-btn" class="control-btn" title="Pause / play (Space)" aria-label="Pause or play">
                         <i class="fa-solid fa-pause"></i>
                     </button>
-                    
-                    <span class="time-display" id="replay-time">0:00</span>
-                    
+                    <button id="step-fwd-btn" class="control-btn" title="Next event (→)" aria-label="Next event">
+                        <i class="fa-solid fa-forward-step"></i>
+                    </button>
+
+                    <span class="time-display" id="replay-time">0'</span>
+
                     <div class="slider-wrapper">
-                        <input type="range" id="timeline-slider" min="0" max="100" value="100" step="1">
-                    </div>
-                    
-                    <span class="time-display" id="replay-duration">0:00</span>
-
-                    <div class="speed-selector">
-                        <select id="speed-select" class="speed-dropdown">
-                            <option value="1">1x</option>
-                            <option value="4">4x</option>
-                            <option value="10">10x</option>
-                        </select>
+                        <div class="timeline-markers" id="timeline-markers"></div>
+                        <input type="range" id="timeline-slider" min="0" max="0" value="0" step="1" aria-label="Match timeline">
                     </div>
 
-                    <button id="return-live-btn" class="return-live-btn" style="display: none;">
-                        <i class="fa-solid fa-play"></i> LIVE
+                    <span class="time-display" id="replay-duration">0'</span>
+
+                    <select id="speed-select" class="speed-dropdown" aria-label="Speed" title="Match and replay speed">
+                        <option value="1">1x</option>
+                        <option value="4">4x</option>
+                        <option value="10">10x</option>
+                    </select>
+
+                    <button id="return-live-btn" class="return-live-btn is-live" title="Back to live (L)">
+                        <span class="live-dot"></span> <span id="return-live-text">LIVE</span>
                     </button>
                 </div>
 
                 <!-- PITCH LEGEND -->
                 <div class="pitch-legend">
-                    <div class="legend-item"><span class="legend-dot home-red"></span> ARSENAL (RED)</div>
-                    <div class="legend-item"><span class="legend-dot away-blue"></span> MAN CITY (BLUE)</div>
-                    <div class="legend-item text-muted">LIVE POSITION TRACKING</div>
+                    <div class="legend-item"><span class="legend-dot home-red"></span> Arsenal</div>
+                    <div class="legend-item"><span class="legend-dot away-blue"></span> Man City</div>
+                    <div class="legend-item"><span class="legend-gradient"></span> Pass difficulty easy → hard</div>
+                    <div class="legend-item text-muted">Click a player to follow them · Space pause · ← → step · L live</div>
                 </div>
             </section>
 
             <!-- RIGHT SIDEBAR -->
             <aside class="sidebar">
-                <div class="card ai-card">
-                    <h3><i class="fa-solid fa-brain"></i> Live AI Match Intelligence</h3>
-                    <p class="commentary-text" id="ai-commentary">"Press 'START MATCH' to initiate real-time telemetry stream and AI tactical analysis."</p>
-                    <span class="ai-source" id="ai-source">AZURE OPENAI · TACTICAL ENGINE</span>
+                <div class="card ai-card" id="ai-card">
+                    <div class="card-header-flex">
+                        <h3><i class="fa-solid fa-brain"></i> Live AI Match Intelligence</h3>
+                        <span class="impact-badge" id="impact-badge" hidden>IMPACT</span>
+                    </div>
+                    <p class="commentary-text" id="ai-commentary">Press START MATCH to begin the live stream and tactical analysis.</p>
+                    <span class="ai-source" id="ai-source">—</span>
                 </div>
 
                 <div class="card telemetry-card">
-                    <h3>Live Telemetry</h3>
-                    <div class="metric-row"><span>xG</span><span id="val-xg">0.34</span></div>
-                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" id="bar-xg" style="width: 34%;"></div></div>
-                    
-                    <div class="metric-row"><span>Pass Difficulty</span><span id="val-pass-diff">88/100</span></div>
-                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" id="bar-pass-diff" style="width: 88%;"></div></div>
-                    
-                    <div class="metric-row"><span>Pressure</span><span class="highlight-yellow" id="val-pressure">HIGH</span></div>
-                    <div class="progress-bar-bg"><div class="progress-bar-fill yellow" id="bar-pressure" style="width: 85%;"></div></div>
+                    <div class="card-header-flex">
+                        <h3>Live Telemetry</h3>
+                        <span class="actor-chip" id="telemetry-actor">Current action</span>
+                    </div>
+                    <p class="card-note">Metrics of the action on screen, for whichever team is on the ball.</p>
+                    <div class="metric-row"><span>xG (shots)</span><span id="val-xg">—</span></div>
+                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" id="bar-xg" style="width:0%"></div></div>
+
+                    <div class="metric-row"><span>Pass difficulty</span><span id="val-pass-diff">—</span></div>
+                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" id="bar-pass-diff" style="width:0%"></div></div>
+
+                    <div class="metric-row"><span>Pressure <small id="val-defender" class="text-muted"></small></span><span class="highlight-yellow" id="val-pressure">—</span></div>
+                    <div class="progress-bar-bg"><div class="progress-bar-fill yellow" id="bar-pressure" style="width:0%"></div></div>
+
+                    <div class="telemetry-grid">
+                        <div><span class="tg-label">Ball speed</span><span id="val-ball-speed">—</span></div>
+                        <div><span class="tg-label">Forward gain</span><span id="val-gain">—</span></div>
+                        <div><span class="tg-label">Players bypassed</span><span id="val-bypassed">—</span></div>
+                    </div>
                 </div>
 
                 <div class="card event-log-card">
                     <div class="card-header-flex">
                         <h3>Live Event Log</h3>
+                        <label class="toggle-label"><input type="checkbox" id="impact-only"> Impact only</label>
                         <span class="badge" id="event-count">0 events</span>
                     </div>
-                    <div class="event-list" id="event-log-container">
-                    </div>
+                    <div class="event-list" id="event-log-container"></div>
                 </div>
             </aside>
         </main>
 
         <!-- BOTTOM DRAWER -->
         <footer class="bottom-drawer">
-            <div class="drawer-tabs">
+            <div class="drawer-tabs" role="tablist">
                 <button class="drawer-tab-btn active" data-tab="stats"><i class="fa-solid fa-chart-column"></i> Match Stats</button>
                 <button class="drawer-tab-btn" data-tab="tactics"><i class="fa-solid fa-shield-halved"></i> Tactics</button>
-                <button class="drawer-tab-btn" data-tab="events"><i class="fa-solid fa-bolt"></i> Events</button>
+                <button class="drawer-tab-btn" data-tab="events"><i class="fa-solid fa-bolt"></i> Key Events</button>
                 <button class="drawer-tab-btn" data-tab="analysis"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Analysis</button>
                 <button class="drawer-tab-btn" data-tab="ask-ai"><i class="fa-solid fa-comments"></i> Talk to AI</button>
             </div>
@@ -156,100 +190,65 @@
             <div class="drawer-content">
                 <!-- TAB 1: MATCH STATS -->
                 <div class="tab-panel active" id="panel-stats">
-                    <div class="stats-overview-grid">
-                        <div class="team-card home-border">
-                            <div class="team-card-header">
-                                <h4 class="team-header-red"><span class="legend-dot home-red"></span> ARSENAL</h4>
-                                <span class="rating-badge red">8.4 Rating</span>
-                            </div>
-                            <div class="stat-comparison-list">
-                                <div class="stat-bar-item">
-                                    <div class="stat-label-flex"><span>Possession</span><span>54%</span></div>
-                                    <div class="progress-bar-bg"><div class="progress-bar-fill red" style="width: 54%;"></div></div>
-                                </div>
-                                <div class="stat-bar-item">
-                                    <div class="stat-label-flex"><span>Total Shots (On Target)</span><span>11 (5)</span></div>
-                                    <div class="progress-bar-bg"><div class="progress-bar-fill red" style="width: 65%;"></div></div>
-                                </div>
-                                <div class="stat-bar-item">
-                                    <div class="stat-label-flex"><span>Expected Goals (xG)</span><span>1.84</span></div>
-                                    <div class="progress-bar-bg"><div class="progress-bar-fill red" style="width: 58%;"></div></div>
-                                </div>
-                                <div class="stat-bar-item">
-                                    <div class="stat-label-flex"><span>Pass Completion</span><span>88%</span></div>
-                                    <div class="progress-bar-bg"><div class="progress-bar-fill red" style="width: 88%;"></div></div>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="h2h-header">
+                        <div class="h2h-team home"><span class="legend-dot home-red"></span> ARSENAL <span class="rating-badge red" id="rating-home">6.0</span></div>
+                        <div class="h2h-team away"><span class="rating-badge blue" id="rating-away">6.0</span> MAN CITY <span class="legend-dot away-blue"></span></div>
+                    </div>
+                    <div class="h2h-list" id="h2h-list"></div>
 
-                        <div class="team-card away-border">
-                            <div class="team-card-header">
-                                <h4 class="team-header-blue"><span class="legend-dot away-blue"></span> MANCHESTER CITY</h4>
-                                <span class="rating-badge blue">7.8 Rating</span>
-                            </div>
-                            <div class="stat-comparison-list">
-                                <div class="stat-bar-item">
-                                    <div class="stat-label-flex"><span>Possession</span><span>46%</span></div>
-                                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" style="width: 46%;"></div></div>
-                                </div>
-                                <div class="stat-bar-item">
-                                    <div class="stat-label-flex"><span>Total Shots (On Target)</span><span>9 (3)</span></div>
-                                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" style="width: 45%;"></div></div>
-                                </div>
-                                <div class="stat-bar-item">
-                                    <div class="stat-label-flex"><span>Expected Goals (xG)</span><span>1.12</span></div>
-                                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" style="width: 40%;"></div></div>
-                                </div>
-                                <div class="stat-bar-item">
-                                    <div class="stat-label-flex"><span>Pass Completion</span><span>82%</span></div>
-                                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" style="width: 82%;"></div></div>
-                                </div>
-                            </div>
+                    <div class="player-stats-head">
+                        <h4>Player statistics</h4>
+                        <div class="seg" role="group" aria-label="Team">
+                            <button class="seg-btn active" data-team="Arsenal">Arsenal</button>
+                            <button class="seg-btn" data-team="ManCity">Man City</button>
                         </div>
                     </div>
+                    <div class="table-scroll">
+                        <table class="player-table" id="player-table"></table>
+                    </div>
+                    <p class="card-note">Click a column to sort, click a player to follow them in Player Cam. Ratings start at 6.0 and move with each action.</p>
                 </div>
 
                 <!-- TAB 2: TACTICS -->
                 <div class="tab-panel" id="panel-tactics">
-                    <div class="tactical-pills-grid">
-                        <div class="tactical-card">
-                            <h5>Arsenal: Right Flank Overload (4-3-3)</h5>
-                            <p>Ødegaard drifting into right half-space to support Saka. Creating 2v1 advantages against Gvardiol under transition.</p>
-                        </div>
-                        <div class="tactical-card">
-                            <h5>City: High Mid-Block (3-2-4-1)</h5>
-                            <p>Operating a compact press with Rodri anchoring. Haaland cutting off central passing lanes to Rice.</p>
+                    <div class="tactics-layout">
+                        <div class="tactics-cards" id="tactics-cards"></div>
+                        <div class="avg-pitch-wrap">
+                            <h5>Average positions</h5>
+                            <svg id="avg-pitch" viewBox="-2 -2 109 72" role="img" aria-label="Average player positions"></svg>
+                            <p class="card-note">Where each player has stood on average this match. Both teams on one pitch; Arsenal attack →.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- TAB 3: EVENTS -->
+                <!-- TAB 3: KEY EVENTS -->
                 <div class="tab-panel" id="panel-events">
-                    <div class="events-log-full">
-                        <ul class="event-timeline-list">
-                            <li><span class="time-tag">64'</span> ⚽ <strong>GOAL!</strong> Haaland headers home from a De Bruyne corner (0.38 xG)</li>
-                            <li><span class="time-tag">58'</span> 🟨 <strong>YELLOW CARD</strong> Rodri for tactical shirt-pull on Rice</li>
-                            <li><span class="time-tag">51'</span> 🧱 <strong>BLOCKED SHOT</strong> Foden attempt blocked by Saliba inside penalty box</li>
-                            <li><span class="time-tag">42'</span> ⚽ <strong>GOAL!</strong> Saka curls bottom corner following Ødegaard line-breaker</li>
-                            <li><span class="time-tag">38'</span> 🧤 <strong>SAVE!</strong> Raya tips De Bruyne long-range strike over the crossbar</li>
-                            <li><span class="time-tag">29'</span> 🎯 <strong>SHOT OFF TARGET</strong> Martinelli misses narrowly past left post</li>
-                            <li><span class="time-tag">18'</span> 🟨 <strong>YELLOW CARD</strong> Saliba (Tactical Foul)</li>
-                        </ul>
-                    </div>
+                    <p class="card-note">The match summary: goals, cards, substitutions, big chances and saves. Click any moment to replay its build-up.</p>
+                    <ul class="event-timeline-list" id="key-events-list"></ul>
                 </div>
 
                 <!-- TAB 4: IN-DEPTH ANALYSIS -->
                 <div class="tab-panel" id="panel-analysis">
                     <div class="analysis-grid">
-                        <div class="analysis-card">
-                            <span class="analysis-tag red">CONTROL VS CHAOS</span>
-                            <h5>Flank Penetration Index</h5>
-                            <p>Arsenal's expected threat (xT) increases by +0.31 whenever passes enter the final third via Saka on the right wing.</p>
+                        <div class="analysis-card wide">
+                            <h5>xG race</h5>
+                            <p class="card-note">Cumulative expected goals; dots are goals. Hover for the minute-by-minute value.</p>
+                            <div class="chart-box"><svg id="xg-chart" role="img" aria-label="Cumulative xG over time"></svg></div>
+                        </div>
+                        <div class="analysis-card wide">
+                            <h5>Momentum</h5>
+                            <p class="card-note">Bars above the line: Arsenal on top. Below: Man City. Built from final-third actions, shots, line breaks and ball wins.</p>
+                            <div class="chart-box short"><svg id="momentum-chart" role="img" aria-label="Momentum over time"></svg></div>
                         </div>
                         <div class="analysis-card">
-                            <span class="analysis-tag yellow">PRESSING EFFICIENCY</span>
-                            <h5>High Pressure Recovery</h5>
-                            <p>City recovering possession within 6 seconds on 62% of lost balls inside the midfield third.</p>
+                            <h5>Shot map</h5>
+                            <p class="card-note">Size = xG. Filled = goal, ring = no goal.</p>
+                            <svg id="shot-map" viewBox="-2 -2 109 72" role="img" aria-label="Shot map"></svg>
+                        </div>
+                        <div class="analysis-card">
+                            <h5>Impact moments</h5>
+                            <p class="card-note">Moments the engine flagged for AI analysis, with the explanation. Click to replay.</p>
+                            <ul class="impact-list" id="impact-list"></ul>
                         </div>
                     </div>
                 </div>
@@ -257,16 +256,23 @@
                 <!-- TAB 5: TALK TO AI -->
                 <div class="tab-panel" id="panel-ask-ai">
                     <div class="ai-query-box">
-                        <input type="text" id="ai-query-input" placeholder="Ask a tactical question (e.g. 'Why is Saka drifting so wide right now?')..." />
+                        <input type="text" id="ai-query-input" placeholder="Ask about the match, e.g. 'Who is pressing better?' or 'How is Saka playing?'" />
                         <button id="ai-query-send-btn"><i class="fa-solid fa-paper-plane"></i> Ask AI</button>
                     </div>
+                    <div class="suggestions" id="ai-suggestions">
+                        <button class="chip">Who has the momentum?</button>
+                        <button class="chip">Compare the xG</button>
+                        <button class="chip">How are the teams pressing?</button>
+                        <button class="chip">How is Haaland playing?</button>
+                    </div>
                     <div class="ai-query-response" id="ai-query-response">
-                        <p class="placeholder-text">Type a question above to get real-time tactical reasoning powered by Azure OpenAI.</p>
+                        <p class="placeholder-text">Answers use the live match data. With Azure OpenAI keys set they come from the model; otherwise from the local engine.</p>
                     </div>
                 </div>
             </div>
         </footer>
     </div>
+    <div class="chart-tooltip" id="chart-tooltip" hidden></div>
 
     <script src="/static/app.js"></script>
 </body>
