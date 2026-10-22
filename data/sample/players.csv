@@ -1,0 +1,85 @@
+match_id,team,id,name,num,pos,starter,goals,assists,shots,on_target,xg,passes,passes_completed,key_passes,line_breaks,dribbles,dribbles_won,tackles,tackles_won,interceptions,fouls,yellow,red,saves,touches,sprints,top_speed,distance_km,minutes,rating,sub_on,sub_off
+1,Arsenal,Raya,David Raya,22,GK,True,0,0,0,0,0.0,5,2,0,0,0,0,0,0,1,0,0,0,1,6,0,0.0,4.2,90,6.3,,
+1,Arsenal,White,Ben White,4,RB,True,0,0,0,0,0.0,2,2,0,0,0,0,0,0,0,0,0,0,0,4,0,0.0,10.0,90,6.1,,
+1,Arsenal,Saliba,William Saliba,2,CB,True,0,0,0,0,0.0,5,4,0,1,0,0,0,0,3,0,0,0,0,10,0,0.0,10.0,90,6.7,,
+1,Arsenal,Gabriel,Gabriel Magalhães,6,CB,True,0,0,0,0,0.0,5,5,0,0,0,0,0,0,0,0,0,0,0,9,0,0.0,8.5,76,6.2,,76
+1,Arsenal,Timber,Jurriën Timber,12,LB,True,0,0,0,0,0.0,4,4,1,2,0,0,0,0,1,0,0,0,0,8,2,0.0,10.0,90,7.0,,
+1,Arsenal,Rice,Declan Rice,41,CDM,True,0,0,0,0,0.0,16,15,2,7,1,1,0,0,2,0,0,0,0,33,4,30.3,10.2,90,8.8,,
+1,Arsenal,Ødegaard,Martin Ødegaard,8,CAM,True,0,0,3,0,0.27,5,2,0,0,3,3,0,0,0,0,0,0,0,19,6,33.0,10.2,90,6.4,,
+1,Arsenal,Merino,Mikel Merino,23,CM,True,0,0,0,0,0.0,6,5,2,3,0,0,0,0,1,0,0,0,0,12,3,0.0,8.8,78,7.4,,78
+1,Arsenal,Saka,Bukayo Saka,7,RW,True,0,0,2,0,0.18,2,1,0,0,0,0,0,0,0,0,0,0,0,7,1,33.1,10.2,90,6.1,,
+1,Arsenal,Havertz,Kai Havertz,29,ST,True,0,0,4,3,1.0,11,10,2,0,1,0,1,1,4,0,0,0,0,29,6,34.3,10.2,90,8.4,,
+1,Arsenal,Martinelli,Gabriel Martinelli,11,LW,True,0,0,0,0,0.0,3,1,0,0,1,1,0,0,0,0,0,0,0,8,5,33.2,6.9,61,6.0,,61
+1,Arsenal,Trossard,Leandro Trossard,19,LW,False,0,0,0,0,0.0,2,2,1,0,1,1,0,0,1,0,0,0,0,5,2,31.4,3.2,28,6.6,61,
+1,Arsenal,Jorginho,Jorginho,20,CDM,False,0,0,0,0,0.0,1,1,0,0,0,0,0,0,0,0,0,0,0,2,0,0.0,1.3,11,6.0,78,
+1,Arsenal,Kiwior,Jakub Kiwior,15,CB,False,0,0,0,0,0.0,2,2,0,0,0,0,0,0,1,0,0,0,0,4,0,0.0,1.5,13,6.2,76,
+1,ManCity,Ederson,Ederson,31,GK,True,0,0,0,0,0.0,6,6,0,0,0,0,0,0,0,0,0,0,3,6,0,0.0,4.2,90,7.1,,
+1,ManCity,Walker,Kyle Walker,2,RB,True,0,0,0,0,0.0,5,5,0,2,0,0,0,0,1,0,0,0,0,10,0,0.0,10.0,90,6.8,,
+1,ManCity,Dias,Rúben Dias,3,CB,True,0,0,0,0,0.0,9,7,1,3,0,0,0,0,1,0,0,0,0,18,2,0.0,10.1,90,7.1,,
+1,ManCity,Akanji,Manuel Akanji,25,CB,True,0,0,0,0,0.0,4,3,0,2,1,1,0,0,0,0,0,0,0,8,1,32.1,7.7,69,6.6,,69
+1,ManCity,Gvardiol,Joško Gvardiol,24,LB,True,0,0,0,0,0.0,2,2,0,1,0,0,0,0,0,0,0,0,0,5,1,0.0,10.0,90,6.3,,
+1,ManCity,Rodri,Rodri,16,CDM,True,0,0,0,0,0.0,10,7,0,2,1,0,0,0,3,0,0,0,0,21,2,0.0,10.1,90,6.8,,
+1,ManCity,De Bruyne,Kevin De Bruyne,17,CM,True,0,0,0,0,0.0,7,4,1,2,0,0,0,0,1,0,0,0,0,14,4,0.0,8.0,70,6.7,,70
+1,ManCity,Foden,Phil Foden,47,CM,True,0,0,1,0,0.08,4,4,0,1,1,1,0,0,1,0,0,0,0,11,2,30.6,10.4,90,6.7,,
+1,ManCity,Bernardo,Bernardo Silva,20,RW,True,0,0,2,1,0.12,6,4,2,0,0,0,0,0,2,0,0,0,0,16,6,34.8,10.2,90,7.0,,
+1,ManCity,Haaland,Erling Haaland,9,ST,True,1,0,4,1,0.97,4,4,0,0,1,1,1,0,1,1,1,0,0,15,4,33.0,10.3,90,7.6,,
+1,ManCity,Doku,Jérémy Doku,11,LW,True,0,0,0,0,0.0,2,2,0,0,0,0,0,0,0,0,0,0,0,4,2,0.0,7.2,64,6.1,,64
+1,ManCity,Grealish,Jack Grealish,10,LW,False,0,0,0,0,0.0,3,3,1,0,1,1,0,0,0,0,0,0,0,7,2,33.3,2.9,25,6.5,64,
+1,ManCity,Kovačić,Mateo Kovačić,8,CM,False,0,0,0,0,0.0,3,2,0,0,0,0,0,0,1,0,0,0,0,6,1,0.0,2.3,19,6.2,70,
+1,ManCity,Stones,John Stones,5,CB,False,0,0,0,0,0.0,3,1,0,0,0,0,0,0,2,0,0,0,0,6,0,0.0,2.4,21,6.2,69,
+2,Arsenal,Raya,David Raya,22,GK,True,0,0,0,0,0.0,3,2,0,0,0,0,0,0,1,0,0,0,0,4,0,0.0,4.2,90,6.2,,
+2,Arsenal,White,Ben White,4,RB,True,0,0,0,0,0.0,2,1,0,0,1,1,0,0,2,0,0,0,0,5,1,29.0,9.8,90,6.4,,
+2,Arsenal,Saliba,William Saliba,2,CB,True,0,0,0,0,0.0,6,5,0,1,1,1,0,0,2,0,0,0,0,14,2,27.2,9.8,90,6.7,,
+2,Arsenal,Gabriel,Gabriel Magalhães,6,CB,True,0,0,0,0,0.0,3,2,0,1,0,0,0,0,1,0,0,0,0,7,0,0.0,6.5,59,6.4,,59
+2,Arsenal,Timber,Jurriën Timber,12,LB,True,0,0,0,0,0.0,5,3,1,2,0,0,0,0,0,0,0,0,0,10,0,0.0,9.8,90,6.6,,
+2,Arsenal,Rice,Declan Rice,41,CDM,True,0,0,0,0,0.0,4,3,0,0,0,0,1,0,1,1,1,0,0,8,0,0.0,10.0,90,5.8,,
+2,Arsenal,Ødegaard,Martin Ødegaard,8,CAM,True,0,0,3,0,0.68,6,5,1,1,3,2,0,0,1,0,0,0,0,21,8,33.2,10.0,90,7.3,,
+2,Arsenal,Merino,Mikel Merino,23,CM,True,0,0,0,0,0.0,10,9,3,2,0,0,1,0,2,1,0,0,0,20,3,0.0,9.1,81,7.6,,81
+2,Arsenal,Saka,Bukayo Saka,7,RW,True,0,0,1,0,0.07,3,1,0,0,1,0,0,0,1,0,0,0,0,9,1,33.2,10.0,90,6.0,,
+2,Arsenal,Havertz,Kai Havertz,29,ST,True,0,0,5,0,1.31,5,5,0,0,0,0,1,1,2,0,0,0,0,17,3,32.0,10.2,90,7.5,,
+2,Arsenal,Martinelli,Gabriel Martinelli,11,LW,True,0,0,1,1,0.04,6,6,2,0,4,4,0,0,2,0,0,0,0,18,7,30.8,9.1,81,7.6,,81
+2,Arsenal,Trossard,Leandro Trossard,19,LW,False,0,0,0,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.0,1.1,8,6.0,81,
+2,Arsenal,Jorginho,Jorginho,20,CDM,False,0,0,0,0,0.0,1,1,1,1,0,0,0,0,1,0,0,0,0,2,0,0.0,1.0,8,6.6,81,
+2,Arsenal,Kiwior,Jakub Kiwior,15,CB,False,0,0,0,0,0.0,1,1,0,0,0,0,0,0,1,0,0,0,0,2,0,0.0,3.3,30,6.2,59,
+2,ManCity,Ederson,Ederson,31,GK,True,0,0,0,0,0.0,4,4,0,1,0,0,0,0,1,0,0,0,1,5,0,0.0,4.2,90,6.8,,
+2,ManCity,Walker,Kyle Walker,2,RB,True,0,0,0,0,0.0,9,7,0,0,3,3,0,0,0,0,0,0,0,21,5,26.8,9.8,90,6.5,,
+2,ManCity,Dias,Rúben Dias,3,CB,True,0,0,0,0,0.0,11,8,1,2,0,0,1,1,2,0,0,0,0,19,0,0.0,9.9,90,7.2,,
+2,ManCity,Akanji,Manuel Akanji,25,CB,True,0,0,0,0,0.0,7,6,0,1,1,1,0,0,2,0,0,0,0,14,1,31.4,8.3,76,6.8,,76
+2,ManCity,Gvardiol,Joško Gvardiol,24,LB,True,0,0,0,0,0.0,4,3,0,0,1,1,0,0,0,0,0,0,0,9,1,28.6,9.8,90,6.2,,
+2,ManCity,Rodri,Rodri,16,CDM,True,0,0,0,0,0.0,10,6,0,3,4,1,0,0,1,0,0,0,0,25,3,24.1,9.9,90,6.5,,
+2,ManCity,De Bruyne,Kevin De Bruyne,17,CM,True,0,0,0,0,0.0,7,7,0,2,0,0,0,0,2,0,0,0,0,14,2,0.0,8.8,78,7.0,,78
+2,ManCity,Foden,Phil Foden,47,CM,True,0,0,0,0,0.0,7,4,1,1,0,0,1,1,0,0,0,0,0,14,2,0.0,9.8,90,6.6,,
+2,ManCity,Bernardo,Bernardo Silva,20,RW,True,0,1,1,0,0.09,5,5,1,1,0,0,0,0,0,0,0,0,0,11,5,29.6,10.0,90,7.3,,
+2,ManCity,Haaland,Erling Haaland,9,ST,True,1,0,2,1,0.43,4,3,1,0,0,0,0,0,2,0,0,0,0,11,3,30.4,9.9,90,7.8,,
+2,ManCity,Doku,Jérémy Doku,11,LW,True,0,0,1,0,0.11,3,2,0,0,2,2,0,0,0,0,0,0,0,10,6,32.4,6.6,60,6.3,,60
+2,ManCity,Grealish,Jack Grealish,10,LW,False,0,0,0,0,0.0,1,1,0,0,0,0,0,0,0,0,0,0,0,2,0,33.0,3.3,29,6.0,60,
+2,ManCity,Kovačić,Mateo Kovačić,8,CM,False,0,0,0,0,0.0,1,0,0,0,0,0,0,0,1,0,0,0,0,2,0,0.0,1.2,11,6.1,78,
+2,ManCity,Stones,John Stones,5,CB,False,0,0,0,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.0,1.5,13,6.0,76,
+3,Arsenal,Raya,David Raya,22,GK,True,0,0,0,0,0.0,6,4,0,1,0,0,0,0,0,0,0,0,1,6,0,0.0,4.2,90,6.5,,
+3,Arsenal,White,Ben White,4,RB,True,0,0,0,0,0.0,5,3,0,0,0,0,0,0,0,0,0,0,0,10,0,0.0,9.9,90,6.0,,
+3,Arsenal,Saliba,William Saliba,2,CB,True,0,0,0,0,0.0,2,2,0,0,0,0,0,0,1,0,0,0,0,5,1,0.0,10.0,90,6.2,,
+3,Arsenal,Gabriel,Gabriel Magalhães,6,CB,True,0,0,0,0,0.0,5,4,0,3,0,0,0,0,3,0,0,0,0,10,2,0.0,7.5,66,7.1,,66
+3,Arsenal,Timber,Jurriën Timber,12,LB,True,0,0,0,0,0.0,1,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0.0,10.0,90,5.9,,
+3,Arsenal,Rice,Declan Rice,41,CDM,True,0,0,0,0,0.0,5,5,0,2,0,0,3,3,1,0,0,0,0,10,1,0.0,10.1,90,7.4,,
+3,Arsenal,Ødegaard,Martin Ødegaard,8,CAM,True,0,0,1,0,0.12,8,6,2,1,3,2,1,1,1,0,0,0,0,22,7,32.0,10.4,90,7.3,,
+3,Arsenal,Merino,Mikel Merino,23,CM,True,0,0,0,0,0.0,6,5,1,2,0,0,0,0,1,0,0,0,0,12,2,0.0,8.0,71,6.9,,71
+3,Arsenal,Saka,Bukayo Saka,7,RW,True,0,0,0,0,0.0,7,4,0,0,2,2,0,0,2,0,0,0,0,16,5,34.1,10.1,90,6.5,,
+3,Arsenal,Havertz,Kai Havertz,29,ST,True,1,0,4,2,1.18,5,4,2,0,2,1,1,0,0,1,1,0,0,17,6,33.4,10.1,90,8.0,,
+3,Arsenal,Martinelli,Gabriel Martinelli,11,LW,True,0,1,2,2,0.23,1,1,1,0,3,3,0,0,0,0,0,0,0,9,6,34.0,7.2,64,7.6,,64
+3,Arsenal,Trossard,Leandro Trossard,19,LW,False,0,0,0,0,0.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.0,2.9,25,6.0,64,
+3,Arsenal,Jorginho,Jorginho,20,CDM,False,0,0,0,0,0.0,2,1,0,1,0,0,0,0,1,0,0,0,0,4,1,0.0,2.1,18,6.3,71,
+3,Arsenal,Kiwior,Jakub Kiwior,15,CB,False,0,0,0,0,0.0,1,1,0,0,0,0,0,0,0,0,0,0,0,2,0,0.0,2.5,23,6.0,66,
+3,ManCity,Ederson,Ederson,31,GK,True,0,0,0,0,0.0,5,4,0,0,0,0,0,0,0,0,0,0,3,5,0,0.0,4.2,90,7.0,,
+3,ManCity,Walker,Kyle Walker,2,RB,True,0,0,0,0,0.0,5,4,1,1,0,0,0,0,1,0,0,0,0,10,2,0.0,10.0,90,6.7,,
+3,ManCity,Dias,Rúben Dias,3,CB,True,0,0,0,0,0.0,3,3,0,1,0,0,0,0,0,0,0,0,0,6,1,0.0,10.1,90,6.3,,
+3,ManCity,Akanji,Manuel Akanji,25,CB,True,0,0,0,0,0.0,6,4,0,1,2,1,0,0,5,0,0,0,0,15,1,33.6,6.8,60,7.0,,60
+3,ManCity,Gvardiol,Joško Gvardiol,24,LB,True,0,0,0,0,0.0,5,5,0,1,1,1,0,0,2,0,0,0,0,12,2,25.8,10.0,90,6.8,,
+3,ManCity,Rodri,Rodri,16,CDM,True,0,1,0,0,0.0,10,9,2,4,2,1,0,0,1,0,0,0,0,22,4,31.0,10.0,90,8.3,,
+3,ManCity,De Bruyne,Kevin De Bruyne,17,CM,True,0,0,0,0,0.0,7,6,1,1,4,2,0,0,0,0,0,0,0,20,5,31.5,8.3,73,6.7,,73
+3,ManCity,Foden,Phil Foden,47,CM,True,0,1,0,0,0.0,10,7,3,1,3,2,1,1,1,0,0,0,0,24,5,28.9,10.2,90,8.1,,
+3,ManCity,Bernardo,Bernardo Silva,20,RW,True,0,0,0,0,0.0,2,2,0,0,1,1,0,0,0,0,0,0,0,5,2,30.8,10.0,90,6.2,,
+3,ManCity,Haaland,Erling Haaland,9,ST,True,2,0,5,3,1.14,4,4,0,0,1,1,1,1,1,0,0,0,0,17,5,34.2,10.0,90,9.4,,
+3,ManCity,Doku,Jérémy Doku,11,LW,True,0,0,1,0,0.09,4,3,0,0,0,0,0,0,0,0,0,0,0,10,3,28.1,8.2,72,6.1,,72
+3,ManCity,Grealish,Jack Grealish,10,LW,False,0,0,2,0,0.14,1,1,0,0,2,2,0,0,2,0,0,0,0,8,3,32.6,1.9,17,6.7,72,
+3,ManCity,Kovačić,Mateo Kovačić,8,CM,False,0,0,0,0,0.0,2,2,0,0,0,0,0,0,0,0,0,0,0,4,2,0.0,1.8,16,6.1,73,
+3,ManCity,Stones,John Stones,5,CB,False,0,0,0,0,0.0,4,4,0,0,0,0,0,0,1,0,0,0,0,8,1,0.0,3.2,29,6.3,60,

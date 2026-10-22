@@ -1,9 +1,10 @@
 """Stage 4 - FastAPI WebSocket server.
 
 Each connection runs its own match. The sender loop generates an event,
-updates the statistics, renders the three personas from templates and sends
-it at once; impact moments are then upgraded with Azure OpenAI text in the
-background, so the AI never holds up the stream.
+updates the statistics, renders the three personas, alerts, key-event story
+and any half-time/full-time report from templates, builds the overlay cues and
+sends it all at once. Azure OpenAI then upgrades impact moments, stories and
+reports in the background, so the AI never holds up the stream.
 """
 import asyncio
 import json
@@ -25,10 +26,11 @@ except ImportError:
     pass
 
 import agent_reasoner
-from analytics import MatchStats
+import overlays
+from analytics import MatchStats, is_key_event
 from generator import AWAY, FORMATIONS, HOME, SQUADS, MatchSim
 from models import ClientConfig, Event
-from persona_router import TEAM_NAMES, Context, render
+from persona_router import TEAM_NAMES, Context, alert_text, render, report_text, story
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("secondtouch")
@@ -61,36 +63,58 @@ async def get_squads():
     return {"squads": SQUADS, "formations": FORMATIONS, "home": HOME, "away": AWAY}
 
 
+@app.get("/api/overlay-schema")
+async def overlay_schema():
+    return {"version": overlays.SCHEMA_VERSION, "doc": overlays.__doc__}
+
+
 class Session:
     def __init__(self, ws):
         self.ws = ws
         self.cfg = {"mode": "PLAYER_CAM", "team": HOME, "player": "Saka", "speed": 1,
-                    "lang": "en", "interval": DEFAULT_INTERVAL}
+                    "lang": "en", "interval": DEFAULT_INTERVAL, "fav_team": "NONE"}
         self.lock = asyncio.Lock()
         self.wake = asyncio.Event()
         self.match_id = 0
-        self.last = None  # (event, context) of the latest event, for re-rendering
-        self.recent = []  # last few events for the Talk to AI context
+        self.last = None   # everything needed to re-render the latest event's text
+        self.recent = []   # last few events for the Talk to AI context
         self.new_match()
 
     def new_match(self):
         self.match_id += 1
         self.sim = MatchSim()
         self.stats = MatchStats(SQUADS, FORMATIONS, HOME, AWAY)
-        self.last, self.recent = None, []
+        self.last, self.recent, self.reports = None, [], {}
 
     async def send(self, obj):
         async with self.lock:
             await self.ws.send_text(json.dumps(obj, ensure_ascii=False))
 
-    def context(self, ev):
+    def fav(self):
+        return None if self.cfg["fav_team"] == "NONE" else self.cfg["fav_team"]
+
+    def context(self):
         team, player = self.cfg["team"], self.cfg["player"]
         teams = {t: self.stats.team_stats(t) for t in (HOME, AWAY)}
         return Context(
             HOME, AWAY, self.stats.summary(), self.sim.positions, team, player,
             self.stats.player_line(team, player),
             {t: (teams[t]["xg"], teams[t]["shots"]) for t in (HOME, AWAY)},
+            right_team=self.sim.right_team, fav_team=self.fav(),
         )
+
+    def lines(self):
+        return {(t, pid): self.stats.player_line(t, pid) for t in (HOME, AWAY) for pid in SQUADS[t]}
+
+    def texts(self, ev, ctx, alerts, buildup, report, lines, lang):
+        """All language-dependent text for one event."""
+        out = {
+            "commentary": render(ev, ctx, lang),
+            "alerts": [dict(a, text=alert_text(a, lang)) for a in alerts],
+            "story": story(ev, buildup, ctx, lines, lang) if is_key_event(ev) else None,
+            "report": dict(report, narrative=report_text(report, lang)) if report else None,
+        }
+        return out
 
     # ---- sender ------------------------------------------------------------
     async def run(self):
@@ -98,32 +122,52 @@ class Session:
                          "deployment": agent_reasoner._deployment() if agent_reasoner.configured() else None,
                          "interval": self.cfg["interval"], "squads": SQUADS, "formations": FORMATIONS,
                          "home": HOME, "away": AWAY})
+        await self.send_match_start()
         while True:
             speed = self.cfg["speed"]
             focus = self.cfg["mode"] == "PLAYER_CAM"
             ev = self.sim.next_event(self.cfg["team"], self.cfg["player"], 0.5 if focus else 0.0)
-            if ev is None:  # full time was sent last tick: leave time to read the stats, then a new match
+            if ev is None:  # full time was sent last tick: leave time to read the report, then a new match
                 await self.sleep(max(8, 20 / speed))
                 self.new_match()
+                await self.send_match_start()
                 continue
             if VALIDATE:
                 Event.model_validate(ev)
             self.stats.update(ev, self.sim.positions, self.sim.possession)
-            ctx = self.context(ev)
+            ctx = self.context()
             lang = self.cfg["lang"]
-            commentary = render(ev, ctx, lang)
-            self.last = (ev, ctx)
+            alerts, buildup = list(self.stats.alerts), list(self.stats.buildup)
+            report = self.stats.report(ev) if ev["event_type"] in ("HALF_TIME", "FULL_TIME") else None
+            lines = self.lines()
+            texts = self.texts(ev, ctx, alerts, buildup, report, lines, lang)
+            self.last = (ev, ctx, alerts, buildup, report, lines)
             self.recent = (self.recent + [ev])[-8:]
+            if report:
+                self.reports[ev["event_type"]] = texts["report"]
+            interval_ms = round(self.cfg["interval"] * 1000 / speed)
             await self.send({
                 "type": "event", "match_id": self.match_id, "event": ev,
                 "positions": self.sim.positions, "possession": self.sim.possession,
-                "commentary": {**commentary, "source": "LOCAL ENGINE", "lang": lang},
+                "commentary": {**texts["commentary"], "source": "LOCAL ENGINE", "lang": lang},
+                "alerts": texts["alerts"], "story": texts["story"], "report": texts["report"],
+                "overlays": overlays.build(ev, self.sim.positions, texts["commentary"], texts["alerts"],
+                                           texts["story"], texts["report"], interval_ms),
                 "summary": ctx.summary, "stats": self.stats.snapshot(),
                 "sent_at": time.time() * 1000,
             })
-            if ev["is_impact_moment"] and speed == 1 and agent_reasoner.configured():
-                asyncio.create_task(self.upgrade(ev, ctx, lang, self.match_id))
-            await self.sleep(self.cfg["interval"] / speed)
+            if agent_reasoner.configured():
+                if ev["is_impact_moment"] and speed == 1:
+                    asyncio.create_task(self.upgrade(ev, ctx, lang, self.match_id))
+                if texts["story"] and speed == 1:
+                    asyncio.create_task(self.upgrade_story(ev, buildup, lines, lang, self.match_id))
+                if report:
+                    asyncio.create_task(self.upgrade_report(ev, report, lang, self.match_id))
+            pause = max(4, 12 / speed) if ev["event_type"] == "HALF_TIME" else self.cfg["interval"] / speed
+            await self.sleep(pause)
+
+    async def send_match_start(self):
+        await self.send({"type": "match_start", "match_id": self.match_id, "metadata": self.sim.metadata})
 
     async def sleep(self, seconds):
         """Sleep, but wake early when the viewer changes speed."""
@@ -133,14 +177,35 @@ class Session:
         except asyncio.TimeoutError:
             pass
 
+    def _current(self, match_id, lang):
+        return match_id == self.match_id and lang == self.cfg["lang"]
+
     async def upgrade(self, ev, ctx, lang, match_id):
         started = time.time()
         ai = await agent_reasoner.persona_commentary(ev, ctx, lang)
-        if not ai or match_id != self.match_id or lang != self.cfg["lang"]:
-            return
-        await self.send({"type": "commentary", "match_id": match_id, "seq": ev["seq"],
-                         "commentary": {**ai, "source": "AZURE OPENAI", "lang": lang},
-                         "ai_ms": round((time.time() - started) * 1000)})
+        if ai and self._current(match_id, lang):
+            await self.send({"type": "commentary", "match_id": match_id, "seq": ev["seq"],
+                             "commentary": {**ai, "source": "AZURE OPENAI", "lang": lang},
+                             "ai_ms": round((time.time() - started) * 1000)})
+
+    async def upgrade_story(self, ev, buildup, lines, lang, match_id):
+        facts = {"moment": {k: ev[k] for k in ("clock", "team", "player", "event_type", "outcome", "opponent",
+                                               "player_off", "card", "length_m", "score")},
+                 "xg": ev["metrics"]["xg"], "build_up": buildup,
+                 "players": {f"{t}:{p}": v for (t, p), v in lines.items()
+                             if p in (ev["player"], ev["opponent"], ev["player_off"]) and v}}
+        text = await agent_reasoner.narrative("story", facts, lang)
+        if text and self._current(match_id, lang):
+            await self.send({"type": "story", "match_id": match_id, "seq": ev["seq"], "story": text,
+                             "source": "AZURE OPENAI"})
+
+    async def upgrade_report(self, ev, report, lang, match_id):
+        text = await agent_reasoner.narrative("report", report, lang)
+        if text and self._current(match_id, lang):
+            if ev["event_type"] in self.reports:
+                self.reports[ev["event_type"]]["narrative"] = text
+            await self.send({"type": "report", "match_id": match_id, "seq": ev["seq"], "narrative": text,
+                             "source": "AZURE OPENAI"})
 
     # ---- receiver ------------------------------------------------------------
     async def receive(self):
@@ -162,18 +227,21 @@ class Session:
             self.cfg.update(changed)
             if "speed" in changed:
                 self.wake.set()
-            if self.last and changed.keys() & {"lang", "team", "player"}:
+            if self.last and changed.keys() & {"lang", "team", "player", "fav_team"}:
                 await self.rerender()
 
     async def rerender(self):
-        """Re-send the latest event's commentary for a new language or focus player, instantly."""
-        ev, ctx = self.last
+        """Re-send the latest event's text for a new language, focus player or favourite club, instantly."""
+        ev, ctx, alerts, buildup, report, lines = self.last
         ctx.focus_team, ctx.focus_player = self.cfg["team"], self.cfg["player"]
         ctx.focus_line = self.stats.player_line(ctx.focus_team, ctx.focus_player)
-        ctx.positions = self.sim.positions
-        commentary = render(ev, ctx, self.cfg["lang"])
+        ctx.positions, ctx.fav_team = self.sim.positions, self.fav()
+        lang = self.cfg["lang"]
+        texts = self.texts(ev, ctx, alerts, buildup, report, lines, lang)
         await self.send({"type": "commentary", "match_id": self.match_id, "seq": ev["seq"],
-                         "commentary": {**commentary, "source": "LOCAL ENGINE", "lang": self.cfg["lang"]}})
+                         "commentary": {**texts["commentary"], "source": "LOCAL ENGINE", "lang": lang},
+                         "alerts": texts["alerts"], "story": texts["story"],
+                         "report_narrative": texts["report"]["narrative"] if texts["report"] else None})
 
     async def answer(self, msg):
         question = str(msg.get("question", ""))[:500].strip()
@@ -191,16 +259,18 @@ class Session:
         snap = self.stats.snapshot()
         players = {
             t: [{k: p[k] for k in ("name", "pos", "minutes", "rating", "goals", "assists", "shots", "xg",
-                                   "passes_completed", "passes", "tackles_won", "touches", "sprints")}
+                                   "passes_completed", "passes", "tackles_won", "touches", "sprints",
+                                   "distance_km", "top_speed")}
                 for p in snap["players"][t] if p["minutes"]]
             for t in (HOME, AWAY)
         }
         tactics = {t: {k: v for k, v in snap["tactics"][t].items() if k != "avg_positions"} for t in (HOME, AWAY)}
         return {
-            "minute": self.stats.minute, "home": HOME, "away": AWAY,
+            "minute": self.stats.minute, "home": HOME, "away": AWAY, "metadata": self.sim.metadata,
             "score": self.last[0]["score"] if self.last else {"home": 0, "away": 0},
             "summary": self.stats.summary(), "teams": snap["teams"], "tactics": tactics,
-            "players": players,
+            "players": players, "favourite_club": self.fav(),
+            "reports": {k: v["narrative"] for k, v in self.reports.items()},
             "recent_events": [{k: e[k] for k in ("clock", "team", "player", "event_type", "outcome", "impact_reasons")}
                               for e in self.recent],
         }
@@ -219,13 +289,24 @@ class Session:
                     return (f"{p['name']} ({names[team]}, {p['pos']}): {p['minutes']} min, rating {p['rating']}, "
                             f"{p['goals']} goals, {p['shots']} shots ({p['on_target']} on target, {p['xg']:.2f} xG), "
                             f"{p['passes_completed']}/{p['passes']} passes, {p['tackles_won']} tackles won, "
-                            f"{p['touches']} touches, {p['sprints']} sprints.")
+                            f"{p['touches']} touches, {p['sprints']} sprints, {p['distance_km']} km covered, "
+                            f"top speed {p['top_speed']:.1f} km/h.")
         s = self.stats.summary()
         t = snap["teams"]
         mom = s["momentum"]
         lead = names[HOME] if mom > 0 else names[AWAY]
         mom_text = (f"{lead} have the momentum ({abs(mom)}/100)." if abs(mom) >= 20
                     else "Momentum is fairly even right now.")
+        if any(w in q for w in ("report", "summary", "recap", "half")) and self.reports:
+            latest = self.reports.get("FULL_TIME") or self.reports.get("HALF_TIME")
+            return latest["narrative"]
+        if any(w in q for w in ("chaos", "control", "tempo", "rhythm", "flow")):
+            f = s["flow"]
+            state = {"CONTROL": f"{names.get(f['state_team'], '')} are in control",
+                     "CHAOS": "the game is chaotic", "BALANCED": "the game is balanced"}[f["state"]]
+            return (f"Right now {state}: {f['turnover_rate']}% of recent actions changed possession. "
+                    f"Tempo is {f['tempo'].lower()}. Pressure index applied: {names[HOME]} {f['press'][HOME]}, "
+                    f"{names[AWAY]} {f['press'][AWAY]}.")
         if any(w in q for w in ("press", "tactic", "formation", "shape", "line", "width")):
             parts = []
             for team in (HOME, AWAY):
@@ -239,7 +320,7 @@ class Session:
         if any(w in q for w in ("xg", "chance", "shot")):
             return (f"xG {names[HOME]} {s['xg'][0]:.2f} from {t[HOME]['shots']} shots, "
                     f"{names[AWAY]} {s['xg'][1]:.2f} from {t[AWAY]['shots']} shots. {mom_text}")
-        if any(w in q for w in ("momentum", "on top", "dominat", "control")):
+        if any(w in q for w in ("momentum", "on top", "dominat")):
             return f"{mom_text} Possession {s['possession'][0]}-{s['possession'][1]}."
         ev = self.last[0]
         return (f"{ev['clock']}: {names[HOME]} {ev['score']['home']}-{ev['score']['away']} {names[AWAY]}, "

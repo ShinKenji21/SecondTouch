@@ -1,8 +1,10 @@
-/* SecondTouch frontend: live pitch, replay, broadcast cards and analysis tabs.
+/* SecondTouch frontend: live pitch, replay, broadcast cards, mode panels and analysis tabs.
  * The server sends one payload per event with all 22 player positions, the three
- * persona commentaries and the running statistics; this file only draws them. */
+ * persona commentaries, alerts, stories, reports, overlay cues and the running
+ * statistics; this file only draws them. */
 
 const HOME = "Arsenal", AWAY = "ManCity";
+const TEAMS = [HOME, AWAY];
 const TEAM_COLOR = { Arsenal: "#EF4444", ManCity: "#38BDF8" };
 const TEAM_INK = { Arsenal: "#FFFFFF", ManCity: "#06222F" };
 const TEAM_SHORT = { Arsenal: "ARS", ManCity: "MCI" };
@@ -13,6 +15,7 @@ const REASON_LABEL = {
     goal: "Goal", shot: "Shot", big_chance: "Big chance", line_breaking_pass: "Line-breaking pass",
     high_press_turnover: "High-press turnover", yellow_card: "Yellow card", red_card: "Red card",
 };
+const ON_BALL = new Set(["PASS", "DRIBBLE", "SHOT"]);
 const MAX_HISTORY = 2000;
 const TRAIL = 4;
 
@@ -21,12 +24,13 @@ const canvas = $("pitchCanvas");
 const ctx = canvas.getContext("2d");
 
 /* ---------- STATE ---------- */
-const settings = { mode: "PLAYER_CAM", team: HOME, player: "Saka", speed: 1, lang: "en" };
+const settings = { mode: "PLAYER_CAM", team: HOME, player: "Saka", speed: 1, lang: "en", fav_team: "NONE" };
+let pinned = "none";
 let squads = null;            // team -> pid -> {name, num, pos, starter}
 let interval = 1.5;           // seconds between events at 1x (from the server)
 let ws = null, started = false, connId = 0;
-let history = [];             // [{key, event, positions, possession, commentary, summary}]
-let matchKey = null;
+let history = [];             // [{key, event, positions, possession, commentary, summary, alerts, story, report, overlays}]
+let matchKey = null, metadata = null;
 let liveStats = null;
 let idx = -1;                 // index of the event on screen
 let live = true, replayPlaying = false, replayTimer = null, stopAt = null;
@@ -34,6 +38,7 @@ let anim = { start: 0, dur: 800, ballDur: 500, from: null, entry: null };
 let drawn = null;             // positions as last drawn, so jumps glide instead of teleport
 let hitTargets = [];
 let activeTab = "stats", statsTeam = HOME, sortKey = null, sortDir = -1;
+let reportEntry = null, lastPinnedText = "";
 const latencies = [];
 let askId = 0;
 
@@ -44,6 +49,11 @@ Object.values(crests).forEach(i => i.onload = buildPitchLayer);
 
 const player = (team, pid) => (squads && squads[team] && squads[team][pid]) || { name: pid, num: "", pos: "" };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const other = t => t === HOME ? AWAY : HOME;
+const fav = () => settings.fav_team === "NONE" ? null : settings.fav_team;
+const rightTeam = entry => (entry && entry.event.right_team) || HOME;
+/* Show Arsenal attacking → regardless of the half (shot map, average positions). */
+const normHome = (x, y, rt) => rt === HOME ? [x, y] : [100 - x, 100 - y];
 
 /* ---------- PITCH GEOMETRY (metres, 105 x 68, 4m margin) ---------- */
 let W = 0, H = 0, S = 1, OX = 0, OY = 0, dpr = 1;
@@ -77,7 +87,7 @@ function buildPitchLayer() {
         c.fillStyle = i % 2 ? "#164227" : "#1B4D2E";
         c.fillRect(X(i * 7.5), Y(0), 7.5 * S, 68 * S);
     }
-    [HOME, AWAY].forEach((t, i) => {
+    TEAMS.forEach((t, i) => {
         const img = crests[t];
         if (!img.complete || !img.naturalWidth) return;
         const sz = 13 * S;
@@ -113,9 +123,8 @@ function lerpColor(a, b, t) {
     return `rgb(${Math.round(r1 + (r2 - r1) * t)},${Math.round(g1 + (g2 - g1) * t)},${Math.round(b1 + (b2 - b1) * t)})`;
 }
 const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-const lerp = (a, b, t) => a + (b - a) * t;
-
 const easeMove = t => -(Math.cos(Math.PI * t) - 1) / 2;
+const lerp = (a, b, t) => a + (b - a) * t;
 
 /* Players move for the whole gap between events, so the pitch never freezes. */
 function animDuration() {
@@ -187,7 +196,7 @@ function drawAction(ev, t, alpha) {
 
 function interpPositions(from, to, t) {
     const out = {};
-    for (const team of [HOME, AWAY]) {
+    for (const team of TEAMS) {
         out[team] = {};
         const tp = to[team] || {}, fp = from ? (from[team] || {}) : tp;
         for (const pid in tp) {
@@ -206,7 +215,7 @@ function drawPlayers(pos, ev, now, t) {
     const labels = [];
     // players who left the pitch (sub or red card) fade out
     if (anim.from) {
-        for (const team of [HOME, AWAY]) for (const pid in (anim.from[team] || {})) {
+        for (const team of TEAMS) for (const pid in (anim.from[team] || {})) {
             if (pos[team][pid]) continue;
             const [x, y] = pctPx(...anim.from[team][pid]);
             ctx.globalAlpha = Math.max(0, 1 - t);
@@ -215,12 +224,12 @@ function drawPlayers(pos, ev, now, t) {
         }
     }
     const screen = {};
-    for (const team of [HOME, AWAY]) {
+    for (const team of TEAMS) {
         for (const pid in pos[team]) {
             const [jx, jy] = jog(pid, now);
             const [x, y] = pctPx(pos[team][pid][0] + jx, pos[team][pid][1] + jy);
             screen[`${team}|${pid}`] = [x, y];
-            const isFocus = camFocus && team === settings.team && pid === settings.player;
+            const isFocus = team === settings.team && pid === settings.player;
             const isInvolved = involved.has(pid);
             ctx.globalAlpha = camFocus && !isFocus && !isInvolved ? 0.62 : 1;
             ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
@@ -232,13 +241,16 @@ function drawPlayers(pos, ev, now, t) {
             ctx.textAlign = "center"; ctx.textBaseline = "middle";
             ctx.fillText(player(team, pid).num, x, y + 0.5);
             ctx.globalAlpha = 1;
-            if (isFocus) {
+            if (isFocus && camFocus) {
                 const pulse = (Math.sin(now / 260) + 1) / 2;
                 ctx.strokeStyle = `rgba(234,179,8,${0.55 + pulse * 0.45})`; ctx.lineWidth = 2.5;
                 ctx.beginPath(); ctx.arc(x, y, r + 4 + pulse * 3, 0, Math.PI * 2); ctx.stroke();
+            } else if (isFocus) {
+                ctx.fillStyle = "#EAB308"; ctx.font = "11px sans-serif";
+                ctx.fillText("★", x + r + 3, y - r - 1);  // favourite player, visible in every mode
             }
-            if (isFocus || pid === ev?.player || (pid === ev?.receiver && t > 0.6)) {
-                labels.push([pid.toUpperCase(), x, y - r - 9, isFocus]);
+            if ((isFocus && camFocus) || pid === ev?.player || (pid === ev?.receiver && t > 0.6)) {
+                labels.push([pid.toUpperCase(), x, y - r - 9, isFocus && camFocus]);
             }
             hitTargets.push({ team, pid, x, y, r: r + 5 });
         }
@@ -269,10 +281,10 @@ function carrierAtEnd(entry) {
 /* The ball sits just in front of the carrier's feet (in their attacking direction)
  * so it is never hidden under a player; in flight it travels between them. */
 function drawBall(entry, t, screen) {
-    const ev = entry.event, l = ev.location;
+    const ev = entry.event, l = ev.location, rt = rightTeam(entry);
     const r = Math.max(6, S * 1.05);
-    const dir = team => (team === HOME ? 1 : -1) * r * 1.15;
-    const startTeam = ev.event_type === "TACKLE" ? (ev.team === HOME ? AWAY : HOME) : (ev.team || entry.possession);
+    const dir = team => (team === rt ? 1 : -1) * r * 1.15;
+    const startTeam = ev.event_type === "TACKLE" ? other(ev.team) : (ev.team || entry.possession);
     let [x0, y0] = pctPx(l.start_x, l.start_y);
     x0 += dir(startTeam);
     let [x1, y1] = pctPx(l.end_x, l.end_y);
@@ -296,6 +308,30 @@ function drawBall(entry, t, screen) {
     ctx.beginPath(); ctx.arc(x, y - lift, br, 0, Math.PI * 2); ctx.stroke();
     ctx.fillStyle = "#111827";
     ctx.beginPath(); ctx.arc(x, y - lift, br * 0.38, 0, Math.PI * 2); ctx.fill();
+}
+
+/* Speed and distance badges, drawn from the overlay cue feed. */
+function drawBadges(entry, screen, now) {
+    const elapsed = now - anim.start;
+    for (const cue of entry.overlays || []) {
+        if (cue.type !== "speed_badge" && cue.type !== "distance_badge") continue;
+        const t0 = cue.start_ms / settings.speed, t1 = t0 + cue.duration_ms / settings.speed;
+        if (elapsed < t0 || elapsed > t1) continue;
+        const p = screen[`${cue.team}|${cue.player}`];
+        if (!p) continue;
+        const fade = Math.min(1, (elapsed - t0) / 200, (t1 - elapsed) / 300);
+        const speedy = cue.type === "speed_badge";
+        const text = speedy ? `⚡ ${cue.player} ${cue.value_kmh.toFixed(1)} km/h` : `🏃 ${cue.player} ${cue.value_km} km`;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, fade);
+        ctx.font = "800 11px system-ui, sans-serif";
+        const w = ctx.measureText(text).width + 12, bx = p[0] + 10, by = p[1] + 10;
+        ctx.fillStyle = speedy ? "#EAB308" : "#F9FAFB";
+        ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, w, 18, 9) : ctx.rect(bx, by, w, 18); ctx.fill();
+        ctx.fillStyle = "#111827"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillText(text, bx + 6, by + 9.5);
+        ctx.restore();
+    }
 }
 
 function banner(text, color, sub) {
@@ -333,14 +369,15 @@ function drawOverlays(ev, t, now) {
             ctx.strokeStyle = `rgba(234,179,8,${1 - k})`; ctx.lineWidth = 4;
             ctx.beginPath(); ctx.arc(gx, gy, 10 + k * 50, 0, Math.PI * 2); ctx.stroke();
         }
-        banner("GOAL!", "#EAB308", `${ev.player} · ${TEAM_LABEL[ev.team]} ${ev.score.home}-${ev.score.away}`);
+        const cheer = fav() ? (ev.team === fav() ? "GOAL! ★" : "GOAL") : "GOAL!";
+        banner(cheer, "#EAB308", `${ev.player} · ${TEAM_LABEL[ev.team]} ${ev.score.home}-${ev.score.away}`);
     } else if (ev.card && done) {
         banner(ev.card === "RED" ? "RED CARD" : "YELLOW CARD", ev.card === "RED" ? "#EF4444" : "#EAB308",
             `${ev.player} (${TEAM_LABEL[ev.team]}) on ${ev.opponent}`);
     } else if (ev.event_type === "SUBSTITUTION") {
         banner("SUBSTITUTION", "#E5E7EB", `${TEAM_LABEL[ev.team]}: ${ev.player} on, ${ev.player_off} off`);
     } else if (ev.event_type === "HALF_TIME" || ev.event_type === "FULL_TIME") {
-        banner(ev.event_type === "HALF_TIME" ? "HALF-TIME" : "FULL-TIME", "#FFFFFF",
+        banner(ev.event_type === "HALF_TIME" ? "HALF-TIME · TEAMS CHANGE ENDS" : "FULL-TIME", "#FFFFFF",
             `Arsenal ${ev.score.home}-${ev.score.away} Man City`);
     }
     if (ev.is_impact_moment) {
@@ -366,6 +403,7 @@ function frame(now) {
             drawn = interpPositions(anim.from, entry.positions, easeMove(tp));
             const screen = drawPlayers(drawn, entry.event, now, tp);
             drawBall(entry, entry.event.event_type === "DRIBBLE" ? easeMove(tb) : ease(tb), screen);
+            drawBadges(entry, screen, now);
             drawOverlays(entry.event, tb, now);
         } else {
             ctx.fillStyle = "rgba(255,255,255,0.75)";
@@ -388,16 +426,10 @@ canvas.addEventListener("mousemove", e => {
     canvas.style.cursor = hitTargets.some(h => Math.hypot(h.x - x, h.y - y) <= h.r) ? "pointer" : "default";
 });
 
-/* ---------- BROADCAST CARDS ---------- */
-function setMetric(valId, barId, value, pct, suffix = "") {
-    $(valId).innerText = value == null ? "—" : value + suffix;
-    $(barId).style.width = `${value == null ? 0 : pct}%`;
-}
-
+/* ---------- BROADCAST CARD, TOASTS, PINNED METRIC ---------- */
 function showCommentary(entry, flash = false) {
     const c = entry.commentary;
-    const text = c[MODE_KEY[settings.mode]];
-    $("ai-commentary").innerText = text;
+    $("ai-commentary").innerText = c[MODE_KEY[settings.mode]];
     const lang = { en: "EN", es: "ES", ja: "JA" }[c.lang] || "";
     $("ai-source").innerText = `${c.source} · ${MODE_LABEL[settings.mode]} · ${lang}`;
     $("ai-source").classList.toggle("from-azure", c.source === "AZURE OPENAI");
@@ -411,8 +443,57 @@ function showCommentary(entry, flash = false) {
     }
 }
 
+const TOAST_ICON = { first_goal: "⚽", brace: "⚽⚽", hat_trick: "🎩", touches: "👟", passes_completed: "🎯", team_passes: "🔗",
+    tackles_won: "🛡️", saves: "🧤", spell: "🔄", top_speed: "⚡", chaos: "🌪️", control: "🎛️", press_up: "📈" };
+
+function showToasts(entry) {
+    const stack = $("toast-stack");
+    for (const a of entry.alerts || []) {
+        if (a.kind !== "milestone" && a.kind !== "flow") continue;
+        const el = document.createElement("div");
+        el.className = `toast ${a.kind}${a.team && a.team === fav() ? " fav" : ""}`;
+        if (a.team) el.style.setProperty("--tc", TEAM_COLOR[a.team]);
+        el.innerHTML = `<span class="toast-icon">${TOAST_ICON[a.key] || "•"}</span><span>${esc(a.text)}</span>`;
+        stack.prepend(el);
+        while (stack.children.length > 3) stack.lastChild.remove();
+        setTimeout(() => el.classList.add("out"), 4200 / Math.sqrt(settings.speed));
+        setTimeout(() => el.remove(), 4700 / Math.sqrt(settings.speed));
+    }
+}
+
+function pinnedText() {
+    if (pinned === "none" || !liveStats || !anim.entry) return "";
+    const s = anim.entry.summary, T = liveStats.teams;
+    const pair = (label, h, a) => `📌 ${label}  ARS ${h} · ${a} MCI`;
+    switch (pinned) {
+        case "xg": return pair("xG", s.xg[0].toFixed(2), s.xg[1].toFixed(2));
+        case "possession": return pair("Possession", `${s.possession[0]}%`, `${s.possession[1]}%`);
+        case "on_target": return pair("On target", s.on_target[0], s.on_target[1]);
+        case "pass_pct": return pair("Pass accuracy", `${T[HOME].pass_pct}%`, `${T[AWAY].pass_pct}%`);
+        case "press": return pair("Pressure applied", s.flow.press[HOME], s.flow.press[AWAY]);
+        case "distance": return pair("Distance", `${T[HOME].distance_km} km`, `${T[AWAY].distance_km} km`);
+        case "top_speed": {
+            let best = null;
+            for (const t of TEAMS) for (const p of liveStats.players[t]) if (!best || p.top_speed > best.p.top_speed) best = { t, p };
+            return best && best.p.top_speed ? `📌 Top speed  ${best.p.id} (${TEAM_SHORT[best.t]}) ${best.p.top_speed.toFixed(1)} km/h` : "📌 Top speed  —";
+        }
+    }
+    return "";
+}
+
+function updatePinned() {
+    const el = $("pinned-metric");
+    const text = pinnedText();
+    el.hidden = !text;
+    if (text && text !== lastPinnedText) {
+        el.innerText = text;
+        if (lastPinnedText) { el.classList.remove("pulse"); void el.offsetWidth; el.classList.add("pulse"); }
+    }
+    lastPinnedText = text;
+}
+
 function updateUI(entry) {
-    const ev = entry.event, m = ev.metrics;
+    const ev = entry.event;
     showCommentary(entry);
     $("match-clock").innerText = ev.clock;
     $("score-home").innerText = ev.score.home;
@@ -422,38 +503,213 @@ function updateUI(entry) {
     $("poss-home-label").innerText = `${poss[0]}%`;
     $("poss-away-label").innerText = `${poss[1]}%`;
     $("poss-home-bar").style.width = `${poss[0]}%`;
-
-    const actor = $("telemetry-actor");
-    if (ev.team) {
-        actor.innerText = `#${player(ev.team, ev.player).num} ${ev.player} · ${TEAM_SHORT[ev.team]} · ${ev.event_type}`;
-        actor.style.borderColor = TEAM_COLOR[ev.team];
-    } else {
-        actor.innerText = ev.event_type.replace("_", " ");
-        actor.style.borderColor = "";
-    }
-    setMetric("val-xg", "bar-xg", m.xg, (m.xg || 0) * 100);
-    setMetric("val-pass-diff", "bar-pass-diff", m.pass_difficulty, m.pass_difficulty, "/100");
-    $("val-pressure").innerText = m.pressure ? `${m.pressure} · ${m.pressure_index}` : "—";
-    $("val-defender").innerText = m.nearest_defender_m != null ? `nearest defender ${m.nearest_defender_m}m` : "";
-    $("bar-pressure").style.width = `${m.pressure_index || 0}%`;
-    $("val-ball-speed").innerText = m.ball_speed_kmh != null ? `${m.ball_speed_kmh} km/h` : "—";
-    $("val-gain").innerText = m.forward_gain_m != null ? `${m.forward_gain_m} m` : "—";
-    $("val-bypassed").innerText = m.players_bypassed != null ? m.players_bypassed : "—";
+    const rt = rightTeam(entry);
+    $("dir-Arsenal").innerText = `Arsenal attack ${rt === HOME ? "→" : "←"}`;
+    $("dir-ManCity").innerText = `Man City attack ${rt === AWAY ? "→" : "←"}`;
+    updatePinned();
+    renderModePanel();
 }
+
+/* ---------- MODE PANELS ---------- */
+function renderModePanel() {
+    if (!anim.entry) return;
+    if (settings.mode === "ANALYST") renderTeamTelemetry();
+    else if (settings.mode === "CASUAL") renderGlance();
+    else renderPlayerCard();
+}
+
+function lastActionOf(team) {
+    for (let i = idx; i >= 0; i--) {
+        const h = history[i];
+        if (!h || h.key !== matchKey) break;
+        const ev = h.event;
+        if (ev.team === team && (ON_BALL.has(ev.event_type) || ev.event_type === "TACKLE")) return ev;
+    }
+    return null;
+}
+
+function metricRow(label, value, pct, cls = "blue") {
+    return `<div class="metric-row"><span>${label}</span><span>${value}</span></div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill ${cls}" style="width:${Math.max(0, Math.min(100, pct || 0))}%"></div></div>`;
+}
+
+function renderTeamTelemetry() {
+    const s = anim.entry.summary;
+    const T = liveStats ? liveStats.teams : null;
+    $("team-telemetry").innerHTML = TEAMS.map(team => {
+        const ev = lastActionOf(team);
+        const m = ev ? ev.metrics : {};
+        const what = ev ? `#${player(team, ev.player).num} ${esc(ev.player)} · ${ev.event_type}${ev.outcome ? " " + ev.outcome.toLowerCase() : ""} · ${ev.clock}` : "no action yet";
+        const ts = T ? T[team] : null;
+        const i = team === HOME ? 0 : 1;
+        return `<div class="card telemetry-card team-tele" style="--tc:${TEAM_COLOR[team]}">
+            <div class="card-header-flex"><h3><span class="legend-dot" style="background:${TEAM_COLOR[team]}"></span> ${TEAM_LABEL[team]} telemetry</h3></div>
+            <div class="tele-last">Last action: <strong>${what}</strong></div>
+            ${metricRow("xG (shot)", m.xg != null ? m.xg.toFixed(2) : "—", (m.xg || 0) * 100)}
+            ${metricRow("Pass difficulty", m.pass_difficulty != null ? `${m.pass_difficulty}/100` : "—", m.pass_difficulty)}
+            ${metricRow(`Pressure on the ball${m.nearest_defender_m != null ? ` · defender ${m.nearest_defender_m}m` : ""}`, m.pressure ? `${m.pressure} · ${m.pressure_index}` : "—", m.pressure_index, "yellow")}
+            <div class="telemetry-grid">
+                <div><span class="tg-label">Ball speed</span><span>${m.ball_speed_kmh != null ? `${m.ball_speed_kmh} km/h` : "—"}</span></div>
+                <div><span class="tg-label">Forward gain</span><span>${m.forward_gain_m != null ? `${m.forward_gain_m} m` : "—"}</span></div>
+                <div><span class="tg-label">Bypassed</span><span>${m.players_bypassed ?? "—"}</span></div>
+            </div>
+            <div class="tele-totals">
+                <span title="Total expected goals">xG <strong>${s.xg[i].toFixed(2)}</strong></span>
+                <span title="Average difficulty of attempted passes">Avg pass diff. <strong>${ts ? ts.avg_pass_difficulty : "—"}</strong></span>
+                <span title="Average pressure index this team puts on the opponent's player on the ball">Pressure applied <strong>${s.flow.press[team]}</strong></span>
+                <span title="Fastest pass or shot">Top ball speed <strong>${ts && ts.top_ball_speed ? ts.top_ball_speed + " km/h" : "—"}</strong></span>
+                <span title="Estimated total distance covered">Distance <strong>${ts ? ts.distance_km + " km" : "—"}</strong></span>
+            </div>
+        </div>`;
+    }).join("");
+}
+
+function moodText(flow) {
+    const tempo = flow.tempo === "HIGH" ? " Fast and frantic right now." : flow.tempo === "SLOW" ? " The pace has dropped." : "";
+    if (flow.state === "CONTROL") return `😎 ${TEAM_LABEL[flow.state_team]} are calmly keeping the ball.${tempo}`;
+    if (flow.state === "CHAOS") return `🔥 End to end! The ball keeps changing hands.${tempo}`;
+    return `⚖️ An even contest at the moment.${tempo}`;
+}
+
+function renderGlance() {
+    const e = anim.entry, s = e.summary;
+    const T = liveStats ? liveStats.teams : null;
+    $("glance-mood").innerText = moodText(s.flow);
+    const rows = [
+        ["Possession", s.possession[0], s.possession[1], v => `${v}%`],
+        ["Shots", s.shots[0], s.shots[1]],
+        ["Shots on target", s.on_target[0], s.on_target[1]],
+        ["Big chances", T ? T[HOME].big_chances : 0, T ? T[AWAY].big_chances : 0],
+        ["Saves", T ? T[HOME].saves : 0, T ? T[AWAY].saves : 0],
+        ["Cards", T ? T[HOME].yellow + T[HOME].red : 0, T ? T[AWAY].yellow + T[AWAY].red : 0],
+    ];
+    $("glance-bars").innerHTML = rows.map(([label, h, a, fmt = v => v]) => {
+        const max = Math.max(h, a, 1);
+        return `<div class="glance-row">
+            <span class="g-val">${fmt(h)}</span>
+            <div class="g-bar left"><div style="width:${100 * h / max}%; background:${TEAM_COLOR[HOME]}"></div></div>
+            <span class="g-label">${label}</span>
+            <div class="g-bar"><div style="width:${100 * a / max}%; background:${TEAM_COLOR[AWAY]}"></div></div>
+            <span class="g-val">${fmt(a)}</span></div>`;
+    }).join("");
+    $("momentum-needle").style.left = `${50 - s.momentum / 2}%`;
+    const goals = history.filter(h => h.key === matchKey && h.event.outcome === "GOAL" && history.indexOf(h) <= idx);
+    $("glance-goals").innerHTML = goals.map(h => `<li style="--tc:${TEAM_COLOR[h.event.team]}">⚽ ${h.event.clock} ${esc(h.event.player)} <span class="text-muted">${TEAM_LABEL[h.event.team]}</span></li>`).join("")
+        || `<li class="text-muted">No goals yet</li>`;
+}
+
+const PC_STATS = {
+    outfield: [["touches", "Touches"], ["passes_completed", "Passes completed"], ["shots", "Shots"],
+               ["tackles_won", "Tackles won"], ["sprints", "Sprints"], ["distance_km", "Distance (km)"], ["top_speed", "Top speed (km/h)"]],
+    keeper: [["saves", "Saves"], ["touches", "Touches"], ["passes_completed", "Passes completed"], ["distance_km", "Distance (km)"]],
+};
+
+function renderPlayerCard() {
+    if (!liveStats) return;
+    const team = settings.team, rows = liveStats.players[team];
+    const p = rows.find(r => r.id === settings.player);
+    if (!p) return;
+    $("pc-num").innerText = p.num;
+    $("pc-num").style.background = TEAM_COLOR[team];
+    $("pc-num").style.color = TEAM_INK[team];
+    $("pc-name").innerText = p.name;
+    const status = p.sub_off != null ? ` · off ${p.sub_off}'` : p.minutes === 0 ? " · not played yet" : ` · ${p.minutes}'`;
+    $("pc-sub").innerText = `${p.pos} · ${TEAM_LABEL[team]}${status}`;
+    $("pc-rating").innerText = p.rating != null ? p.rating.toFixed(1) : "–";
+    const keeper = p.pos === "GK";
+    const peers = rows.filter(r => r.minutes > 0 && (r.pos === "GK") === keeper);
+    $("pc-bars").innerHTML = PC_STATS[keeper ? "keeper" : "outfield"].map(([k, label]) => {
+        const vals = peers.map(r => r[k] || 0);
+        const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+        const max = Math.max(...vals, p[k] || 0, 1);
+        const v = p[k] || 0;
+        const fmt = x => (k === "distance_km" || k === "top_speed") ? x.toFixed(1) : Math.round(x * 10) / 10;
+        return `<div class="pc-row"><div class="pc-row-label"><span>${label}</span><span><strong>${fmt(v)}</strong> <span class="text-muted">team avg ${fmt(avg)}</span></span></div>
+            <div class="pc-bar"><div class="pc-fill" style="width:${100 * v / max}%; background:${TEAM_COLOR[team]}"></div><div class="pc-avg" style="left:${100 * avg / max}%"></div></div></div>`;
+    }).join("");
+    renderHeatMap(team, settings.player);
+}
+
+function renderHeatMap(team, pid) {
+    const c = $("pc-heat"), g = c.getContext("2d");
+    const w = c.width, h = c.height, sx = w / 100, sy = h / 100;
+    g.fillStyle = "#164227"; g.fillRect(0, 0, w, h);
+    g.strokeStyle = "rgba(255,255,255,0.45)"; g.lineWidth = 1.5;
+    g.strokeRect(1, 1, w - 2, h - 2);
+    g.beginPath(); g.moveTo(w / 2, 0); g.lineTo(w / 2, h); g.stroke();
+    g.beginPath(); g.arc(w / 2, h / 2, h * 0.135, 0, Math.PI * 2); g.stroke();
+    g.strokeRect(1, h * 0.204, w * 0.157, h * 0.593); g.strokeRect(w * 0.843, h * 0.204, w * 0.157 - 1, h * 0.593);
+    const pts = [];
+    for (let i = 0; i <= idx; i++) {
+        const e = history[i];
+        if (!e || e.key !== matchKey) continue;
+        const p = e.positions[team] && e.positions[team][pid];
+        if (!p) continue;
+        // always show the player's team attacking to the right
+        pts.push(e.event.right_team === team ? p : [100 - p[0], 100 - p[1]]);
+    }
+    g.globalCompositeOperation = "lighter";
+    const rad = w * 0.09;
+    for (const [x, y] of pts) {
+        const grd = g.createRadialGradient(x * sx, y * sy, 0, x * sx, y * sy, rad);
+        grd.addColorStop(0, "rgba(234,179,8,0.16)");
+        grd.addColorStop(1, "rgba(234,179,8,0)");
+        g.fillStyle = grd;
+        g.beginPath(); g.arc(x * sx, y * sy, rad, 0, Math.PI * 2); g.fill();
+    }
+    g.globalCompositeOperation = "source-over";
+    if (!pts.length) {
+        g.fillStyle = "rgba(255,255,255,0.7)"; g.font = "600 16px system-ui"; g.textAlign = "center";
+        g.fillText("No positions yet", w / 2, h / 2);
+    }
+    $("pc-heat-note").innerText = `${pts.length} snapshots · ${TEAM_LABEL[team]} attacking →`;
+}
+
+/* ---------- REPORT CARD ---------- */
+function openReport(entry) {
+    const r = entry.report;
+    if (!r) return;
+    reportEntry = entry;
+    $("report-title").innerText = r.kind === "HALF_TIME" ? "HALF-TIME REPORT" : "FULL-TIME REPORT";
+    $("report-score").innerHTML = `<span style="color:${TEAM_COLOR[HOME]}">ARSENAL</span> <strong>${r.score.home} – ${r.score.away}</strong> <span style="color:${TEAM_COLOR[AWAY]}">MAN CITY</span>`;
+    const th = r.teams[HOME], ta = r.teams[AWAY];
+    const rows = [["xG", th.xg.toFixed(2), ta.xg.toFixed(2), th.xg, ta.xg], ["Shots", th.shots, ta.shots], ["On target", th.on_target, ta.on_target],
+        ["Possession", `${th.possession}%`, `${ta.possession}%`, th.possession, ta.possession], ["Pass accuracy", `${th.pass_pct}%`, `${ta.pass_pct}%`, th.pass_pct, ta.pass_pct],
+        ["Big chances", th.big_chances, ta.big_chances], ["Ball wins in opp. half", th.press_wins, ta.press_wins],
+        ["Distance (km)", th.distance_km, ta.distance_km]];
+    $("report-stats").innerHTML = rows.map(([label, h, a, hn = +h, an = +a]) => {
+        const tot = hn + an, hp = tot ? 100 * hn / tot : 50;
+        return `<div class="rs-row"><span>${h}</span><div><span class="rs-label">${label}</span>
+            <div class="h2h-bar"><div class="h2h-home" style="width:${hp}%"></div><div class="h2h-away" style="width:${100 - hp}%"></div></div></div><span>${a}</span></div>`;
+    }).join("");
+    $("report-narrative").innerText = r.narrative;
+    const b = r.best_player;
+    $("report-best").innerHTML = b ? `<span class="rb-label">Best player</span> <strong>${esc(b.name)}</strong> <span style="color:${TEAM_COLOR[b.team]}">${TEAM_LABEL[b.team]}</span> <span class="rating r-high">${b.rating.toFixed(1)}</span>` : "";
+    const icon = m => m.outcome === "GOAL" ? "⚽" : m.card === "RED" ? "🟥" : m.card ? "🟨" : m.outcome === "SAVED" ? "🧤" : "🎯";
+    $("report-moments").innerHTML = r.key_moments.map(m => `<li>${icon(m)} ${m.clock} ${esc(m.player)} <span class="text-muted">${TEAM_LABEL[m.team]}</span></li>`).join("");
+    $("report-source").innerText = `${entry.reportSource || "LOCAL ENGINE"} · ${r.kind === "HALF_TIME" ? "Second half kicks off shortly" : "New match starts shortly"}`;
+    $("report-modal").hidden = false;
+}
+function closeReport() { $("report-modal").hidden = true; reportEntry = null; }
+$("report-close").addEventListener("click", closeReport);
 
 /* ---------- TIMELINE / REPLAY ---------- */
 function show(i) {
     if (!history[i]) return;
     const prevEntry = anim.entry;
     idx = i;
-    const sameMatch = prevEntry && prevEntry.key === history[i].key;
+    const entry = history[i];
+    const sameMatch = prevEntry && prevEntry.key === entry.key;
     const dur = animDuration();
-    anim = { start: performance.now(), dur, ballDur: ballDuration(history[i].event, dur), from: sameMatch ? drawn : null, entry: history[i] };
+    anim = { start: performance.now(), dur, ballDur: ballDuration(entry.event, dur), from: sameMatch ? drawn : null, entry };
     $("timeline-slider").value = i;
-    updateUI(history[i]);
+    updateUI(entry);
+    if (entry !== prevEntry) showToasts(entry);
+    if (entry.report && live) openReport(entry);
+    else if (reportEntry && !entry.report && entry.event.team) closeReport();
     document.querySelectorAll(".event-item.active-replay").forEach(el => el.classList.remove("active-replay"));
     if (!live) {
-        const el = document.querySelector(`.event-item[data-seq="${history[i].event.seq}"]`);
+        const el = document.querySelector(`.event-item[data-seq="${entry.event.seq}"]`);
         if (el) { el.classList.add("active-replay"); el.scrollIntoView({ block: "nearest" }); }
     }
     updateLiveButton();
@@ -473,7 +729,7 @@ function updateLiveButton() {
 }
 
 function enterReplay() {
-    if (live) { live = false; }
+    live = false;
     updateLiveButton();
 }
 
@@ -510,6 +766,7 @@ function replayBuildUp(seq) {
     const i = history.findIndex(h => h.key === matchKey && h.event.seq === seq);
     if (i < 0) return;
     pauseReplay();
+    closeReport();
     show(Math.max(0, i - 3));
     stopAt = Math.min(history.length - 1, i + 1);
     replayPlaying = true;
@@ -545,11 +802,12 @@ $("timeline-slider").addEventListener("input", e => {
 $("return-live-btn").addEventListener("click", goLive);
 
 document.addEventListener("keydown", e => {
-    if (e.target.closest("input, select, textarea")) return;
+    if (e.target.closest && e.target.closest("input, select, textarea")) return;
     if (e.key === " ") { e.preventDefault(); togglePlay(); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); $("step-back-btn").click(); }
     else if (e.key === "ArrowRight") { e.preventDefault(); $("step-fwd-btn").click(); }
     else if (e.key.toLowerCase() === "l") goLive();
+    else if (e.key === "Escape") closeReport();
 });
 
 function renderMarkers() {
@@ -572,7 +830,7 @@ $("timeline-markers").addEventListener("click", e => {
     if (b) replayBuildUp(+b.dataset.seq);
 });
 
-/* ---------- EVENT LOG & KEY EVENTS ---------- */
+/* ---------- EVENT LOG ---------- */
 const ICON = { GOAL: "⚽", SAVED: "🧤", MISS: "🎯", BLOCKED: "🧱", COMPLETE: "➡️", INTERCEPTED: "✂️", SUCCESS: "💨",
                WON: "🛡️", FOUL: "🚩", SUBSTITUTION: "🔁", HALF_TIME: "⏸", FULL_TIME: "🏁" };
 
@@ -590,13 +848,14 @@ function logLabel(ev) {
 function addLogItem(entry) {
     const ev = entry.event;
     const item = document.createElement("div");
-    item.className = `event-item clickable new${ev.is_impact_moment ? " impact" : ""}`;
+    const mine = fav() && ev.team === fav();
+    item.className = `event-item clickable new${ev.is_impact_moment ? " impact" : ""}${mine ? " fav" : ""}`;
     item.dataset.seq = ev.seq;
     item.setAttribute("role", "button");
     item.tabIndex = 0;
     const who = ev.team && ev.event_type !== "SUBSTITUTION"
         ? `<span class="team-tag" style="--tc:${TEAM_COLOR[ev.team]}">${esc(ev.player)}</span> ` : "";
-    item.innerHTML = `<span class="event-time">${esc(ev.clock)}</span><span>${ICON[ev.outcome || ev.event_type] || "•"} ${who}<strong>${esc(logLabel(ev))}</strong>${ev.is_impact_moment ? ' <span class="zap">⚡</span>' : ""}</span>`;
+    item.innerHTML = `<span class="event-time">${esc(ev.clock)}</span><span>${mine ? "★ " : ""}${ICON[ev.outcome || ev.event_type] || "•"} ${who}<strong>${esc(logLabel(ev))}</strong>${ev.possession_change ? ' <span class="poss-chg" title="Possession changed">⇄</span>' : ""}${ev.is_impact_moment ? ' <span class="zap">⚡</span>' : ""}</span>`;
     const list = $("event-log-container");
     list.prepend(item);
     while (list.children.length > 150) list.lastChild.remove();
@@ -613,6 +872,7 @@ $("event-log-container").addEventListener("click", onLogActivate);
 $("event-log-container").addEventListener("keydown", onLogActivate);
 $("impact-only").addEventListener("change", e => $("event-log-container").classList.toggle("impact-only", e.target.checked));
 
+/* ---------- KEY EVENTS & STORIES ---------- */
 function isKeyEvent(ev) {
     return ev.outcome === "GOAL" || ev.card || ev.event_type === "SUBSTITUTION" || ev.event_type === "HALF_TIME"
         || ev.event_type === "FULL_TIME" || (ev.event_type === "SHOT" && (ev.metrics.xg >= 0.3 || ev.outcome === "SAVED"));
@@ -623,10 +883,15 @@ function keyEventText(ev) {
     if (ev.outcome === "GOAL") return `⚽ <strong>GOAL</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}${xg} · ${ev.score.home}-${ev.score.away}`;
     if (ev.card) return `${ev.card === "RED" ? "🟥 <strong>RED CARD</strong>" : "🟨 <strong>YELLOW CARD</strong>"} ${esc(ev.player)} (${TEAM_LABEL[ev.team]}) for a foul on ${esc(ev.opponent)}`;
     if (ev.event_type === "SUBSTITUTION") return `🔁 <strong>SUB</strong> ${TEAM_LABEL[ev.team]}: ${esc(ev.player)} on, ${esc(ev.player_off)} off`;
-    if (ev.event_type === "HALF_TIME") return `⏸ <strong>HALF-TIME</strong> Arsenal ${ev.score.home}-${ev.score.away} Man City`;
-    if (ev.event_type === "FULL_TIME") return `🏁 <strong>FULL-TIME</strong> Arsenal ${ev.score.home}-${ev.score.away} Man City`;
+    if (ev.event_type === "HALF_TIME") return `⏸ <strong>HALF-TIME REPORT</strong> Arsenal ${ev.score.home}-${ev.score.away} Man City`;
+    if (ev.event_type === "FULL_TIME") return `🏁 <strong>FULL-TIME REPORT</strong> Arsenal ${ev.score.home}-${ev.score.away} Man City`;
     if (ev.outcome === "SAVED") return `🧤 <strong>SAVE</strong> ${esc(ev.opponent)} denies ${esc(ev.player)}${xg}`;
     return `🎯 <strong>BIG CHANCE</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}${xg}: ${ev.outcome.toLowerCase()}`;
+}
+
+function keyEventStory(entry) {
+    if (entry.report) return entry.report.narrative;
+    return entry.story || "";
 }
 
 function addKeyEvent(entry) {
@@ -635,17 +900,35 @@ function addKeyEvent(entry) {
     const li = document.createElement("li");
     li.dataset.seq = ev.seq;
     li.tabIndex = 0;
-    li.className = `ke ${ev.team ? (ev.team === HOME ? "home" : "away") : "neutral"}`;
-    li.innerHTML = `<span class="time-tag">${esc(ev.clock)}</span> ${keyEventText(ev)} <span class="replay-hint"><i class="fa-solid fa-rotate-left"></i> replay</span>`;
+    const mine = fav() && ev.team === fav();
+    li.className = `ke ${ev.team ? (ev.team === HOME ? "home" : "away") : "neutral"}${mine ? " fav" : ""}`;
+    li.innerHTML = `<div class="ke-top"><span class="time-tag">${esc(ev.clock)}</span> ${keyEventText(ev)}
+        ${entry.report ? '<button class="chip open-report">Open report</button>' : ""}
+        <span class="replay-hint"><i class="fa-solid fa-rotate-left"></i> replay</span></div>
+        <p class="story"></p>`;
     $("key-events-list").prepend(li);
+    updateKeyEventStory(entry);
 }
+
+function updateKeyEventStory(entry) {
+    const li = document.querySelector(`#key-events-list li[data-seq="${entry.event.seq}"]`);
+    if (!li) return;
+    const p = li.querySelector(".story");
+    const text = keyEventStory(entry);
+    const src = entry.report ? entry.reportSource : entry.storySource;
+    p.innerHTML = text ? `${esc(text)} <span class="ai-source ${src === "AZURE OPENAI" ? "from-azure" : ""}">${src || "LOCAL ENGINE"}</span>` : "";
+}
+
 function onKeyEventActivate(e) {
     const li = e.target.closest("li[data-seq]");
     if (!li || (e.type === "keydown" && e.key !== "Enter")) return;
+    const entry = history.find(h => h.key === matchKey && h.event.seq === +li.dataset.seq);
+    if (e.target.closest(".open-report") || (entry && entry.report)) { if (entry) openReport(entry); return; }
     replayBuildUp(+li.dataset.seq);
 }
 $("key-events-list").addEventListener("click", onKeyEventActivate);
 $("key-events-list").addEventListener("keydown", onKeyEventActivate);
+$("ke-fav-only").addEventListener("change", e => $("key-events-list").classList.toggle("fav-only", e.target.checked));
 
 /* ---------- MATCH STATS TAB ---------- */
 const H2H = [
@@ -653,7 +936,11 @@ const H2H = [
     ["Shots", s => s.shots], ["Shots on target", s => s.on_target],
     ["Expected goals (xG)", s => s.xg, v => v.toFixed(2)], ["Big chances", s => s.big_chances],
     ["Passes", s => s.passes], ["Pass accuracy", s => s.pass_pct, v => `${v}%`],
+    ["Avg pass difficulty", s => s.avg_pass_difficulty],
     ["Tackles won", s => s.tackles_won], ["Interceptions", s => s.interceptions],
+    ["Ball wins in opp. half", s => s.press_wins],
+    ["Distance covered (km)", s => s.distance_km, v => v.toFixed(1)],
+    ["Top sprint (km/h)", s => s.top_speed, v => v.toFixed(1)],
     ["Saves", s => s.saves], ["Fouls", s => s.fouls], ["Yellow cards", s => s.yellow], ["Red cards", s => s.red],
 ];
 
@@ -679,13 +966,14 @@ const COLS = [
     ["goals", "G"], ["assists", "A"], ["shots", "Shots (OT)"], ["xg", "xG"], ["passes", "Passes"],
     ["key_passes", "Key P."], ["dribbles_won", "Dribbles"], ["tackles_won", "Tackles"],
     ["interceptions", "Int."], ["saves", "Saves"], ["fouls", "Fouls"], ["cards", "Cards"],
-    ["touches", "Touches"], ["sprints", "Sprints"],
+    ["touches", "Touches"], ["sprints", "Sprints"], ["distance_km", "Dist. km"], ["top_speed", "Top km/h"],
 ];
 const COL_TITLE = {
     minutes: "Minutes played", rating: "Match rating (starts at 6.0)", goals: "Goals", assists: "Assists",
     shots: "Shots (on target)", passes: "Completed / attempted passes", key_passes: "Passes that led to a shot",
     dribbles_won: "Successful / attempted dribbles", tackles_won: "Tackles won / attempted",
     interceptions: "Interceptions", touches: "Touches of the ball", sprints: "Sprints and runs in behind",
+    distance_km: "Estimated distance covered", top_speed: "Fastest sprint recorded",
 };
 
 function renderPlayerTable() {
@@ -705,11 +993,12 @@ function renderPlayerTable() {
         const cards = "🟨".repeat(r.yellow) + "🟥".repeat(r.red) || "–";
         return `<tr class="${r.minutes === 0 && r.sub_on == null && !r.starter ? "bench" : ""}${focus ? " focus" : ""}" data-pid="${esc(r.id)}">
             <td class="num">${r.num}</td><td class="pname">${esc(r.name)}${subTxt}${offTxt}</td><td>${r.pos}</td>
-            <td>${r.minutes}</td><td><span class="rating ${ratingCls(r.rating)}">${r.rating ?? "–"}</span></td>
+            <td>${r.minutes}</td><td><span class="rating ${ratingCls(r.rating)}">${r.rating != null ? r.rating.toFixed(1) : "–"}</span></td>
             <td>${r.goals || "–"}</td><td>${r.assists || "–"}</td><td>${r.shots} (${r.on_target})</td><td>${r.xg.toFixed(2)}</td>
             <td>${r.passes_completed}/${r.passes}</td><td>${r.key_passes}</td><td>${r.dribbles_won}/${r.dribbles}</td>
             <td>${r.tackles_won}/${r.tackles}</td><td>${r.interceptions}</td><td>${r.saves}</td><td>${r.fouls}</td>
-            <td>${cards}</td><td>${r.touches}</td><td>${r.sprints}</td></tr>`;
+            <td>${cards}</td><td>${r.touches}</td><td>${r.sprints}</td><td>${r.distance_km.toFixed(1)}</td>
+            <td>${r.top_speed ? r.top_speed.toFixed(1) : "–"}</td></tr>`;
     }).join("");
     $("player-table").innerHTML = head + `<tbody>${body}</tbody>`;
 }
@@ -726,11 +1015,12 @@ $("player-table").addEventListener("click", e => {
     const tr = e.target.closest("tr[data-pid]");
     if (tr) setFocus(statsTeam, tr.dataset.pid);
 });
-document.querySelectorAll(".seg-btn").forEach(b => b.addEventListener("click", () => {
-    document.querySelectorAll(".seg-btn").forEach(x => x.classList.toggle("active", x === b));
-    statsTeam = b.dataset.team;
+function setStatsTeam(team) {
+    statsTeam = team;
+    document.querySelectorAll(".seg-btn").forEach(x => x.classList.toggle("active", x.dataset.team === team));
     renderPlayerTable();
-}));
+}
+document.querySelectorAll(".seg-btn").forEach(b => b.addEventListener("click", () => setStatsTeam(b.dataset.team)));
 
 /* ---------- TACTICS TAB ---------- */
 function tacticalRead(team, tac, opp) {
@@ -743,8 +1033,9 @@ function tacticalRead(team, tac, opp) {
             : `A low block: the back line drops to ${lh}m and protects the box.`);
     }
     if (inp) parts.push(inp.width_m >= 48 ? `In possession they stretch the pitch to ${inp.width_m}m wide.` : `In possession they stay narrow (${inp.width_m}m), overloading the middle.`);
-    const ch = tac.channels, fav = Object.keys(ch).reduce((a, b) => ch[a] >= ch[b] ? a : b);
-    if (tac.final_third_actions >= 4) parts.push(fav === "central" ? `Attacks go mostly through the centre (${ch.central}%).` : `Attacks lean down the ${fav} (${ch[fav]}% of final-third actions).`);
+    const ch = tac.channels, favCh = Object.keys(ch).reduce((a, b) => ch[a] >= ch[b] ? a : b);
+    if (tac.final_third_actions >= 4) parts.push(favCh === "central" ? `Attacks go mostly through the centre (${ch.central}%).` : `Attacks lean down the ${favCh} (${ch[favCh]}% of final-third actions).`);
+    parts.push(tac.directness >= 40 ? `Direct: ${tac.directness}% of recent passes go 15m+ forward.` : `Patient build-up: only ${tac.directness}% of recent passes go 15m+ forward.`);
     if (tac.press_wins + opp.press_wins >= 3) parts.push(tac.press_wins > opp.press_wins
         ? `Their press is winning the battle: ${tac.press_wins} ball wins in the opponent's half to ${opp.press_wins}.`
         : `They are being out-pressed: ${tac.press_wins} ball wins in the opponent's half to ${opp.press_wins}.`);
@@ -759,8 +1050,8 @@ function phaseRow(label, p) {
 function renderTactics() {
     if (!liveStats) return;
     const T = liveStats.tactics;
-    $("tactics-cards").innerHTML = [HOME, AWAY].map(team => {
-        const tac = T[team], opp = T[team === HOME ? AWAY : HOME], ch = tac.channels;
+    $("tactics-cards").innerHTML = TEAMS.map(team => {
+        const tac = T[team], opp = T[other(team)], ch = tac.channels;
         return `<div class="tactical-card ${team === HOME ? "home-border" : "away-border"}">
             <h5>${TEAM_LABEL[team]} · ${tac.formation}</h5>
             <p class="tactical-read">${tacticalRead(team, tac, opp)}</p>
@@ -789,7 +1080,7 @@ function pitchSvg() {
 
 function renderAvgPitch(T) {
     let dots = "";
-    for (const team of [HOME, AWAY]) {
+    for (const team of TEAMS) {
         for (const [pid, [x, y]] of Object.entries(T[team].avg_positions)) {
             const p = player(team, pid);
             dots += `<g class="avg-dot" data-tip="${esc(p.name)} (${p.pos}) · ${TEAM_LABEL[team]}">
@@ -876,12 +1167,54 @@ function renderMomentum() {
     svg.innerHTML = bars;
 }
 
+const FLOW_COLOR = { CHAOS: "#F59E0B", BALANCED: "#4B5563" };
+function renderFlow() {
+    const svg = $("flow-chart");
+    const w = svg.getBoundingClientRect().width || 600, h = 170, m = { l: 34, r: 74, t: 8, b: 22 };
+    svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    const entries = matchEntries().filter(e => e.event.team);
+    const sx = v => m.l + (w - m.l - m.r) * v / 90;
+    const bandH = 14, top = m.t + bandH + 8, sy = v => h - m.b - (h - m.b - top) * v / 100;
+    let out = "";
+    for (const v of [0, 50, 100]) out += `<line x1="${m.l}" x2="${w - m.r}" y1="${sy(v)}" y2="${sy(v)}" class="grid"/><text x="${m.l - 6}" y="${sy(v) + 3}" class="axis" text-anchor="end">${v}</text>`;
+    for (const v of [0, 15, 30, 45, 60, 75, 90]) out += `<text x="${sx(v)}" y="${h - 6}" class="axis" text-anchor="middle">${v}'</text>`;
+    // state band in 2-minute buckets: majority state wins
+    const buckets = new Map();
+    for (const e of entries) {
+        const b = Math.min(44, Math.floor(e.event.minute / 2));
+        const f = e.summary.flow, key = f.state === "CONTROL" ? `CONTROL|${f.state_team}` : f.state;
+        const counts = buckets.get(b) || {}; counts[key] = (counts[key] || 0) + 1; buckets.set(b, counts);
+    }
+    const bw = (w - m.l - m.r) / 45;
+    for (const [b, counts] of buckets) {
+        const key = Object.keys(counts).reduce((a, c) => counts[a] >= counts[c] ? a : c);
+        const [state, team] = key.split("|");
+        const color = state === "CONTROL" ? TEAM_COLOR[team] : FLOW_COLOR[state];
+        const label = state === "CONTROL" ? `${TEAM_LABEL[team]} in control` : state === "CHAOS" ? "Chaotic: frequent turnovers" : "Balanced";
+        out += `<rect x="${(m.l + b * bw + 1).toFixed(1)}" y="${m.t}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${bandH}" rx="2" fill="${color}" opacity="${state === "BALANCED" ? 0.7 : 0.9}" data-tip="${b * 2}'-${b * 2 + 2}': ${label}"/>`;
+    }
+    const line = team => entries.map((e, i) => `${i ? "L" : "M"}${sx(e.event.minute).toFixed(1)},${sy(e.summary.flow.press[team]).toFixed(1)}`).join(" ");
+    if (entries.length > 1) {
+        out += `<path d="${line(HOME)}" class="xg-line" stroke="${TEAM_COLOR[HOME]}"/><path d="${line(AWAY)}" class="xg-line" stroke="${TEAM_COLOR[AWAY]}"/>`;
+        const lf = entries[entries.length - 1].summary.flow.press;
+        const ly = [sy(lf[HOME]), sy(lf[AWAY])];
+        if (Math.abs(ly[0] - ly[1]) < 13) { const mid = (ly[0] + ly[1]) / 2; ly[0] = mid + (lf[HOME] >= lf[AWAY] ? -7 : 7); ly[1] = mid + (lf[HOME] >= lf[AWAY] ? 7 : -7); }
+        const lx = sx(entries[entries.length - 1].event.minute) + 8;
+        out += `<text x="${lx}" y="${ly[0] + 4}" class="direct-label">ARS ${lf[HOME]}</text><text x="${lx}" y="${ly[1] + 4}" class="direct-label">MCI ${lf[AWAY]}</text>`;
+    }
+    svg.innerHTML = out;
+    const cur = anim.entry ? anim.entry.summary.flow : null;
+    $("flow-now").innerHTML = cur ? `<strong>Now:</strong> ${esc(moodText(cur))} Turnovers in recent play: ${cur.turnover_rate}%. Tempo: ${cur.tempo.toLowerCase()}.
+        <span class="flow-legend"><span style="background:${TEAM_COLOR[HOME]}"></span>Arsenal control <span style="background:${TEAM_COLOR[AWAY]}"></span>Man City control <span style="background:${FLOW_COLOR.BALANCED}"></span>Balanced <span style="background:${FLOW_COLOR.CHAOS}"></span>Chaos</span>` : "";
+}
+
 function renderShotMap() {
     let dots = "";
     for (const e of matchEntries()) {
         const ev = e.event;
         if (ev.event_type !== "SHOT") continue;
-        const x = ev.location.start_x * 1.05, y = ev.location.start_y * 0.68, r = 0.9 + ev.metrics.xg * 4.5;
+        const [nx, ny] = normHome(ev.location.start_x, ev.location.start_y, ev.right_team);
+        const x = nx * 1.05, y = ny * 0.68, r = 0.9 + ev.metrics.xg * 4.5;
         const goal = ev.outcome === "GOAL", c = TEAM_COLOR[ev.team];
         dots += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" fill="${goal ? c : "transparent"}" stroke="${c}" stroke-width="${goal ? 0.5 : 0.7}" class="shot-dot" data-seq="${ev.seq}"
             data-tip="${ev.clock} ${esc(ev.player)} (${TEAM_LABEL[ev.team]}) · ${ev.metrics.xg.toFixed(2)} xG · ${ev.outcome}"/>`;
@@ -902,7 +1235,71 @@ function renderImpactList() {
 }
 $("impact-list").addEventListener("click", e => { const li = e.target.closest("li[data-seq]"); if (li) replayBuildUp(+li.dataset.seq); });
 
-function renderAnalysis() { renderXgChart(); renderMomentum(); renderShotMap(); renderImpactList(); }
+function renderReports() {
+    const reps = matchEntries().filter(e => e.report);
+    $("reports-list").innerHTML = reps.map(e => `<div class="report-item" data-seq="${e.event.seq}">
+        <div class="ke-top"><strong>${e.report.kind === "HALF_TIME" ? "Half-time" : "Full-time"}</strong> · Arsenal ${e.report.score.home}-${e.report.score.away} Man City
+        <button class="chip open-report">Open</button></div><p>${esc(e.report.narrative)}</p></div>`).join("")
+        || `<p class="text-muted">No reports yet: the half-time report appears at 45'.</p>`;
+}
+$("reports-list").addEventListener("click", e => {
+    const it = e.target.closest(".report-item");
+    if (!it) return;
+    const entry = history.find(h => h.key === matchKey && h.event.seq === +it.dataset.seq);
+    if (entry) openReport(entry);
+});
+
+function renderAnalysis() { renderXgChart(); renderMomentum(); renderFlow(); renderShotMap(); renderImpactList(); renderReports(); }
+
+/* ---------- DATA & OVERLAYS TAB ---------- */
+function renderData() {
+    const entries = matchEntries();
+    const cues = entries.flatMap(e => e.overlays || []);
+    $("cue-count").innerText = `${cues.length} cues`;
+    const latest = cues.slice(-8).reverse();
+    $("cue-feed").textContent = latest.length ? latest.map(c => JSON.stringify(c, null, 1)).join("\n") : "Start the match to see cues.";
+    if (metadata) {
+        const rows = [["Competition", `${metadata.competition} · matchday ${metadata.matchday}`], ["Venue", metadata.venue],
+            ["Attendance", metadata.attendance.toLocaleString()], ["Referee", metadata.referee],
+            ["Weather", `${metadata.weather}, ${metadata.temperature_c}°C`], ["Coaches", `${metadata.coaches[HOME]} · ${metadata.coaches[AWAY]}`],
+            ["Formations", `${metadata.formations[HOME]} · ${metadata.formations[AWAY]}`], ["Kick-off (UTC)", metadata.kickoff_utc],
+            ["Data", "100% synthetic"]];
+        $("meta-table").innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><span>${esc(v)}</span></div>`).join("");
+    }
+}
+
+function download(name, text, type) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const fileStem = () => `secondtouch_match_${(metadata && metadata.kickoff_utc || "live").replace(/[:]/g, "-")}`;
+const EVENT_COLS = ["seq", "minute", "clock", "team", "player", "event_type", "outcome", "receiver", "opponent", "player_off", "card",
+    "length_m", "start_x", "start_y", "end_x", "end_y", "xg", "pass_difficulty", "pressure", "pressure_index", "nearest_defender_m",
+    "sprint_speed_kmh", "ball_speed_kmh", "forward_gain_m", "players_bypassed", "possession_change", "right_team",
+    "is_impact_moment", "impact_reasons", "score_home", "score_away"];
+const csvCell = v => v == null ? "" : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+
+$("dl-jsonl").addEventListener("click", () => download(`${fileStem()}_events.jsonl`,
+    matchEntries().map(e => JSON.stringify({ ...e.event, positions: e.positions, commentary: e.commentary, story: e.story || null })).join("\n"), "application/x-ndjson"));
+$("dl-cues").addEventListener("click", () => download(`${fileStem()}_overlay_cues.jsonl`,
+    matchEntries().flatMap(e => e.overlays || []).map(c => JSON.stringify(c)).join("\n"), "application/x-ndjson"));
+$("dl-csv").addEventListener("click", () => {
+    const rows = matchEntries().map(({ event: ev }) => {
+        const flat = { ...ev, ...ev.metrics, ...ev.location, impact_reasons: ev.impact_reasons.join("|"), score_home: ev.score.home, score_away: ev.score.away };
+        return EVENT_COLS.map(k => csvCell(flat[k])).join(",");
+    });
+    download(`${fileStem()}_events.csv`, [EVENT_COLS.join(","), ...rows].join("\n"), "text/csv");
+});
+$("dl-players").addEventListener("click", () => {
+    if (!liveStats) return;
+    const rows = TEAMS.flatMap(t => liveStats.players[t].map(r => ({ team: t, ...r })));
+    if (!rows.length) return;
+    const cols = Object.keys(rows[0]);
+    download(`${fileStem()}_players.csv`, [cols.join(","), ...rows.map(r => cols.map(k => csvCell(r[k])).join(","))].join("\n"), "text/csv");
+});
 
 /* ---------- TOOLTIP ---------- */
 function tooltip(e, html) {
@@ -916,20 +1313,21 @@ function tooltip(e, html) {
 }
 function hideTooltip() { $("chart-tooltip").hidden = true; }
 document.addEventListener("mouseover", e => {
-    const el = e.target.closest("[data-tip]");
+    const el = e.target.closest && e.target.closest("[data-tip]");
     if (el && el.closest("svg")) tooltip(e, esc(el.dataset.tip));
 });
 document.addEventListener("mousemove", e => {
-    const el = e.target.closest("[data-tip]");
+    const el = e.target.closest && e.target.closest("[data-tip]");
     if (el && el.closest("svg")) tooltip(e, esc(el.dataset.tip));
 });
-document.addEventListener("mouseout", e => { if (e.target.closest("[data-tip]")) hideTooltip(); });
+document.addEventListener("mouseout", e => { if (e.target.closest && e.target.closest("[data-tip]")) hideTooltip(); });
 
 /* ---------- TABS ---------- */
 function renderActiveTab() {
     if (activeTab === "stats") renderStats();
     else if (activeTab === "tactics") renderTactics();
     else if (activeTab === "analysis") renderAnalysis();
+    else if (activeTab === "data") renderData();
 }
 document.querySelectorAll(".drawer-tab-btn").forEach(btn => btn.addEventListener("click", () => {
     document.querySelectorAll(".drawer-tab-btn").forEach(b => b.classList.toggle("active", b === btn));
@@ -976,6 +1374,8 @@ function resetMatch(key) {
     liveStats = null;
     $("event-log-container").innerHTML = "";
     $("key-events-list").innerHTML = "";
+    $("toast-stack").innerHTML = "";
+    closeReport();
     history = history.filter(h => h.key === key);
     idx = -1;
     anim = { start: 0, dur: 800, ballDur: 500, from: null, entry: null };
@@ -984,11 +1384,19 @@ function resetMatch(key) {
     clearTimeout(replayTimer);
 }
 
+function onMatchStart(msg) {
+    metadata = msg.metadata;
+    const m = metadata;
+    $("match-info").innerText = `${m.competition} · Matchday ${m.matchday} · ${m.venue} · Ref ${m.referee} · ${m.weather}, ${m.temperature_c}°C · ${m.attendance.toLocaleString()} fans · synthetic data`;
+    if (activeTab === "data") renderData();
+}
+
 function onEvent(msg) {
     const key = `${connId}:${msg.match_id}`;
     if (key !== matchKey) resetMatch(key);
     const entry = { key, event: msg.event, positions: msg.positions, possession: msg.possession,
-                    commentary: msg.commentary, summary: msg.summary };
+                    commentary: msg.commentary, summary: msg.summary, alerts: msg.alerts || [],
+                    story: msg.story, report: msg.report, overlays: msg.overlays || [] };
     history.push(entry);
     if (history.length > MAX_HISTORY) { history.shift(); idx = Math.max(0, idx - 1); }
     liveStats = msg.stats;
@@ -998,18 +1406,44 @@ function onEvent(msg) {
     addKeyEvent(entry);
     renderMarkers();
     if (live) show(history.length - 1);
-    else updateLiveButton();
+    else { updateLiveButton(); updatePinned(); }
     renderActiveTab();
     requestAnimationFrame(() => recordLatency(msg.event.generated_at));
 }
 
-function onCommentary(msg) {
+function findEntry(msg) {
     const key = `${connId}:${msg.match_id}`;
-    const entry = history.find(h => h.key === key && h.event.seq === msg.seq);
+    return history.find(h => h.key === key && h.event.seq === msg.seq);
+}
+
+function onCommentary(msg) {
+    const entry = findEntry(msg);
     if (!entry) return;
     entry.commentary = msg.commentary;
+    if (msg.alerts) entry.alerts = msg.alerts;
+    if ("story" in msg) { entry.story = msg.story; entry.storySource = "LOCAL ENGINE"; updateKeyEventStory(entry); }
+    if (msg.report_narrative && entry.report) { entry.report.narrative = msg.report_narrative; entry.reportSource = "LOCAL ENGINE"; updateKeyEventStory(entry); }
     if (entry === anim.entry) showCommentary(entry, msg.commentary.source === "AZURE OPENAI");
-    if (activeTab === "analysis") renderImpactList();
+    if (reportEntry === entry) openReport(entry);
+    if (activeTab === "analysis") { renderImpactList(); renderReports(); }
+}
+
+function onStory(msg) {
+    const entry = findEntry(msg);
+    if (!entry) return;
+    entry.story = msg.story;
+    entry.storySource = msg.source;
+    updateKeyEventStory(entry);
+}
+
+function onReport(msg) {
+    const entry = findEntry(msg);
+    if (!entry || !entry.report) return;
+    entry.report.narrative = msg.narrative;
+    entry.reportSource = msg.source;
+    updateKeyEventStory(entry);
+    if (reportEntry === entry) openReport(entry);
+    if (activeTab === "analysis") renderReports();
 }
 
 function recordLatency(generatedAt) {
@@ -1030,7 +1464,7 @@ function onHello(msg) {
     st.classList.toggle("on", msg.ai_configured);
     $("ai-status-text").innerText = msg.ai_configured ? `AI: Azure · ${msg.deployment}` : "AI: local templates";
     st.title = msg.ai_configured
-        ? "Impact moments are explained by Azure OpenAI; other events use the local engine."
+        ? "Impact moments, stories and reports are written by Azure OpenAI; everything else uses the local engine."
         : "No Azure OpenAI keys in .env, so all commentary comes from the local template engine.";
 }
 
@@ -1053,7 +1487,10 @@ function connect() {
         const msg = JSON.parse(e.data);
         if (msg.type === "event") onEvent(msg);
         else if (msg.type === "commentary") onCommentary(msg);
+        else if (msg.type === "story") onStory(msg);
+        else if (msg.type === "report") onReport(msg);
         else if (msg.type === "answer") onAnswer(msg);
+        else if (msg.type === "match_start") onMatchStart(msg);
         else if (msg.type === "hello") onHello(msg);
     };
     ws.onclose = () => {
@@ -1066,6 +1503,21 @@ function sendConfig() {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "config", ...settings }));
     }
+    savePrefs();
+}
+
+/* ---------- PREFERENCES (this browser only) ---------- */
+function savePrefs() {
+    try {
+        localStorage.setItem("secondtouch-prefs", JSON.stringify({ ...settings, speed: undefined, pinned }));
+    } catch (e) { /* private mode or blocked storage: preferences just aren't remembered */ }
+}
+function loadPrefs() {
+    try {
+        const p = JSON.parse(localStorage.getItem("secondtouch-prefs") || "{}");
+        for (const k of ["mode", "team", "player", "lang", "fav_team"]) if (p[k]) settings[k] = p[k];
+        if (p.pinned) pinned = p.pinned;
+    } catch (e) { /* ignore */ }
 }
 
 /* ---------- CONTROLS ---------- */
@@ -1085,6 +1537,23 @@ $("lang-select").addEventListener("change", e => {
     settings.lang = e.target.value;
     document.documentElement.lang = settings.lang;
     sendConfig();  // the server re-sends the latest commentary in the new language at once
+});
+
+function applyFav() {
+    for (const t of TEAMS) $(`team-col-${t}`).classList.toggle("fav", fav() === t);
+    if (fav()) setStatsTeam(fav());
+}
+$("fav-select").addEventListener("change", e => {
+    settings.fav_team = e.target.value;
+    applyFav();
+    sendConfig();  // Casual commentary now speaks as a supporter of this club
+});
+
+$("pin-select").addEventListener("change", e => {
+    pinned = e.target.value;
+    lastPinnedText = "";
+    updatePinned();
+    savePrefs();
 });
 
 function buildPlayerDropdown(team, selected) {
@@ -1118,20 +1587,34 @@ $("team-select").addEventListener("change", e => {
     settings.player = defaultPlayer(settings.team);
     buildPlayerDropdown(settings.team, settings.player);
     sendConfig();
+    renderModePanel();
 });
-$("player-select").addEventListener("change", e => { settings.player = e.target.value; sendConfig(); });
+$("player-select").addEventListener("change", e => { settings.player = e.target.value; sendConfig(); renderModePanel(); });
 
 function setMode(mode) {
     settings.mode = mode;
     document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+    for (const m of ["ANALYST", "CASUAL", "PLAYER_CAM"]) $(`panel-mode-${m}`).hidden = m !== mode;
     $("player-focus-container").style.display = mode === "PLAYER_CAM" ? "flex" : "none";
     if (anim.entry) showCommentary(anim.entry);  // all three personas are already here: switch instantly
+    renderModePanel();
     sendConfig();
 }
 document.querySelectorAll(".mode-btn").forEach(btn => btn.addEventListener("click", () => setMode(btn.dataset.mode)));
 
 /* ---------- BOOT ---------- */
-fetch("/api/squads").then(r => r.json()).then(d => { squads = d.squads; buildPlayerDropdown(settings.team, settings.player); }).catch(() => {});
+loadPrefs();
+$("lang-select").value = settings.lang;
+$("fav-select").value = settings.fav_team;
+$("pin-select").value = pinned;
+$("team-select").value = settings.team;
+fetch("/api/squads").then(r => r.json()).then(d => {
+    squads = d.squads;
+    if (!squads[settings.team] || !squads[settings.team][settings.player]) { settings.team = HOME; settings.player = "Saka"; }
+    buildPlayerDropdown(settings.team, settings.player);
+}).catch(() => {});
+setMode(settings.mode);
+applyFav();
 window.addEventListener("resize", resize);
 resize();
 requestAnimationFrame(frame);

@@ -1,0 +1,516 @@
+match_id,seq,minute,clock,team,player,event_type,outcome,receiver,opponent,player_off,card,length_m,start_x,start_y,end_x,end_y,xg,pass_difficulty,pressure,pressure_index,nearest_defender_m,sprint_speed_kmh,ball_speed_kmh,forward_gain_m,players_bypassed,possession_change,right_team,is_impact_moment,impact_reasons,score_home,score_away
+1,1,0.31,0',ManCity,Haaland,TACKLE,FOUL,,Havertz,,YELLOW,0.0,50.0,50.0,50.0,50.0,,,HIGH,77,2.1,,,,,False,Arsenal,True,yellow_card,0,0
+1,2,0.8,0',Arsenal,Havertz,PASS,COMPLETE,Ødegaard,,,,14.4,50.0,50.0,60.1,64.3,,45,MEDIUM,33,6.1,,56.8,10.6,1,False,Arsenal,False,,0,0
+1,3,1.22,1',Arsenal,Ødegaard,PASS,COMPLETE,Rice,,,,6.9,60.1,64.3,58.3,54.6,,16,LOW,8,8.4,,46.6,-1.9,0,False,Arsenal,False,,0,0
+1,4,1.6,1',Arsenal,Rice,PASS,COMPLETE,Havertz,,,,32.2,58.3,54.6,88.7,49.7,,82,HIGH,69,2.9,29.6,75.4,32.0,6,False,Arsenal,True,line_breaking_pass,0,0
+1,5,2.15,2',Arsenal,Havertz,SHOT,SAVED,,Ederson,,,11.8,88.7,49.7,100.0,45.1,0.16,,MEDIUM,64,3.3,,97.8,,,True,Arsenal,True,shot,0,0
+1,6,2.6,2',ManCity,Ederson,PASS,COMPLETE,Dias,,,,17.3,95,50,80.3,38.4,,63,HIGH,72,2.5,,55.2,15.4,2,False,Arsenal,False,,0,0
+1,7,3.18,3',ManCity,Dias,PASS,COMPLETE,Akanji,,,,17.2,80.3,38.4,72.1,60.3,,46,MEDIUM,39,5.5,,57.0,8.6,2,False,Arsenal,False,,0,0
+1,8,3.52,3',ManCity,Akanji,DRIBBLE,SUCCESS,,,,,9.7,72.1,60.3,63.7,54.6,,,MEDIUM,50,4.6,32.1,32.1,,,False,Arsenal,False,,0,0
+1,9,4.24,4',ManCity,Akanji,PASS,COMPLETE,Doku,,,,33.8,63.7,54.6,38.8,86.1,,65,LOW,0,10.2,,79.0,26.2,5,False,Arsenal,False,,0,0
+1,10,4.84,4',ManCity,Doku,PASS,COMPLETE,Foden,,,,14.2,38.8,86.1,31.8,68.2,,37,LOW,15,7.7,,64.1,7.3,2,False,Arsenal,False,,0,0
+1,11,5.14,5',ManCity,Foden,PASS,COMPLETE,De Bruyne,,,,17.8,31.8,68.2,29.8,42.2,,47,MEDIUM,63,3.4,,63.3,2.1,0,False,Arsenal,False,,0,0
+1,12,5.76,5',ManCity,De Bruyne,PASS,INTERCEPTED,,Raya,,,23.9,29.8,42.2,7.4,48.2,,69,MEDIUM,46,4.9,31.9,69.9,25.2,6,True,Arsenal,False,,0,0
+1,13,6.29,6',Arsenal,Raya,PASS,INTERCEPTED,,De Bruyne,,,26.4,7.4,48.2,31.9,39.6,,90,HIGH,67,3.0,,90.5,38.1,6,True,Arsenal,True,high_press_turnover,0,0
+1,14,6.87,6',ManCity,De Bruyne,PASS,COMPLETE,Dias,,,,22.8,31.9,39.6,53.3,33.8,,44,MEDIUM,38,5.6,,64.4,-22.5,0,False,Arsenal,False,,0,0
+1,15,7.58,7',ManCity,Dias,PASS,INTERCEPTED,,Saliba,,,22.4,53.3,33.8,37.2,55.4,,47,LOW,0,9.5,,70.3,18.0,3,True,Arsenal,False,,0,0
+1,16,8.16,8',Arsenal,Saliba,PASS,INTERCEPTED,,Bernardo,,,18.5,37.2,55.4,36.1,28.3,,50,MEDIUM,49,4.6,,65.9,-1.6,0,True,Arsenal,False,,0,0
+1,17,8.73,8',ManCity,Bernardo,PASS,COMPLETE,Foden,,,,19.6,36.1,28.3,29.2,55.1,,59,HIGH,80,1.8,,69.0,7.2,2,False,Arsenal,False,,0,0
+1,18,9.23,9',ManCity,Foden,PASS,COMPLETE,Dias,,,,25.4,29.2,55.1,51.2,39.3,,39,LOW,13,7.9,,75.3,-23.1,0,False,Arsenal,False,,0,0
+1,19,9.58,9',ManCity,Dias,PASS,COMPLETE,Bernardo,,,,41.5,51.2,39.3,13.0,23.7,,74,LOW,0,10.8,34.1,87.3,40.1,7,False,Arsenal,True,line_breaking_pass,0,0
+1,20,9.99,9',ManCity,Bernardo,SHOT,MISS,,,,,22.5,13.0,23.7,0.0,58.5,0.04,,HIGH,68,2.9,,97.8,,,True,Arsenal,True,shot,0,0
+1,21,10.42,10',Arsenal,Raya,PASS,COMPLETE,Timber,,,,29.1,6,50,21.0,14.0,,60,MEDIUM,33,6.1,,83.6,15.8,1,False,Arsenal,False,,0,0
+1,22,11.12,11',Arsenal,Timber,PASS,COMPLETE,Martinelli,,,,40.1,21.0,14.0,58.6,2.9,,71,LOW,0,9.5,,93.9,39.4,8,False,Arsenal,True,line_breaking_pass,0,0
+1,23,11.69,11',Arsenal,Martinelli,PASS,INTERCEPTED,,Dias,,,14.6,58.6,2.9,66.6,20.4,,69,LOW,21,7.2,,72.5,17.3,4,True,Arsenal,False,,0,0
+1,24,12.42,12',ManCity,Dias,PASS,COMPLETE,De Bruyne,,,,22.6,66.6,20.4,46.2,31.1,,58,LOW,29,6.5,,69.3,21.4,5,False,Arsenal,False,,0,0
+1,25,12.82,12',ManCity,De Bruyne,PASS,INTERCEPTED,,Saliba,,,17.2,46.2,31.1,36.8,51.7,,49,LOW,13,7.9,,68.2,14.2,2,True,Arsenal,False,,0,0
+1,26,13.17,13',Arsenal,Saliba,PASS,COMPLETE,Gabriel,,,,9.3,36.8,51.7,33.4,39.0,,28,MEDIUM,40,5.5,,44.7,-3.6,0,False,Arsenal,False,,0,0
+1,27,13.77,13',Arsenal,Gabriel,PASS,COMPLETE,Rice,,,,15.2,33.4,39.0,47.5,44.0,,48,LOW,24,6.9,,52.1,14.8,5,False,Arsenal,False,,0,0
+1,28,14.22,14',Arsenal,Rice,PASS,COMPLETE,Martinelli,,,,34.6,47.5,44.0,69.6,6.4,,77,MEDIUM,63,3.4,,89.9,23.3,6,False,Arsenal,True,line_breaking_pass,0,0
+1,29,14.81,14',Arsenal,Martinelli,PASS,COMPLETE,Rice,,,,22.7,69.6,6.4,63.5,38.4,,42,LOW,31,6.3,,70.8,-6.5,0,False,Arsenal,False,,0,0
+1,30,15.41,15',Arsenal,Rice,PASS,COMPLETE,Martinelli,,,,25.1,63.5,38.4,87.1,33.2,,65,MEDIUM,40,5.5,27.7,78.1,24.8,6,False,Arsenal,True,line_breaking_pass,0,0
+1,31,16.1,16',Arsenal,Martinelli,PASS,INTERCEPTED,,Rodri,,,9.6,87.1,33.2,78.0,33.1,,41,HIGH,77,2.1,,50.1,-10.8,0,True,Arsenal,True,high_press_turnover,0,0
+1,32,16.8,16',ManCity,Rodri,PASS,INTERCEPTED,,Havertz,,,12.8,78.0,33.1,70.6,18.0,,65,HIGH,75,2.3,,64.4,13.3,2,True,Arsenal,True,high_press_turnover,0,0
+1,33,17.45,17',Arsenal,Havertz,PASS,COMPLETE,Rice,,,,17.9,70.6,18.0,64.7,42.6,,43,MEDIUM,55,4.1,,65.4,-6.2,0,False,Arsenal,False,,0,0
+1,34,17.76,17',Arsenal,Rice,PASS,COMPLETE,Timber,,,,27.7,64.7,42.6,47.7,11.5,,61,HIGH,76,2.2,,71.4,-17.9,0,False,Arsenal,False,,0,0
+1,35,18.36,18',Arsenal,Timber,PASS,COMPLETE,Ødegaard,,,,43.7,47.7,11.5,78.4,55.0,,76,LOW,17,7.6,30.2,100.5,32.2,6,False,Arsenal,True,line_breaking_pass,0,0
+1,36,19.06,19',Arsenal,Ødegaard,SHOT,BLOCKED,,Rodri,,,23.0,78.4,55.0,84.7,53.5,0.04,,HIGH,75,2.3,,87.5,,,True,Arsenal,True,shot,0,0
+1,37,19.57,19',ManCity,Rodri,PASS,COMPLETE,Walker,,,,31.2,84.7,53.5,70.9,12.8,,63,MEDIUM,41,5.4,,85.0,14.5,4,False,Arsenal,False,,0,0
+1,38,20.03,20',ManCity,Walker,PASS,COMPLETE,Dias,,,,13.9,70.9,12.8,72.4,33.2,,45,MEDIUM,65,3.2,,55.1,-1.6,0,False,Arsenal,False,,0,0
+1,39,20.69,20',ManCity,Dias,PASS,COMPLETE,De Bruyne,,,,26.9,72.4,33.2,46.9,29.4,,64,LOW,31,6.3,,70.1,26.8,6,False,Arsenal,True,line_breaking_pass,0,0
+1,40,21.02,21',ManCity,De Bruyne,PASS,COMPLETE,Bernardo,,,,41.4,46.9,29.4,7.5,27.6,,92,MEDIUM,63,3.4,30.4,98.6,41.4,6,False,Arsenal,True,line_breaking_pass,0,0
+1,41,21.57,21',ManCity,Bernardo,PASS,INTERCEPTED,,Timber,,,9.3,7.5,27.6,16.3,29.1,,41,HIGH,78,2.0,,54.7,-10.2,0,True,Arsenal,True,high_press_turnover,0,0
+1,42,22.19,22',Arsenal,Timber,PASS,COMPLETE,Rice,,,,23.8,16.3,29.1,37.4,41.8,,68,MEDIUM,59,3.8,,64.3,22.1,5,False,Arsenal,False,,0,0
+1,43,22.96,22',Arsenal,Rice,PASS,COMPLETE,Havertz,,,,44.2,37.4,41.8,79.3,48.6,,83,LOW,25,6.8,28.7,99.1,44.0,9,False,Arsenal,True,line_breaking_pass,0,0
+1,44,23.53,23',Arsenal,Havertz,PASS,COMPLETE,Saka,,,,29.5,79.3,48.6,84.9,91.1,,48,LOW,14,7.8,,71.8,5.9,1,False,Arsenal,False,,0,0
+1,45,23.95,23',Arsenal,Saka,PASS,COMPLETE,Rice,,,,28.6,84.9,91.1,67.7,58.5,,55,MEDIUM,51,4.4,,76.9,-18.0,0,False,Arsenal,False,,0,0
+1,46,24.61,24',Arsenal,Rice,PASS,COMPLETE,Havertz,,,,29.1,67.7,58.5,95.1,52.3,,80,HIGH,70,2.7,31.3,77.9,28.8,5,False,Arsenal,True,line_breaking_pass,0,0
+1,47,25.33,25',Arsenal,Havertz,SHOT,SAVED,,Ederson,,,5.4,95.1,52.3,100.0,46.7,0.44,,HIGH,68,2.9,,108.6,,,True,Arsenal,True,shot|big_chance,0,0
+1,48,25.65,25',ManCity,Ederson,PASS,COMPLETE,Dias,,,,14.3,95,50,82.9,40.2,,45,LOW,0,10.4,,55.2,12.7,2,False,Arsenal,False,,0,0
+1,49,26.2,26',ManCity,Dias,PASS,COMPLETE,Akanji,,,,14.3,82.9,40.2,76.3,58.6,,40,LOW,31,6.2,,62.2,6.9,1,False,Arsenal,False,,0,0
+1,50,26.62,26',ManCity,Akanji,PASS,COMPLETE,De Bruyne,,,,30.9,76.3,58.6,49.3,40.6,,80,HIGH,70,2.8,,84.8,28.3,6,False,Arsenal,True,line_breaking_pass,0,0
+1,51,27.28,27',ManCity,De Bruyne,PASS,COMPLETE,Bernardo,,,,40.6,49.3,40.6,11.3,29.4,,81,LOW,30,6.4,34.8,88.2,39.9,6,False,Arsenal,True,line_breaking_pass,0,0
+1,52,27.87,27',ManCity,Bernardo,SHOT,SAVED,,Raya,,,18.4,11.3,29.4,0.0,50.8,0.08,,LOW,0,10.1,,107.7,,,True,Arsenal,True,shot,0,0
+1,53,28.6,28',Arsenal,Raya,PASS,INTERCEPTED,,Haaland,,,13.4,5,50,17.7,49.4,,66,MEDIUM,35,5.9,,75.2,27.0,4,True,Arsenal,False,,0,0
+1,54,29.14,29',ManCity,Haaland,SHOT,BLOCKED,,Gabriel,,,18.6,17.7,49.4,14.7,49.5,0.07,,HIGH,66,3.1,,86.8,,,True,Arsenal,True,shot,0,0
+1,55,29.92,29',Arsenal,Gabriel,PASS,COMPLETE,Rice,,,,21.9,14.7,49.5,35.5,50.4,,49,LOW,0,10.3,,72.3,21.9,4,False,Arsenal,False,,0,0
+1,56,30.62,30',Arsenal,Rice,DRIBBLE,SUCCESS,,,,,12.9,35.5,50.4,47.7,48.2,,,LOW,0,9.2,30.3,30.3,,,False,Arsenal,False,,0,0
+1,57,31.3,31',Arsenal,Rice,PASS,COMPLETE,Ødegaard,,,,28.2,47.7,48.2,73.2,61.4,,80,HIGH,81,1.8,27.4,68.9,26.8,8,False,Arsenal,True,line_breaking_pass,0,0
+1,58,31.92,31',Arsenal,Ødegaard,PASS,INTERCEPTED,,Rodri,,,6.5,73.2,61.4,67.7,57.4,,46,HIGH,80,1.9,,53.7,-12.5,0,True,Arsenal,True,high_press_turnover,0,0
+1,59,32.56,32',ManCity,Rodri,PASS,COMPLETE,Walker,,,,30.3,67.7,57.4,63.0,13.5,,54,MEDIUM,34,6.0,,82.7,4.9,2,False,Arsenal,False,,0,0
+1,60,33.32,33',ManCity,Walker,PASS,COMPLETE,Rodri,,,,21.5,63.0,13.5,55.1,42.6,,45,LOW,23,7.0,,71.0,8.2,3,False,Arsenal,False,,0,0
+1,61,33.95,33',ManCity,Rodri,PASS,INTERCEPTED,,Havertz,,,11.0,55.1,42.6,47.3,31.8,,43,LOW,31,6.3,,56.3,9.4,2,True,Arsenal,False,,0,0
+1,62,34.58,34',Arsenal,Havertz,PASS,COMPLETE,Ødegaard,,,,27.8,47.3,31.8,64.6,62.8,,50,LOW,0,11.6,,79.3,18.1,5,False,Arsenal,False,,0,0
+1,63,35.37,35',Arsenal,Ødegaard,DRIBBLE,SUCCESS,,,,,13.3,64.6,62.8,76.9,58.2,,,LOW,0,10.6,24.8,24.8,,,False,Arsenal,False,,0,0
+1,64,36.11,36',Arsenal,Ødegaard,SHOT,BLOCKED,,Akanji,,,24.9,76.9,58.2,84.6,55.4,0.04,,MEDIUM,45,5.0,,103.9,,,True,Arsenal,True,shot,0,0
+1,65,36.63,36',ManCity,Akanji,PASS,INTERCEPTED,,Merino,,,19.7,84.6,55.4,67.6,43.5,,75,MEDIUM,61,3.5,,75.5,26.8,5,True,Arsenal,False,,0,0
+1,66,37.14,37',Arsenal,Merino,PASS,COMPLETE,Havertz,,,,27.6,67.6,43.5,93.4,50.9,,65,LOW,27,6.6,34.3,74.3,27.1,6,False,Arsenal,True,line_breaking_pass,0,0
+1,67,37.45,37',Arsenal,Havertz,SHOT,MISS,,,,,7.0,93.4,50.9,100.0,59.9,0.35,,MEDIUM,48,4.8,,89.7,,,True,Arsenal,True,shot|big_chance,0,0
+1,68,37.81,37',ManCity,Ederson,PASS,COMPLETE,Rodri,,,,29.2,94,50,66.2,49.1,,58,LOW,0,10.7,,74.3,29.2,5,False,Arsenal,False,,0,0
+1,69,38.32,38',Arsenal,Havertz,TACKLE,WON,,Rodri,,,1.3,66.2,49.1,65.0,48.9,,,LOW,32,6.2,,,,,True,Arsenal,False,,0,0
+1,70,38.69,38',Arsenal,Havertz,PASS,COMPLETE,Saka,,,,30.0,65.0,48.9,76.4,89.3,,69,HIGH,69,2.8,,73.2,12.0,4,False,Arsenal,False,,0,0
+1,71,39.02,39',Arsenal,Saka,PASS,INTERCEPTED,,Walker,,,37.8,76.4,89.3,81.0,34.1,,70,LOW,15,7.7,,96.8,6.2,2,True,Arsenal,False,,0,0
+1,72,39.67,39',ManCity,Walker,PASS,COMPLETE,De Bruyne,,,,27.4,81.0,34.1,54.9,33.1,,56,LOW,0,10.7,,79.3,27.4,5,False,Arsenal,False,,0,0
+1,73,40.27,40',ManCity,De Bruyne,PASS,COMPLETE,Rodri,,,,11.7,54.9,33.1,49.8,48.3,,28,LOW,4,8.7,,52.5,5.4,1,False,Arsenal,False,,0,0
+1,74,40.82,40',ManCity,Rodri,PASS,INTERCEPTED,,Rice,,,13.4,49.8,48.3,40.0,60.9,,63,HIGH,71,2.7,,62.1,14.4,3,True,Arsenal,True,high_press_turnover,0,0
+1,75,41.34,41',Arsenal,Rice,PASS,COMPLETE,Havertz,,,,31.6,40.0,60.9,69.8,53.6,,78,MEDIUM,59,3.7,,79.8,31.2,7,False,Arsenal,True,line_breaking_pass,0,0
+1,76,41.77,41',Arsenal,Havertz,PASS,COMPLETE,Merino,,,,10.9,69.8,53.6,68.7,37.7,,40,HIGH,72,2.5,,50.6,-1.1,0,False,Arsenal,False,,0,0
+1,77,42.1,42',Arsenal,Merino,PASS,INTERCEPTED,,Rodri,,,11.3,68.7,37.7,70.9,54.0,,49,MEDIUM,58,3.8,,69.8,3.9,1,True,Arsenal,False,,0,0
+1,78,42.42,42',ManCity,Rodri,PASS,COMPLETE,Gvardiol,,,,26.1,70.9,54.0,65.8,91.4,,40,LOW,0,10.7,,79.7,5.4,3,False,Arsenal,False,,0,0
+1,79,42.92,42',ManCity,Gvardiol,PASS,COMPLETE,Doku,,,,28.8,65.8,91.4,38.6,96.8,,81,LOW,31,6.3,,77.0,28.6,8,False,Arsenal,True,line_breaking_pass,0,0
+1,80,43.72,43',ManCity,Doku,PASS,COMPLETE,De Bruyne,,,,33.9,38.6,96.8,39.5,47.0,,53,LOW,26,6.7,,79.6,-1.0,0,False,Arsenal,False,,0,0
+1,81,44.19,44',ManCity,De Bruyne,PASS,INTERCEPTED,,Saliba,,,19.6,39.5,47.0,20.9,49.5,,65,LOW,10,8.2,28.6,75.4,32.3,6,True,Arsenal,False,,0,0
+1,82,44.75,44',Arsenal,Saliba,PASS,COMPLETE,Martinelli,,,,45.9,20.9,49.5,58.0,14.1,,89,MEDIUM,45,5.0,,95.6,39.0,9,False,Arsenal,True,line_breaking_pass,0,0
+1,83,45.4,45',Arsenal,Martinelli,DRIBBLE,SUCCESS,,,,,8.6,58.0,14.1,65.1,20.5,,,MEDIUM,53,4.3,33.2,33.2,,,False,Arsenal,False,,0,0
+1,84,45.0,HT,,,HALF_TIME,,,,,,,50.0,50.0,50.0,50.0,,,,,,,,,,False,ManCity,False,,0,0
+1,85,45.48,45',ManCity,Haaland,DRIBBLE,SUCCESS,,,,,7.3,50.0,50.0,56.7,52.8,,,HIGH,73,2.4,25.8,25.8,,,False,ManCity,False,,0,0
+1,86,46.09,46',ManCity,Haaland,PASS,COMPLETE,Dias,,,,15.0,56.7,52.8,46.2,67.7,,44,HIGH,71,2.6,,59.0,-11.0,0,False,ManCity,False,,0,0
+1,87,46.54,46',ManCity,Dias,PASS,COMPLETE,Haaland,,,,27.5,46.2,67.7,70.7,53.5,,64,LOW,28,6.6,,72.9,25.7,7,False,ManCity,True,line_breaking_pass,0,0
+1,88,47.12,47',ManCity,Haaland,PASS,COMPLETE,Akanji,,,,26.8,70.7,53.5,47.0,39.1,,43,LOW,20,7.2,,69.1,-24.9,0,False,ManCity,False,,0,0
+1,89,47.74,47',ManCity,Akanji,PASS,COMPLETE,Bernardo,,,,36.9,47.0,39.1,69.7,80.5,,74,MEDIUM,42,5.3,,85.1,23.8,7,False,ManCity,True,line_breaking_pass,0,0
+1,90,48.51,48',ManCity,Bernardo,PASS,COMPLETE,Foden,,,,25.7,69.7,80.5,72.9,43.0,,43,LOW,0,10.0,,72.0,3.3,2,False,ManCity,False,,0,0
+1,91,49.0,48',ManCity,Foden,DRIBBLE,SUCCESS,,,,,10.6,72.9,43.0,82.6,39.0,,,LOW,9,8.3,30.6,30.6,,,False,ManCity,False,,0,0
+1,92,49.78,49',ManCity,Foden,SHOT,MISS,,,,,19.8,82.6,39.0,100.0,40.4,0.08,,LOW,6,8.6,,74.2,,,True,ManCity,True,shot,0,0
+1,93,50.15,50',Arsenal,Raya,PASS,COMPLETE,Timber,,,,32.1,94,50,75.0,86.9,,55,LOW,0,9.5,,81.2,20.0,1,False,ManCity,False,,0,0
+1,94,50.84,50',Arsenal,Timber,PASS,COMPLETE,Saliba,,,,31.8,75.0,86.9,72.3,40.4,,45,LOW,0,9.2,,75.9,2.8,0,False,ManCity,False,,0,0
+1,95,51.62,51',Arsenal,Saliba,PASS,COMPLETE,Rice,,,,12.0,72.3,40.4,63.1,50.7,,51,MEDIUM,54,4.2,,58.6,9.7,4,False,ManCity,False,,0,0
+1,96,52.37,52',Arsenal,Rice,PASS,COMPLETE,Merino,,,,21.1,63.1,50.7,45.2,64.8,,49,LOW,10,8.2,,60.6,18.8,4,False,ManCity,False,,0,0
+1,97,52.94,52',Arsenal,Merino,PASS,COMPLETE,Saka,,,,40.5,45.2,64.8,12.1,34.2,,92,HIGH,75,2.3,33.1,88.5,34.8,6,False,ManCity,True,line_breaking_pass,0,0
+1,98,53.72,53',Arsenal,Saka,SHOT,BLOCKED,,Akanji,,,16.6,12.1,34.2,9.8,37.2,0.07,,HIGH,66,3.1,,86.9,,,False,ManCity,True,shot,0,0
+1,99,54.5,54',Arsenal,Saka,SHOT,MISS,,,,,13.4,9.8,37.2,0.0,40.4,0.11,,HIGH,70,2.8,,83.1,,,True,ManCity,True,shot,0,0
+1,100,54.83,54',ManCity,Ederson,PASS,COMPLETE,Dias,,,,18.1,6,50,20.8,63.6,,49,LOW,7,8.5,,56.1,15.6,1,False,ManCity,False,,0,0
+1,101,55.44,55',ManCity,Dias,PASS,COMPLETE,Walker,,,,23.8,20.8,63.6,34.1,91.8,,45,LOW,4,8.8,,73.4,14.0,2,False,ManCity,False,,0,0
+1,102,56.14,56',ManCity,Walker,PASS,COMPLETE,Bernardo,,,,47.0,34.1,91.8,77.1,72.9,,79,LOW,0,9.3,34.5,102.8,45.2,8,False,ManCity,True,line_breaking_pass,0,0
+1,103,56.64,56',ManCity,Bernardo,PASS,INTERCEPTED,,Rice,,,14.4,77.1,72.9,77.2,51.8,,53,HIGH,76,2.2,,66.6,0.1,0,True,ManCity,True,high_press_turnover,0,0
+1,104,57.38,57',Arsenal,Rice,PASS,COMPLETE,White,,,,27.8,77.2,51.8,68.1,13.4,,44,LOW,0,11.4,,74.0,9.5,2,False,ManCity,False,,0,0
+1,105,58.0,58',Arsenal,White,PASS,COMPLETE,Rice,,,,18.9,68.1,13.4,60.2,38.3,,43,LOW,22,7.1,,59.0,8.3,3,False,ManCity,False,,0,0
+1,106,58.48,58',Arsenal,Rice,PASS,COMPLETE,Gabriel,,,,17.0,60.2,38.3,64.7,62.2,,26,LOW,0,10.8,,65.4,-4.7,0,False,ManCity,False,,0,0
+1,107,58.85,58',Arsenal,Gabriel,PASS,COMPLETE,Merino,,,,17.5,64.7,62.2,48.1,65.8,,45,LOW,4,8.7,,64.0,17.4,5,False,ManCity,False,,0,0
+1,108,59.22,59',Arsenal,Merino,PASS,COMPLETE,Gabriel,,,,10.5,48.1,65.8,58.1,64.9,,26,LOW,27,6.7,,46.8,-10.5,0,False,ManCity,False,,0,0
+1,109,59.53,59',Arsenal,Gabriel,PASS,COMPLETE,Ødegaard,,,,25.5,58.1,64.9,44.2,34.2,,65,MEDIUM,62,3.5,,65.4,14.6,4,False,ManCity,False,,0,0
+1,110,60.31,60',Arsenal,Ødegaard,PASS,COMPLETE,Merino,,,,17.5,44.2,34.2,38.7,58.5,,39,LOW,22,7.1,,61.1,5.8,1,False,ManCity,False,,0,0
+1,111,61.08,61',Arsenal,Merino,PASS,COMPLETE,Havertz,,,,19.1,38.7,58.5,21.2,50.5,,62,MEDIUM,56,4.0,,58.1,18.3,6,False,ManCity,True,line_breaking_pass,0,0
+1,112,61.67,61',Arsenal,Havertz,PASS,COMPLETE,Ødegaard,,,,13.1,21.2,50.5,27.9,34.3,,43,HIGH,76,2.2,,60.0,-7.1,0,False,ManCity,False,,0,0
+1,113,61.67,61',Arsenal,Trossard,SUBSTITUTION,,,,Martinelli,,,27.9,34.3,27.9,34.3,,,,,,,,,,False,ManCity,False,,0,0
+1,114,62.24,62',Arsenal,Ødegaard,DRIBBLE,SUCCESS,,,,,13.2,27.9,34.3,15.4,36.5,,,HIGH,78,2.0,33.0,33.0,,,False,ManCity,False,,0,0
+1,115,62.87,62',Arsenal,Ødegaard,PASS,INTERCEPTED,,Foden,,,15.6,15.4,36.5,30.2,34.4,,49,LOW,32,6.1,,77.8,-28.6,0,True,ManCity,False,,0,0
+1,116,63.56,63',ManCity,Foden,PASS,COMPLETE,Rodri,,,,10.9,30.2,34.4,39.2,42.5,,48,MEDIUM,49,4.6,,46.6,9.4,4,False,ManCity,False,,0,0
+1,117,64.24,64',ManCity,Rodri,PASS,COMPLETE,Haaland,,,,37.0,39.2,42.5,74.2,48.8,,84,MEDIUM,55,4.1,32.4,83.2,36.7,9,False,ManCity,True,line_breaking_pass,0,0
+1,118,64.24,64',ManCity,Grealish,SUBSTITUTION,,,,Doku,,,74.2,48.8,74.2,48.8,,,,,,,,,,False,ManCity,False,,0,0
+1,119,64.65,64',ManCity,Haaland,PASS,COMPLETE,Grealish,,,,26.2,74.2,48.8,79.4,11.1,,58,MEDIUM,58,3.8,,67.6,5.4,3,False,ManCity,False,,0,0
+1,120,65.38,65',ManCity,Grealish,PASS,COMPLETE,Haaland,,,,20.0,79.4,11.1,85.1,39.1,,38,LOW,0,9.7,,68.3,6.0,1,False,ManCity,False,,0,0
+1,121,65.89,65',ManCity,Haaland,SHOT,MISS,,,,,17.3,85.1,39.1,100.0,37.0,0.1,,LOW,0,10.9,,76.9,,,True,ManCity,True,shot,0,0
+1,122,66.42,66',Arsenal,Raya,PASS,INTERCEPTED,,Bernardo,,,27.0,94,50,79.6,83.0,,73,MEDIUM,63,3.4,,84.8,18.0,2,True,ManCity,False,,0,0
+1,123,66.88,66',ManCity,Bernardo,PASS,COMPLETE,Walker,,,,22.2,79.6,83.0,61.2,98.9,,55,HIGH,79,1.9,,69.8,-19.4,0,False,ManCity,False,,0,0
+1,124,67.48,67',ManCity,Walker,PASS,COMPLETE,Bernardo,,,,33.2,61.2,98.9,89.0,75.9,,78,MEDIUM,59,3.7,30.8,86.5,29.2,6,False,ManCity,True,line_breaking_pass,0,0
+1,125,67.9,67',ManCity,Bernardo,PASS,COMPLETE,Haaland,,,,15.9,89.0,75.9,94.4,54.1,,47,MEDIUM,56,4.0,33.0,59.0,5.7,1,False,ManCity,False,,0,0
+1,126,68.57,68',ManCity,Haaland,SHOT,BLOCKED,,Gabriel,,,6.5,94.4,54.1,95.9,53.0,0.32,,HIGH,89,1.0,,109.5,,,False,ManCity,True,shot|big_chance,0,0
+1,127,69.0,69',ManCity,Haaland,SHOT,GOAL,,,,,4.7,95.9,53.0,100.0,53.4,0.48,,HIGH,81,1.7,,84.1,,,True,ManCity,True,goal|big_chance,0,1
+1,128,69.0,69',ManCity,Stones,SUBSTITUTION,,,,Akanji,,,50.0,50.0,50.0,50.0,,,,,,,,,,False,ManCity,False,,0,1
+1,129,69.64,69',Arsenal,Havertz,PASS,COMPLETE,Rice,,,,28.1,50.0,50.0,76.8,50.7,,62,HIGH,77,2.1,,71.9,-28.1,0,False,ManCity,False,,0,1
+1,130,70.24,70',Arsenal,Rice,PASS,COMPLETE,Merino,,,,25.5,76.8,50.7,53.5,61.8,,53,LOW,0,10.9,,77.1,24.4,5,False,ManCity,False,,0,1
+1,131,70.24,70',ManCity,Kovačić,SUBSTITUTION,,,,De Bruyne,,,53.5,61.8,53.5,61.8,,,,,,,,,,False,ManCity,False,,0,1
+1,132,70.92,70',Arsenal,Merino,PASS,COMPLETE,Gabriel,,,,8.7,53.5,61.8,60.6,68.5,,23,LOW,24,6.9,,51.8,-7.4,0,False,ManCity,False,,0,1
+1,133,71.71,71',Arsenal,Gabriel,PASS,COMPLETE,Saliba,,,,21.5,60.6,68.5,66.0,38.0,,50,MEDIUM,65,3.1,,65.0,-5.7,0,False,ManCity,False,,0,1
+1,134,72.03,72',Arsenal,Saliba,PASS,COMPLETE,Rice,,,,17.1,66.0,38.0,51.2,48.6,,44,LOW,0,10.1,,67.2,15.5,5,False,ManCity,False,,0,1
+1,135,72.47,72',Arsenal,Rice,PASS,COMPLETE,Trossard,,,,32.1,51.2,48.6,33.1,86.7,,64,LOW,32,6.2,,82.1,19.0,5,False,ManCity,False,,0,1
+1,136,73.05,73',Arsenal,Trossard,DRIBBLE,SUCCESS,,,,,5.9,33.1,86.7,29.6,79.8,,,LOW,0,10.2,31.4,31.4,,,False,ManCity,False,,0,1
+1,137,73.69,73',Arsenal,Trossard,PASS,COMPLETE,Havertz,,,,22.0,29.6,79.8,15.6,55.8,,64,HIGH,67,3.0,,65.2,14.7,5,False,ManCity,False,,0,1
+1,138,74.02,74',Arsenal,Havertz,PASS,COMPLETE,Ødegaard,,,,10.8,15.6,55.8,10.2,42.2,,43,MEDIUM,51,4.4,31.7,57.5,5.7,2,False,ManCity,False,,0,1
+1,139,74.49,74',Arsenal,Ødegaard,SHOT,MISS,,,,,12.0,10.2,42.2,0.0,57.7,0.19,,LOW,0,10.0,,91.3,,,True,ManCity,True,shot,0,1
+1,140,75.02,75',ManCity,Ederson,PASS,COMPLETE,Rodri,,,,26.9,6,50,31.6,48.3,,57,LOW,6,8.5,,68.7,26.8,3,False,ManCity,False,,0,1
+1,141,75.65,75',ManCity,Rodri,PASS,COMPLETE,Foden,,,,20.2,31.6,48.3,49.7,38.3,,70,HIGH,78,2.0,,63.4,19.0,5,False,ManCity,False,,0,1
+1,142,76.29,76',ManCity,Foden,PASS,COMPLETE,Haaland,,,,26.2,49.7,38.3,74.1,46.3,,76,HIGH,74,2.4,,79.4,25.7,7,False,ManCity,True,line_breaking_pass,0,1
+1,143,76.97,76',ManCity,Haaland,PASS,COMPLETE,Stones,,,,23.1,74.1,46.3,53.9,32.9,,48,MEDIUM,51,4.4,,68.4,-21.3,0,False,ManCity,False,,0,1
+1,144,76.97,76',Arsenal,Kiwior,SUBSTITUTION,,,,Gabriel,,,53.9,32.9,53.9,32.9,,,,,,,,,,False,ManCity,False,,0,1
+1,145,77.36,77',ManCity,Stones,PASS,INTERCEPTED,,Kiwior,,,17.8,53.9,32.9,67.2,49.1,,66,LOW,0,10.1,31.1,90.3,30.6,7,True,ManCity,False,,0,1
+1,146,77.73,77',Arsenal,Kiwior,PASS,COMPLETE,Rice,,,,14.1,67.2,49.1,54.2,54.7,,57,MEDIUM,59,3.8,,55.1,13.6,4,False,ManCity,False,,0,1
+1,147,78.09,78',Arsenal,Rice,PASS,COMPLETE,Kiwior,,,,11.9,54.2,54.7,63.9,63.8,,40,HIGH,70,2.8,,56.0,-10.2,0,False,ManCity,False,,0,1
+1,148,78.83,78',Arsenal,Kiwior,PASS,COMPLETE,Ødegaard,,,,26.5,63.9,63.8,47.1,34.7,,51,LOW,8,8.4,,68.7,17.7,4,False,ManCity,False,,0,1
+1,149,78.83,78',Arsenal,Jorginho,SUBSTITUTION,,,,Merino,,,47.1,34.7,47.1,34.7,,,,,,,,,,False,ManCity,False,,0,1
+1,150,79.15,79',Arsenal,Ødegaard,DRIBBLE,SUCCESS,,,,,5.5,47.1,34.7,41.8,35.2,,,LOW,0,10.1,30.5,30.5,,,False,ManCity,False,,0,1
+1,151,79.46,79',Arsenal,Ødegaard,PASS,INTERCEPTED,,Kovačić,,,9.3,41.8,35.2,40.0,48.7,,40,LOW,25,6.8,,60.2,4.0,0,True,ManCity,False,,0,1
+1,152,80.08,80',ManCity,Kovačić,PASS,INTERCEPTED,,Havertz,,,3.5,40.0,48.7,43.4,49.0,,55,MEDIUM,60,3.6,,38.2,4.7,3,True,ManCity,False,,0,1
+1,153,80.43,80',Arsenal,Havertz,PASS,COMPLETE,White,,,,23.7,43.4,49.0,51.4,16.4,,51,MEDIUM,57,3.9,,67.2,-8.4,0,False,ManCity,False,,0,1
+1,154,81.11,81',Arsenal,White,PASS,COMPLETE,Rice,,,,19.2,51.4,16.4,48.8,44.3,,59,HIGH,76,2.2,,57.6,2.7,2,False,ManCity,False,,0,1
+1,155,81.51,81',Arsenal,Rice,PASS,COMPLETE,Jorginho,,,,17.9,48.8,44.3,38.0,64.9,,38,LOW,0,10.4,,60.8,11.3,1,False,ManCity,False,,0,1
+1,156,81.84,81',Arsenal,Jorginho,PASS,COMPLETE,Rice,,,,9.2,38.0,64.9,44.6,55.9,,26,MEDIUM,33,6.1,,50.5,-6.9,0,False,ManCity,False,,0,1
+1,157,82.48,82',Arsenal,Rice,PASS,INTERCEPTED,,Stones,,,22.8,44.6,55.9,25.1,41.4,,77,MEDIUM,50,4.5,33.8,87.9,30.9,7,True,ManCity,False,,0,1
+1,158,83.17,83',ManCity,Stones,PASS,INTERCEPTED,,Trossard,,,15.6,25.1,41.4,30.1,63.0,,70,MEDIUM,60,3.6,,77.2,11.5,4,True,ManCity,False,,0,1
+1,159,83.81,83',Arsenal,Trossard,PASS,COMPLETE,Havertz,,,,12.7,30.1,63.0,22.2,48.9,,54,MEDIUM,64,3.3,,50.8,8.4,4,False,ManCity,False,,0,1
+1,160,84.27,84',Arsenal,Havertz,SHOT,SAVED,,Ederson,,,23.3,22.2,48.9,0.0,45.4,0.05,,LOW,30,6.4,,82.3,,,True,ManCity,True,shot,0,1
+1,161,84.69,84',ManCity,Ederson,PASS,COMPLETE,Gvardiol,,,,33.0,5,50,27.9,16.7,,63,LOW,19,7.4,,81.9,24.0,4,False,ManCity,False,,0,1
+1,162,85.06,85',ManCity,Gvardiol,PASS,COMPLETE,Rodri,,,,23.0,27.9,16.7,37.0,47.5,,64,MEDIUM,47,4.8,,68.4,9.6,3,False,ManCity,False,,0,1
+1,163,85.56,85',ManCity,Rodri,PASS,COMPLETE,Kovačić,,,,18.4,37.0,47.5,53.1,58.3,,50,LOW,21,7.1,,68.0,16.9,4,False,ManCity,False,,0,1
+1,164,86.21,86',ManCity,Kovačić,PASS,COMPLETE,Rodri,,,,5.4,53.1,58.3,48.0,56.9,,35,HIGH,77,2.1,,46.6,-5.3,0,False,ManCity,False,,0,1
+1,165,86.66,86',ManCity,Rodri,PASS,COMPLETE,Grealish,,,,36.1,48.0,56.9,77.9,30.9,,75,MEDIUM,37,5.8,33.3,92.7,31.4,8,False,ManCity,True,line_breaking_pass,0,1
+1,166,87.4,87',ManCity,Grealish,PASS,COMPLETE,Kovačić,,,,17.3,77.9,30.9,73.4,55.3,,49,HIGH,77,2.1,,65.3,-4.8,0,False,ManCity,False,,0,1
+1,167,87.74,87',ManCity,Kovačić,PASS,COMPLETE,Grealish,,,,27.0,73.4,55.3,76.5,16.0,,42,LOW,10,8.2,,71.2,3.2,3,False,ManCity,False,,0,1
+1,168,88.19,88',ManCity,Grealish,DRIBBLE,SUCCESS,,,,,6.0,76.5,16.0,81.1,21.2,,,HIGH,79,1.9,32.1,32.1,,,False,ManCity,False,,0,1
+1,169,88.56,88',ManCity,Grealish,PASS,COMPLETE,Dias,,,,38.1,81.1,21.2,56.0,61.6,,62,MEDIUM,39,5.5,,85.6,-26.3,0,False,ManCity,False,,0,1
+1,170,89.13,89',ManCity,Dias,PASS,INTERCEPTED,,Havertz,,,17.9,56.0,61.6,45.5,40.9,,55,HIGH,80,1.8,,64.1,-13.4,0,True,ManCity,True,high_press_turnover,0,1
+1,171,89.92,89',Arsenal,Havertz,PASS,INTERCEPTED,,Stones,,,31.8,45.5,40.9,15.6,33.6,,73,LOW,30,6.4,31.4,86.7,34.3,7,True,ManCity,False,,0,1
+1,172,90.57,90',ManCity,Stones,PASS,COMPLETE,Gvardiol,,,,24.2,15.6,33.6,29.6,5.3,,46,LOW,4,8.7,,72.7,14.7,3,False,ManCity,False,,0,1
+1,173,90.0,FT,,,FULL_TIME,,,,,,,50.0,50.0,50.0,50.0,,,,,,,,,,False,ManCity,False,,0,1
+2,1,0.6,0',Arsenal,Havertz,PASS,COMPLETE,Rice,,,,27.9,50.0,50.0,23.4,49.6,,62,HIGH,77,2.1,,78.4,-27.9,0,False,Arsenal,False,,0,0
+2,2,1.34,1',Arsenal,Rice,PASS,INTERCEPTED,,Haaland,,,21.3,23.4,49.6,43.7,49.6,,72,LOW,5,8.7,,95.7,39.5,10,True,Arsenal,False,,0,0
+2,3,1.74,1',ManCity,Haaland,PASS,COMPLETE,Doku,,,,27.8,43.7,49.6,28.4,83.0,,58,LOW,32,6.2,,78.3,16.1,4,False,Arsenal,False,,0,0
+2,4,2.09,2',ManCity,Doku,DRIBBLE,SUCCESS,,,,,15.1,28.4,83.0,17.5,68.5,,,LOW,18,7.5,32.4,32.4,,,False,Arsenal,False,,0,0
+2,5,2.61,2',ManCity,Doku,DRIBBLE,SUCCESS,,,,,8.3,17.5,68.5,10.3,63.5,,,MEDIUM,63,3.3,29.8,29.8,,,False,Arsenal,False,,0,0
+2,6,3.09,3',ManCity,Doku,SHOT,MISS,,,,,14.2,10.3,63.5,0.0,63.8,0.11,,MEDIUM,38,5.6,,105.8,,,True,Arsenal,True,shot,0,0
+2,7,3.6,3',Arsenal,Raya,PASS,INTERCEPTED,,De Bruyne,,,30.6,6,50,33.7,36.4,,73,LOW,22,7.1,,93.7,35.4,5,True,Arsenal,False,,0,0
+2,8,3.94,3',ManCity,De Bruyne,PASS,COMPLETE,Gvardiol,,,,35.1,33.7,36.4,48.7,82.6,,55,LOW,25,6.8,,83.3,-15.8,0,False,Arsenal,False,,0,0
+2,9,4.49,4',ManCity,Gvardiol,DRIBBLE,SUCCESS,,,,,12.5,48.7,82.6,38.6,73.1,,,MEDIUM,52,4.4,28.6,28.6,,,False,Arsenal,False,,0,0
+2,10,5.2,5',ManCity,Gvardiol,PASS,COMPLETE,De Bruyne,,,,18.7,38.6,73.1,32.7,47.1,,44,MEDIUM,34,6.0,,60.8,6.2,1,False,Arsenal,False,,0,0
+2,11,5.73,5',ManCity,De Bruyne,PASS,COMPLETE,Rodri,,,,8.7,32.7,47.1,40.6,50.8,,15,LOW,0,11.5,,43.6,-8.3,0,False,Arsenal,False,,0,0
+2,12,6.15,6',ManCity,Rodri,PASS,INTERCEPTED,,Saliba,,,10.8,40.6,50.8,30.5,53.2,,65,HIGH,74,2.3,,53.7,14.4,4,True,Arsenal,True,high_press_turnover,0,0
+2,13,6.64,6',Arsenal,Saliba,PASS,COMPLETE,Ødegaard,,,,23.0,30.5,53.2,51.3,63.5,,51,LOW,5,8.7,,72.5,21.9,5,False,Arsenal,False,,0,0
+2,14,7.04,7',Arsenal,Ødegaard,PASS,INTERCEPTED,,Akanji,,,20.8,51.3,63.5,70.7,69.8,,83,MEDIUM,54,4.2,32.0,85.5,36.3,7,True,Arsenal,False,,0,0
+2,15,7.51,7',ManCity,Akanji,PASS,COMPLETE,Walker,,,,39.9,70.7,69.8,65.7,11.6,,55,LOW,0,9.4,,93.9,5.3,1,False,Arsenal,False,,0,0
+2,16,8.31,8',ManCity,Walker,DRIBBLE,SUCCESS,,,,,7.4,65.7,11.6,60.8,19.6,,,LOW,0,9.9,25.5,25.5,,,False,Arsenal,False,,0,0
+2,17,8.73,8',ManCity,Walker,DRIBBLE,SUCCESS,,,,,10.6,60.8,19.6,50.7,18.9,,,LOW,0,10.2,25.7,25.7,,,False,Arsenal,False,,0,0
+2,18,9.31,9',ManCity,Walker,PASS,COMPLETE,Bernardo,,,,20.8,50.7,18.9,32.8,5.9,,59,LOW,21,7.2,,70.4,18.9,5,False,Arsenal,False,,0,0
+2,19,9.89,9',ManCity,Bernardo,PASS,COMPLETE,Haaland,,,,40.0,32.8,5.9,6.1,48.0,,79,MEDIUM,44,5.1,29.5,97.8,28.0,4,False,Arsenal,True,line_breaking_pass,0,0
+2,20,10.58,10',ManCity,Haaland,SHOT,GOAL,,,,,6.6,6.1,48.0,0.0,45.8,0.37,,MEDIUM,52,4.3,,82.8,,,True,Arsenal,True,goal|big_chance,0,1
+2,21,11.1,11',Arsenal,Havertz,PASS,COMPLETE,Saka,,,,23.1,50.0,50.0,45.6,83.3,,56,HIGH,77,2.1,,75.0,-4.6,0,False,Arsenal,False,,0,1
+2,22,11.5,11',Arsenal,Saka,PASS,INTERCEPTED,,De Bruyne,,,19.9,45.6,83.3,54.4,57.3,,67,MEDIUM,42,5.2,,78.6,15.8,2,True,Arsenal,False,,0,1
+2,23,12.07,12',ManCity,De Bruyne,PASS,COMPLETE,Doku,,,,30.1,54.4,57.3,30.3,81.5,,80,MEDIUM,64,3.3,,84.3,25.2,7,False,Arsenal,True,line_breaking_pass,0,1
+2,24,12.37,12',ManCity,Doku,PASS,INTERCEPTED,,White,,,11.4,30.3,81.5,23.4,68.5,,45,LOW,15,7.7,,58.2,12.5,5,True,Arsenal,False,,0,1
+2,25,13.16,13',Arsenal,White,DRIBBLE,SUCCESS,,,,,9.6,23.4,68.5,32.1,64.0,,,LOW,0,12.0,29.0,29.0,,,False,Arsenal,False,,0,1
+2,26,13.5,13',Arsenal,White,PASS,COMPLETE,Ødegaard,,,,21.8,32.1,64.0,52.8,65.4,,73,HIGH,78,2.0,,71.1,21.8,4,False,Arsenal,False,,0,1
+2,27,14.18,14',Arsenal,Ødegaard,DRIBBLE,SUCCESS,,,,,13.6,52.8,65.4,65.5,60.9,,,LOW,4,8.7,31.8,31.8,,,False,Arsenal,False,,0,1
+2,28,14.52,14',Arsenal,Ødegaard,PASS,COMPLETE,Havertz,,,,29.6,65.5,60.9,92.9,50.3,,64,LOW,13,7.9,28.4,75.2,28.8,5,False,Arsenal,False,,0,1
+2,29,15.32,15',Arsenal,Havertz,SHOT,BLOCKED,,Dias,,,7.5,92.9,50.3,95.1,50.2,0.3,,HIGH,69,2.8,,110.5,,,False,Arsenal,True,shot|big_chance,0,1
+2,30,15.75,15',Arsenal,Havertz,SHOT,BLOCKED,,Dias,,,5.1,95.1,50.2,96.2,50.2,0.45,,HIGH,79,1.9,,86.8,,,True,Arsenal,True,shot|big_chance,0,1
+2,31,16.13,16',ManCity,Dias,PASS,INTERCEPTED,,Havertz,,,17.6,96.2,50.2,85.0,69.4,,62,LOW,28,6.6,,80.4,20.3,3,True,Arsenal,False,,0,1
+2,32,16.53,16',Arsenal,Havertz,PASS,COMPLETE,Merino,,,,23.0,85.0,69.4,79.0,36.9,,45,MEDIUM,41,5.4,,70.3,-6.3,0,False,Arsenal,False,,0,1
+2,33,17.17,17',Arsenal,Merino,PASS,COMPLETE,Saka,,,,29.5,79.0,36.9,83.7,79.7,,48,LOW,14,7.8,,74.7,4.9,2,False,Arsenal,False,,0,1
+2,34,17.57,17',Arsenal,Saka,PASS,COMPLETE,Gabriel,,,,35.8,83.7,79.7,58.8,43.6,,63,MEDIUM,50,4.5,,83.2,-26.1,0,False,Arsenal,False,,0,1
+2,35,18.02,18',Arsenal,Gabriel,PASS,INTERCEPTED,,Ederson,,,30.1,58.8,43.6,85.3,60.6,,86,HIGH,74,2.3,32.1,89.7,32.8,6,True,Arsenal,True,high_press_turnover,0,1
+2,36,18.8,18',ManCity,Ederson,PASS,COMPLETE,Rodri,,,,18.0,85.3,60.6,69.2,51.8,,53,MEDIUM,33,6.1,,56.3,16.9,3,False,Arsenal,False,,0,1
+2,37,19.44,19',ManCity,Rodri,PASS,COMPLETE,Gvardiol,,,,25.1,69.2,51.8,63.7,87.7,,45,LOW,20,7.3,,73.1,5.7,2,False,Arsenal,False,,0,1
+2,38,20.22,20',ManCity,Gvardiol,PASS,COMPLETE,Rodri,,,,21.5,63.7,87.7,59.3,56.9,,38,LOW,9,8.2,,67.7,4.7,1,False,Arsenal,False,,0,1
+2,39,20.95,20',ManCity,Rodri,PASS,COMPLETE,Dias,,,,13.8,59.3,56.9,66.8,40.2,,23,LOW,5,8.6,,56.1,-7.9,0,False,Arsenal,False,,0,1
+2,40,21.54,21',ManCity,Dias,PASS,INTERCEPTED,,Havertz,,,13.5,66.8,40.2,54.2,36.6,,58,MEDIUM,44,5.1,,69.3,18.1,4,True,Arsenal,False,,0,1
+2,41,21.89,21',Arsenal,Havertz,PASS,COMPLETE,Merino,,,,11.6,54.2,36.6,63.3,26.9,,54,HIGH,67,3.0,,57.1,9.5,2,False,Arsenal,False,,0,1
+2,42,22.34,22',Arsenal,Merino,PASS,COMPLETE,Timber,,,,14.2,63.3,26.9,54.2,11.4,,26,LOW,0,10.2,,58.0,-9.6,0,False,Arsenal,False,,0,1
+2,43,22.72,22',Arsenal,Timber,PASS,COMPLETE,Martinelli,,,,38.6,54.2,11.4,90.1,24.0,,88,MEDIUM,64,3.3,30.8,95.7,37.7,7,False,Arsenal,True,line_breaking_pass,0,1
+2,44,23.37,23',Arsenal,Martinelli,SHOT,SAVED,,Ederson,,,20.5,90.1,24.0,100.0,48.4,0.04,,HIGH,67,3.0,,98.9,,,True,Arsenal,True,shot,0,1
+2,45,23.98,23',ManCity,Ederson,PASS,COMPLETE,Rodri,,,,22.7,95,50,73.4,47.3,,69,MEDIUM,63,3.4,,62.4,22.7,3,False,Arsenal,False,,0,1
+2,46,24.75,24',ManCity,Rodri,DRIBBLE,SUCCESS,,,,,5.1,73.4,47.3,69.5,42.8,,,MEDIUM,48,4.8,24.1,24.1,,,False,Arsenal,False,,0,1
+2,47,25.35,25',ManCity,Rodri,PASS,COMPLETE,Bernardo,,,,36.2,69.5,42.8,41.2,12.4,,74,MEDIUM,37,5.7,,84.4,29.7,6,False,Arsenal,True,line_breaking_pass,0,1
+2,48,26.15,26',ManCity,Bernardo,PASS,COMPLETE,Doku,,,,44.3,41.2,12.4,25.2,72.7,,69,LOW,12,8.0,,94.2,16.8,5,False,Arsenal,False,,0,1
+2,49,26.79,26',ManCity,Doku,PASS,COMPLETE,Rodri,,,,21.3,25.2,72.7,40.9,52.8,,54,HIGH,78,2.0,,73.6,-16.5,0,False,Arsenal,False,,0,1
+2,50,27.21,27',ManCity,Rodri,PASS,INTERCEPTED,,Ødegaard,,,8.6,40.9,52.8,36.8,41.9,,47,MEDIUM,43,5.2,,50.7,6.3,2,True,Arsenal,False,,0,1
+2,51,27.69,27',Arsenal,Ødegaard,PASS,COMPLETE,Timber,,,,18.9,36.8,41.9,40.6,14.7,,39,LOW,26,6.7,,57.9,4.0,2,False,Arsenal,False,,0,1
+2,52,28.11,28',Arsenal,Timber,PASS,COMPLETE,Martinelli,,,,32.0,40.6,14.7,70.4,5.5,,75,MEDIUM,47,4.8,,77.9,31.3,8,False,Arsenal,True,line_breaking_pass,0,1
+2,53,28.64,28',Arsenal,Martinelli,PASS,COMPLETE,Merino,,,,10.0,70.4,5.5,70.2,20.2,,38,HIGH,70,2.7,,53.3,-0.3,0,False,Arsenal,False,,0,1
+2,54,29.4,29',Arsenal,Merino,PASS,COMPLETE,Havertz,,,,31.8,70.2,20.2,95.1,46.8,,71,MEDIUM,44,5.1,32.0,78.2,26.1,6,False,Arsenal,True,line_breaking_pass,0,1
+2,55,30.2,30',Arsenal,Havertz,SHOT,BLOCKED,,Dias,,,5.6,95.1,46.8,96.4,47.6,0.42,,MEDIUM,62,3.4,,88.2,,,True,Arsenal,True,shot|big_chance,0,1
+2,56,30.65,30',ManCity,Dias,PASS,COMPLETE,Walker,,,,33.2,96.4,47.6,77.1,9.0,,78,HIGH,75,2.3,,86.5,20.3,3,False,Arsenal,False,,0,1
+2,57,31.08,31',ManCity,Walker,PASS,COMPLETE,Dias,,,,13.1,77.1,9.0,74.9,27.9,,45,HIGH,72,2.6,,59.1,2.3,2,False,Arsenal,False,,0,1
+2,58,31.84,31',ManCity,Dias,PASS,INTERCEPTED,,Saka,,,24.6,74.9,27.9,67.7,62.3,,57,LOW,9,8.3,,91.2,11.3,2,True,Arsenal,False,,0,1
+2,59,32.55,32',Arsenal,Saka,PASS,INTERCEPTED,,Dias,,,13.3,67.7,62.3,79.3,54.5,,68,MEDIUM,63,3.4,32.0,64.9,20.6,5,True,Arsenal,False,,0,1
+2,60,33.06,33',ManCity,Dias,PASS,COMPLETE,Walker,,,,28.9,79.3,54.5,68.1,15.7,,69,HIGH,72,2.5,,81.3,11.8,3,False,Arsenal,False,,0,1
+2,61,33.6,33',ManCity,Walker,PASS,INTERCEPTED,,Merino,,,17.2,68.1,15.7,53.9,28.4,,71,LOW,25,6.8,,89.3,30.2,9,True,Arsenal,False,,0,1
+2,62,34.23,34',Arsenal,Merino,PASS,COMPLETE,Martinelli,,,,28.4,53.9,28.4,77.2,7.1,,58,LOW,11,8.1,,80.8,24.4,6,False,Arsenal,True,line_breaking_pass,0,1
+2,63,34.9,34',Arsenal,Martinelli,PASS,COMPLETE,Rice,,,,22.5,77.2,7.1,64.1,33.3,,41,LOW,29,6.5,,72.4,-13.8,0,False,Arsenal,False,,0,1
+2,64,35.61,35',Arsenal,Rice,PASS,COMPLETE,Martinelli,,,,24.7,64.1,33.3,80.7,7.7,,61,MEDIUM,47,4.8,,74.0,17.5,5,False,Arsenal,False,,0,1
+2,65,36.19,36',Arsenal,Martinelli,PASS,COMPLETE,Merino,,,,10.3,80.7,7.7,77.8,22.2,,38,MEDIUM,44,5.1,,55.5,-3.1,0,False,Arsenal,False,,0,1
+2,66,36.97,36',Arsenal,Merino,PASS,COMPLETE,Havertz,,,,15.0,77.8,22.2,82.9,42.8,,52,HIGH,76,2.2,,53.5,5.4,1,False,Arsenal,False,,0,1
+2,67,37.34,37',Arsenal,Havertz,SHOT,BLOCKED,,Dias,,,18.6,82.9,42.8,86.4,44.2,0.06,,HIGH,73,2.5,,77.7,,,True,Arsenal,True,shot,0,1
+2,68,38.01,38',ManCity,Dias,PASS,COMPLETE,Walker,,,,24.1,86.4,44.2,74.7,13.7,,63,HIGH,67,3.0,,63.5,12.3,3,False,Arsenal,False,,0,1
+2,69,38.73,38',ManCity,Walker,DRIBBLE,SUCCESS,,,,,11.2,74.7,13.7,64.6,19.0,,,LOW,14,7.8,26.8,26.8,,,False,Arsenal,False,,0,1
+2,70,39.53,39',ManCity,Walker,PASS,INTERCEPTED,,Rice,,,15.5,64.6,19.0,50.3,24.5,,57,LOW,12,8.0,,62.4,21.4,5,True,Arsenal,False,,0,1
+2,71,39.97,39',Arsenal,Rice,PASS,COMPLETE,Gabriel,,,,7.5,50.3,24.5,43.7,28.8,,18,LOW,15,7.8,,44.3,-6.9,0,False,Arsenal,False,,0,1
+2,72,40.67,40',Arsenal,Gabriel,PASS,COMPLETE,Ødegaard,,,,29.4,43.7,28.8,63.9,58.7,,67,MEDIUM,45,5.0,,80.4,21.2,4,False,Arsenal,False,,0,1
+2,73,41.22,41',Arsenal,Ødegaard,PASS,COMPLETE,Saliba,,,,13.1,63.9,58.7,51.6,61.5,,36,MEDIUM,50,4.5,,59.2,-12.9,0,False,Arsenal,False,,0,1
+2,74,41.94,41',Arsenal,Saliba,PASS,COMPLETE,Ødegaard,,,,30.8,51.6,61.5,80.9,60.4,,67,LOW,23,7.0,33.2,84.9,30.8,6,False,Arsenal,True,line_breaking_pass,0,1
+2,75,42.31,42',Arsenal,Ødegaard,PASS,COMPLETE,Merino,,,,19.7,80.9,60.4,72.4,34.5,,40,MEDIUM,39,5.6,,66.2,-8.9,0,False,Arsenal,False,,0,1
+2,76,42.9,42',Arsenal,Merino,PASS,COMPLETE,Ødegaard,,,,26.5,72.4,34.5,92.6,57.8,,51,LOW,0,9.3,33.1,70.0,21.2,5,False,Arsenal,False,,0,1
+2,77,43.51,43',Arsenal,Ødegaard,SHOT,BLOCKED,,Akanji,,,9.4,92.6,57.8,94.5,55.9,0.2,,MEDIUM,61,3.6,,76.8,,,False,Arsenal,True,shot,0,1
+2,78,43.88,43',Arsenal,Ødegaard,SHOT,BLOCKED,,Akanji,,,7.0,94.5,55.9,96.0,54.3,0.27,,HIGH,92,0.7,,114.4,,,True,Arsenal,True,shot,0,1
+2,79,44.36,44',ManCity,Akanji,PASS,INTERCEPTED,,Martinelli,,,26.4,96.0,54.3,80.7,23.3,,62,LOW,23,7.0,,79.5,20.0,3,True,Arsenal,False,,0,1
+2,80,44.82,44',Arsenal,Martinelli,DRIBBLE,SUCCESS,,,,,12.4,80.7,23.3,89.2,35.9,,,HIGH,71,2.7,25.4,25.4,,,False,Arsenal,False,,0,1
+2,81,45.31,45',Arsenal,Martinelli,PASS,COMPLETE,Gabriel,,,,33.8,89.2,35.9,57.3,29.6,,67,HIGH,70,2.7,,82.4,-33.6,0,False,Arsenal,False,,0,1
+2,82,45.0,HT,,,HALF_TIME,,,,,,,50.0,50.0,50.0,50.0,,,,,,,,,,False,ManCity,False,,0,1
+2,83,45.44,45',ManCity,Haaland,PASS,INTERCEPTED,,Martinelli,,,21.8,50.0,50.0,42.9,80.1,,55,HIGH,73,2.4,,73.5,-8.0,0,True,ManCity,True,high_press_turnover,0,1
+2,84,46.02,46',Arsenal,Martinelli,DRIBBLE,SUCCESS,,,,,12.2,42.9,80.1,31.5,77.2,,,MEDIUM,40,5.5,28.6,28.6,,,False,ManCity,False,,0,1
+2,85,46.53,46',Arsenal,Martinelli,DRIBBLE,SUCCESS,,,,,9.2,31.5,77.2,24.1,69.8,,,HIGH,79,1.9,24.8,24.8,,,False,ManCity,False,,0,1
+2,86,47.04,47',Arsenal,Martinelli,PASS,COMPLETE,Saka,,,,33.7,24.1,69.8,5.3,29.7,,64,LOW,26,6.8,33.2,88.7,19.7,4,False,ManCity,False,,0,1
+2,87,47.55,47',Arsenal,Saka,SHOT,BLOCKED,,Akanji,,,14.9,5.3,29.7,3.9,35.0,0.07,,MEDIUM,56,4.0,,103.0,,,False,ManCity,True,shot,0,1
+2,88,48.33,48',ManCity,Dias,TACKLE,WON,,Saka,,,0.8,3.9,35.0,3.8,36.1,,,MEDIUM,61,3.6,,,,,True,ManCity,False,,0,1
+2,89,48.92,48',ManCity,Dias,PASS,COMPLETE,Walker,,,,34.6,3.8,36.1,20.5,79.9,,67,MEDIUM,37,5.8,,89.6,17.6,3,False,ManCity,False,,0,1
+2,90,49.22,49',ManCity,Walker,PASS,COMPLETE,Akanji,,,,21.4,20.5,79.9,24.2,49.0,,52,MEDIUM,60,3.7,,70.9,3.9,2,False,ManCity,False,,0,1
+2,91,49.76,49',ManCity,Akanji,PASS,COMPLETE,Rodri,,,,17.4,24.2,49.0,40.5,53.7,,58,MEDIUM,49,4.7,,56.7,17.1,4,False,ManCity,False,,0,1
+2,92,50.44,50',ManCity,Rodri,PASS,COMPLETE,Bernardo,,,,45.7,40.5,53.7,82.8,69.3,,78,LOW,3,8.8,28.6,94.1,44.4,9,False,ManCity,True,line_breaking_pass,0,1
+2,93,51.01,51',ManCity,Bernardo,PASS,COMPLETE,Rodri,,,,18.0,82.8,69.3,67.8,56.4,,48,HIGH,71,2.6,,58.8,-15.8,0,False,ManCity,False,,0,1
+2,94,51.37,51',Arsenal,Rice,TACKLE,FOUL,,Rodri,,YELLOW,0.0,67.8,56.4,67.8,56.4,,,HIGH,68,2.9,,,,,False,ManCity,True,yellow_card,0,1
+2,95,51.71,51',ManCity,Rodri,PASS,COMPLETE,De Bruyne,,,,10.2,67.8,56.4,73.8,68.0,,43,MEDIUM,48,4.7,,54.2,6.4,4,False,ManCity,False,,0,1
+2,96,52.25,52',ManCity,De Bruyne,PASS,COMPLETE,Akanji,,,,30.3,73.8,68.0,48.9,45.7,,47,LOW,20,7.2,,79.9,-26.2,0,False,ManCity,False,,0,1
+2,97,53.01,53',ManCity,Akanji,PASS,COMPLETE,Doku,,,,28.6,48.9,45.7,69.3,18.0,,70,MEDIUM,56,4.0,,76.6,21.5,7,False,ManCity,True,line_breaking_pass,0,1
+2,98,53.73,53',ManCity,Doku,PASS,COMPLETE,Rodri,,,,17.4,69.3,18.0,63.6,42.0,,42,MEDIUM,52,4.4,,64.7,-6.0,0,False,ManCity,False,,0,1
+2,99,54.19,54',ManCity,Rodri,PASS,INTERCEPTED,,Gabriel,,,11.4,63.6,42.0,67.7,57.5,,45,MEDIUM,45,5.0,,65.8,6.2,3,True,ManCity,False,,0,1
+2,100,54.96,54',Arsenal,Gabriel,PASS,COMPLETE,Merino,,,,21.3,67.7,57.5,48.6,68.1,,63,MEDIUM,51,4.5,,62.5,20.1,6,False,ManCity,True,line_breaking_pass,0,1
+2,101,55.46,55',Arsenal,Merino,PASS,INTERCEPTED,,Dias,,,24.3,48.6,68.1,25.6,72.0,,81,LOW,16,7.7,27.7,90.4,44.2,8,True,ManCity,False,,0,1
+2,102,55.82,55',ManCity,Dias,PASS,COMPLETE,Walker,,,,15.4,25.6,72.0,28.4,94.1,,41,MEDIUM,46,4.9,,65.0,3.0,0,False,ManCity,False,,0,1
+2,103,56.52,56',ManCity,Walker,PASS,COMPLETE,Akanji,,,,30.5,28.4,94.1,26.4,49.4,,42,LOW,0,10.2,,79.5,-2.1,0,False,ManCity,False,,0,1
+2,104,56.86,56',ManCity,Akanji,DRIBBLE,SUCCESS,,,,,9.1,26.4,49.4,34.4,44.4,,,LOW,0,10.8,31.4,31.4,,,False,ManCity,False,,0,1
+2,105,57.5,57',ManCity,Akanji,PASS,COMPLETE,Rodri,,,,13.4,34.4,44.4,46.8,48.9,,46,LOW,25,6.8,,55.7,13.1,3,False,ManCity,False,,0,1
+2,106,57.87,57',Arsenal,Havertz,TACKLE,WON,,Rodri,,,1.1,46.8,48.9,47.9,48.6,,,MEDIUM,47,4.8,,,,,True,ManCity,False,,0,1
+2,107,58.3,58',Arsenal,Havertz,PASS,COMPLETE,Ødegaard,,,,17.1,47.9,48.6,34.2,34.9,,49,LOW,29,6.4,,57.3,14.4,3,False,ManCity,False,,0,1
+2,108,59.09,59',Arsenal,Ødegaard,DRIBBLE,SUCCESS,,,,,9.0,34.2,34.9,28.8,45.2,,,HIGH,75,2.2,27.2,27.2,,,False,ManCity,False,,0,1
+2,109,59.69,59',Arsenal,Ødegaard,PASS,COMPLETE,Martinelli,,,,32.0,28.8,45.2,16.8,88.4,,71,HIGH,67,3.0,,74.3,12.6,6,False,ManCity,True,line_breaking_pass,0,1
+2,110,59.69,59',Arsenal,Kiwior,SUBSTITUTION,,,,Gabriel,,,16.8,88.4,16.8,88.4,,,,,,,,,,False,ManCity,False,,0,1
+2,111,60.4,60',Arsenal,Martinelli,DRIBBLE,SUCCESS,,,,,13.0,16.8,88.4,7.8,75.2,,,HIGH,80,1.8,25.1,25.1,,,False,ManCity,False,,0,1
+2,112,60.4,60',ManCity,Grealish,SUBSTITUTION,,,,Doku,,,7.8,75.2,7.8,75.2,,,,,,,,,,False,ManCity,False,,0,1
+2,113,60.92,60',Arsenal,Martinelli,PASS,COMPLETE,Ødegaard,,,,21.9,7.8,75.2,7.0,43.0,,54,HIGH,73,2.5,31.8,61.0,0.9,1,False,ManCity,False,,0,1
+2,114,61.44,61',Arsenal,Ødegaard,SHOT,MISS,,,,,8.7,7.0,43.0,0.0,59.9,0.21,,HIGH,84,1.5,,87.8,,,True,ManCity,True,shot,0,1
+2,115,62.08,62',ManCity,Ederson,PASS,COMPLETE,Dias,,,,16.6,6,50,19.1,63.7,,58,MEDIUM,62,3.4,,59.8,13.8,2,False,ManCity,False,,0,1
+2,116,62.85,62',ManCity,Dias,PASS,COMPLETE,De Bruyne,,,,33.9,19.1,63.7,51.2,69.4,,67,LOW,10,8.2,,77.0,33.7,6,False,ManCity,True,line_breaking_pass,0,1
+2,117,63.48,63',ManCity,De Bruyne,PASS,COMPLETE,Dias,,,,11.8,51.2,69.4,40.0,68.6,,26,LOW,24,6.9,,53.2,-11.8,0,False,ManCity,False,,0,1
+2,118,64.21,64',ManCity,Dias,PASS,COMPLETE,Haaland,,,,44.1,40.0,68.6,80.8,53.5,,96,HIGH,68,2.9,30.4,90.2,42.9,8,False,ManCity,True,line_breaking_pass,0,1
+2,119,64.81,64',ManCity,Haaland,SHOT,MISS,,,,,20.3,80.8,53.5,100.0,56.9,0.06,,MEDIUM,58,3.8,,72.8,,,True,ManCity,True,shot,0,1
+2,120,65.22,65',Arsenal,Raya,PASS,COMPLETE,Saliba,,,,19.9,94,50,78.1,33.9,,58,MEDIUM,46,4.9,,66.6,16.6,2,False,ManCity,False,,0,1
+2,121,65.7,65',Arsenal,Saliba,PASS,COMPLETE,Merino,,,,27.7,78.1,33.9,56.7,57.6,,68,MEDIUM,50,4.5,,75.8,22.6,5,False,ManCity,False,,0,1
+2,122,66.06,66',Arsenal,Merino,PASS,COMPLETE,Ødegaard,,,,23.1,56.7,57.6,38.7,38.2,,47,LOW,0,10.5,,74.7,18.9,4,False,ManCity,False,,0,1
+2,123,66.72,66',ManCity,Foden,TACKLE,WON,,Ødegaard,,,1.3,38.7,38.2,39.4,36.6,,,MEDIUM,53,4.3,,,,,True,ManCity,False,,0,1
+2,124,67.17,67',ManCity,Foden,PASS,INTERCEPTED,,Merino,,,19.1,39.4,36.6,53.0,55.1,,68,MEDIUM,51,4.5,,75.2,21.5,4,True,ManCity,False,,0,1
+2,125,67.78,67',Arsenal,Merino,PASS,COMPLETE,Timber,,,,20.9,53.0,55.1,55.0,85.8,,41,MEDIUM,36,5.8,,62.5,-2.1,0,False,ManCity,False,,0,1
+2,126,68.36,68',Arsenal,Timber,PASS,COMPLETE,Rice,,,,19.5,55.0,85.8,52.2,57.4,,53,HIGH,70,2.7,,68.4,2.9,2,False,ManCity,False,,0,1
+2,127,68.81,68',Arsenal,Rice,PASS,COMPLETE,Saliba,,,,12.0,52.2,57.4,55.1,40.3,,35,MEDIUM,51,4.5,,52.8,-3.0,0,False,ManCity,False,,0,1
+2,128,69.15,69',Arsenal,Saliba,DRIBBLE,SUCCESS,,,,,8.0,55.1,40.3,47.7,43.0,,,LOW,18,7.5,27.2,27.2,,,False,ManCity,False,,0,1
+2,129,69.88,69',Arsenal,Saliba,PASS,INTERCEPTED,,Akanji,,,21.7,47.7,43.0,28.1,32.6,,82,MEDIUM,64,3.3,28.0,82.8,30.6,5,True,ManCity,False,,0,1
+2,130,70.31,70',ManCity,Akanji,PASS,COMPLETE,Foden,,,,21.5,28.1,32.6,48.5,31.1,,57,LOW,26,6.7,,69.6,21.5,5,False,ManCity,False,,0,1
+2,131,70.68,70',ManCity,Foden,PASS,COMPLETE,Bernardo,,,,45.4,48.5,31.1,87.1,61.1,,79,LOW,11,8.1,29.6,93.1,40.5,8,False,ManCity,True,line_breaking_pass,0,1
+2,132,71.06,71',ManCity,Bernardo,SHOT,BLOCKED,,Kiwior,,,15.5,87.1,61.1,91.2,57.6,0.09,,HIGH,74,2.3,,103.7,,,False,ManCity,True,shot,0,1
+2,133,71.48,71',ManCity,Bernardo,PASS,COMPLETE,Grealish,,,,20.6,91.2,57.6,93.6,27.5,,53,HIGH,72,2.5,33.0,69.2,2.4,1,False,ManCity,False,,0,1
+2,134,72.0,71',ManCity,Grealish,PASS,COMPLETE,De Bruyne,,,,27.7,93.6,27.5,78.0,60.5,,47,LOW,29,6.5,,79.4,-16.3,0,False,ManCity,False,,0,1
+2,135,72.54,72',ManCity,De Bruyne,PASS,COMPLETE,Foden,,,,18.0,78.0,60.5,69.5,37.5,,36,LOW,31,6.2,,62.0,-9.0,0,False,ManCity,False,,0,1
+2,136,73.33,73',ManCity,Foden,PASS,COMPLETE,Akanji,,,,25.1,69.5,37.5,45.5,37.7,,40,LOW,17,7.6,,77.3,-25.1,0,False,ManCity,False,,0,1
+2,137,73.97,73',ManCity,Akanji,PASS,COMPLETE,Foden,,,,12.1,45.5,37.7,56.4,31.5,,40,LOW,0,9.1,,51.9,11.3,4,False,ManCity,False,,0,1
+2,138,74.52,74',ManCity,Foden,PASS,INTERCEPTED,,Saliba,,,27.1,56.4,31.5,81.5,40.6,,72,LOW,10,8.2,32.9,91.8,37.3,7,True,ManCity,False,,0,1
+2,139,75.2,75',Arsenal,Saliba,PASS,COMPLETE,Merino,,,,29.7,81.5,40.6,56.0,59.4,,57,LOW,2,8.9,,83.6,26.8,5,False,ManCity,False,,0,1
+2,140,75.61,75',Arsenal,Merino,PASS,COMPLETE,Timber,,,,19.2,56.0,59.4,59.7,87.0,,28,LOW,0,10.6,,58.6,-4.0,0,False,ManCity,False,,0,1
+2,141,76.22,76',Arsenal,Timber,PASS,INTERCEPTED,,Rodri,,,25.2,59.7,87.0,41.0,63.9,,99,HIGH,75,2.3,29.2,109.3,40.3,8,True,ManCity,True,high_press_turnover,0,1
+2,142,76.22,76',ManCity,Stones,SUBSTITUTION,,,,Akanji,,,41.0,63.9,41.0,63.9,,,,,,,,,,False,ManCity,False,,0,1
+2,143,76.75,76',ManCity,Rodri,PASS,COMPLETE,Bernardo,,,,30.6,41.0,63.9,66.6,85.3,,61,LOW,0,9.2,,84.1,26.9,6,False,ManCity,True,line_breaking_pass,0,1
+2,144,77.27,77',ManCity,Bernardo,PASS,COMPLETE,Walker,,,,15.7,66.6,85.3,53.6,96.8,,24,LOW,0,9.2,,56.7,-13.6,0,False,ManCity,False,,0,1
+2,145,77.94,77',ManCity,Walker,PASS,COMPLETE,Dias,,,,17.5,53.6,96.8,41.8,78.5,,48,HIGH,69,2.8,,55.3,-12.4,0,False,ManCity,False,,0,1
+2,146,78.64,78',ManCity,Dias,PASS,COMPLETE,De Bruyne,,,,18.5,41.8,78.5,59.0,72.6,,45,LOW,0,9.5,,64.7,18.0,4,False,ManCity,False,,0,1
+2,147,78.98,78',ManCity,De Bruyne,PASS,COMPLETE,Haaland,,,,24.9,59.0,72.6,78.3,51.2,,81,HIGH,79,1.9,,76.5,20.2,6,False,ManCity,True,line_breaking_pass,0,1
+2,148,78.98,78',ManCity,Kovačić,SUBSTITUTION,,,,De Bruyne,,,78.3,51.2,78.3,51.2,,,,,,,,,,False,ManCity,False,,0,1
+2,149,79.64,79',ManCity,Haaland,PASS,COMPLETE,Walker,,,,36.7,78.3,51.2,55.9,92.6,,52,LOW,11,8.1,,85.1,-23.5,0,False,ManCity,False,,0,1
+2,150,80.05,80',ManCity,Walker,PASS,COMPLETE,Rodri,,,,19.7,55.9,92.6,58.1,63.8,,48,MEDIUM,59,3.7,,68.3,2.3,1,False,ManCity,False,,0,1
+2,151,80.5,80',Arsenal,Merino,TACKLE,FOUL,,Rodri,,,0.0,58.1,63.8,58.1,63.8,,,LOW,10,8.1,,,,,False,ManCity,False,,0,1
+2,152,81.19,81',ManCity,Rodri,PASS,INTERCEPTED,,White,,,18.6,58.1,63.8,65.0,38.7,,72,MEDIUM,52,4.3,,90.6,14.4,3,True,ManCity,False,,0,1
+2,153,81.19,81',Arsenal,Jorginho,SUBSTITUTION,,,,Merino,,,65.0,38.7,65.0,38.7,,,,,,,,,,False,ManCity,False,,0,1
+2,154,81.19,81',Arsenal,Trossard,SUBSTITUTION,,,,Martinelli,,,65.0,38.7,65.0,38.7,,,,,,,,,,False,ManCity,False,,0,1
+2,155,81.95,81',Arsenal,White,PASS,INTERCEPTED,,Haaland,,,11.6,65.0,38.7,54.0,36.0,,58,LOW,32,6.2,,71.7,20.9,5,True,ManCity,False,,0,1
+2,156,82.57,82',ManCity,Haaland,PASS,COMPLETE,Gvardiol,,,,20.8,54.0,36.0,48.8,6.4,,39,LOW,31,6.3,,59.6,-5.5,0,False,ManCity,False,,0,1
+2,157,82.95,82',ManCity,Gvardiol,PASS,INTERCEPTED,,Jorginho,,,19.1,48.8,6.4,51.5,34.3,,65,MEDIUM,44,5.1,,69.6,3.8,2,True,ManCity,False,,0,1
+2,158,83.6,83',Arsenal,Jorginho,PASS,COMPLETE,Havertz,,,,39.2,51.5,34.3,15.9,51.7,,85,MEDIUM,47,4.8,31.8,88.7,37.4,7,False,ManCity,True,line_breaking_pass,0,1
+2,159,84.21,84',Arsenal,Havertz,SHOT,MISS,,,,,16.7,15.9,51.7,0.0,60.5,0.08,,HIGH,70,2.8,,84.5,,,True,ManCity,True,shot,0,1
+2,160,84.9,84',ManCity,Ederson,PASS,COMPLETE,Foden,,,,34.6,6,50,38.2,39.2,,64,LOW,0,9.1,,79.6,33.8,6,False,ManCity,True,line_breaking_pass,0,1
+2,161,85.37,85',ManCity,Foden,PASS,COMPLETE,Walker,,,,34.8,38.2,39.2,38.4,90.3,,53,LOW,21,7.2,,84.4,0.3,0,False,ManCity,False,,0,1
+2,162,85.67,85',ManCity,Walker,PASS,COMPLETE,Foden,,,,31.5,38.4,90.3,50.8,48.1,,53,LOW,10,8.2,,73.7,13.0,2,False,ManCity,False,,0,1
+2,163,86.46,86',ManCity,Foden,PASS,COMPLETE,Gvardiol,,,,25.7,50.8,48.1,45.9,11.1,,40,LOW,15,7.7,,66.4,-5.2,0,False,ManCity,False,,0,1
+2,164,86.81,86',ManCity,Gvardiol,PASS,COMPLETE,Foden,,,,17.1,45.9,11.1,57.6,28.6,,66,MEDIUM,51,4.5,,63.9,12.3,3,False,ManCity,False,,0,1
+2,165,87.3,87',ManCity,Foden,PASS,INTERCEPTED,,Raya,,,33.0,57.6,28.6,87.3,44.3,,85,MEDIUM,56,4.0,28.1,92.6,34.8,6,True,ManCity,False,,0,1
+2,166,88.09,88',Arsenal,Raya,PASS,COMPLETE,Saliba,,,,10.3,87.3,44.3,78.0,39.3,,56,HIGH,67,3.0,,50.5,9.7,2,False,ManCity,False,,0,1
+2,167,88.7,88',Arsenal,Saliba,PASS,COMPLETE,Timber,,,,31.2,78.0,39.3,70.4,83.7,,51,LOW,12,8.0,,73.9,7.9,2,False,ManCity,False,,0,1
+2,168,89.16,89',Arsenal,Timber,PASS,INTERCEPTED,,Kovačić,,,12.8,70.4,83.7,58.9,77.9,,69,MEDIUM,55,4.1,,78.8,24.4,6,True,ManCity,False,,0,1
+2,169,89.59,89',ManCity,Kovačić,PASS,INTERCEPTED,,Kiwior,,,12.4,58.9,77.9,68.5,67.1,,79,MEDIUM,56,4.0,,78.1,20.9,6,True,ManCity,False,,0,1
+2,170,90.01,90',Arsenal,Kiwior,PASS,COMPLETE,Saliba,,,,15.6,68.5,67.1,70.9,44.5,,24,LOW,1,9.0,,63.9,-2.6,0,False,ManCity,False,,0,1
+2,171,90.0,FT,,,FULL_TIME,,,,,,,50.0,50.0,50.0,50.0,,,,,,,,,,False,ManCity,False,,0,1
+3,1,0.42,0',ManCity,Haaland,TACKLE,WON,,Havertz,,,1.1,50.0,50.0,50.6,48.6,,,HIGH,77,2.1,,,,,True,Arsenal,True,high_press_turnover,0,0
+3,2,0.75,0',ManCity,Haaland,PASS,COMPLETE,Foden,,,,15.6,50.6,48.6,40.0,64.8,,41,LOW,15,7.7,,64.4,11.1,3,False,Arsenal,False,,0,0
+3,3,1.43,1',ManCity,Foden,PASS,INTERCEPTED,,Gabriel,,,15.7,40.0,64.8,33.2,44.3,,73,MEDIUM,61,3.6,,80.2,15.8,6,True,Arsenal,False,,0,0
+3,4,1.82,1',Arsenal,Gabriel,PASS,COMPLETE,Merino,,,,19.5,33.2,44.3,50.6,34.2,,59,MEDIUM,44,5.1,,58.9,18.3,5,False,Arsenal,False,,0,0
+3,5,2.35,2',Arsenal,Merino,PASS,COMPLETE,Havertz,,,,24.2,50.6,34.2,71.7,48.4,,58,LOW,0,9.1,,75.5,22.2,7,False,Arsenal,True,line_breaking_pass,0,0
+3,6,3.08,3',Arsenal,Havertz,PASS,COMPLETE,Merino,,,,10.9,71.7,48.4,68.5,33.2,,27,LOW,31,6.3,,51.0,-3.3,0,False,Arsenal,False,,0,0
+3,7,3.57,3',Arsenal,Merino,PASS,COMPLETE,Saka,,,,37.7,68.5,33.2,78.9,86.3,,78,HIGH,75,2.3,,85.8,10.9,5,False,Arsenal,False,,0,0
+3,8,4.25,4',Arsenal,Saka,PASS,COMPLETE,Ødegaard,,,,8.1,78.9,86.3,76.5,75.1,,34,MEDIUM,35,5.9,,53.4,-2.6,0,False,Arsenal,False,,0,0
+3,9,4.69,4',Arsenal,Ødegaard,PASS,COMPLETE,Saka,,,,14.0,76.5,75.1,82.5,93.4,,53,HIGH,76,2.2,,56.3,6.4,5,False,Arsenal,False,,0,0
+3,10,5.05,5',Arsenal,Saka,PASS,INTERCEPTED,,Akanji,,,6.7,82.5,93.4,79.6,84.8,,34,MEDIUM,44,5.0,,52.5,-5.9,0,True,Arsenal,False,,0,0
+3,11,5.68,5',ManCity,Akanji,PASS,INTERCEPTED,,Ødegaard,,,16.6,79.6,84.8,68.1,68.1,,70,HIGH,78,2.0,,70.2,17.3,3,True,Arsenal,True,high_press_turnover,0,0
+3,12,6.2,6',Arsenal,Ødegaard,PASS,COMPLETE,Merino,,,,18.0,68.1,68.1,68.5,41.7,,48,HIGH,71,2.6,,59.0,0.5,0,False,Arsenal,False,,0,0
+3,13,6.6,6',Arsenal,Merino,PASS,COMPLETE,Ødegaard,,,,16.4,68.5,41.7,70.7,65.7,,50,HIGH,75,2.3,,60.1,2.3,1,False,Arsenal,False,,0,0
+3,14,7.1,7',Arsenal,Ødegaard,DRIBBLE,SUCCESS,,,,,7.9,70.7,65.7,74.8,55.9,,,LOW,0,10.2,25.0,25.0,,,False,Arsenal,False,,0,0
+3,15,7.74,7',Arsenal,Ødegaard,PASS,COMPLETE,Havertz,,,,18.5,74.8,55.9,92.0,50.5,,68,HIGH,77,2.1,31.1,59.5,18.1,5,False,Arsenal,False,,0,0
+3,16,8.47,8',Arsenal,Havertz,SHOT,MISS,,,,,8.4,92.0,50.5,100.0,62.4,0.24,,HIGH,84,1.4,,111.8,,,True,Arsenal,True,shot,0,0
+3,17,9.08,9',ManCity,Ederson,PASS,COMPLETE,Walker,,,,32.6,94,50,77.2,9.8,,59,LOW,16,7.7,,75.8,17.7,2,False,Arsenal,False,,0,0
+3,18,9.79,9',ManCity,Walker,PASS,COMPLETE,Dias,,,,15.2,77.2,9.8,68.7,27.9,,42,LOW,26,6.7,,55.5,8.9,1,False,Arsenal,False,,0,0
+3,19,10.24,10',ManCity,Dias,PASS,COMPLETE,De Bruyne,,,,24.4,68.7,27.9,45.4,28.1,,52,LOW,0,9.4,,67.9,24.4,5,False,Arsenal,False,,0,0
+3,20,10.81,10',ManCity,De Bruyne,PASS,INTERCEPTED,,Gabriel,,,19.1,45.4,28.1,27.3,29.7,,90,HIGH,72,2.5,30.4,90.3,34.2,5,True,Arsenal,True,high_press_turnover,0,0
+3,21,11.43,11',Arsenal,Gabriel,PASS,COMPLETE,Havertz,,,,35.6,27.3,29.7,59.9,43.8,,70,LOW,16,7.7,,87.2,34.2,9,False,Arsenal,True,line_breaking_pass,0,0
+3,22,11.83,11',Arsenal,Havertz,DRIBBLE,SUCCESS,,,,,12.8,59.9,43.8,72.0,42.9,,,LOW,10,8.2,33.4,33.4,,,False,Arsenal,False,,0,0
+3,23,12.21,12',Arsenal,Havertz,PASS,COMPLETE,Ødegaard,,,,21.2,72.0,42.9,89.1,59.7,,61,MEDIUM,51,4.4,29.4,64.5,17.9,4,False,Arsenal,False,,0,0
+3,24,12.75,12',Arsenal,Ødegaard,SHOT,MISS,,,,,13.2,89.1,59.7,100.0,41.5,0.12,,MEDIUM,58,3.8,,103.9,,,True,Arsenal,True,shot,0,0
+3,25,13.41,13',ManCity,Ederson,PASS,INTERCEPTED,,Saka,,,24.6,94,50,82.2,81.2,,73,HIGH,67,3.0,,76.2,16.3,2,True,Arsenal,True,high_press_turnover,0,0
+3,26,13.93,13',Arsenal,Saka,PASS,COMPLETE,White,,,,22.4,82.2,81.2,63.5,97.0,,41,LOW,30,6.4,,62.5,-19.6,0,False,Arsenal,False,,0,0
+3,27,14.39,14',Arsenal,White,PASS,COMPLETE,Merino,,,,32.4,63.5,97.0,62.1,49.4,,67,HIGH,77,2.1,,78.7,-1.4,0,False,Arsenal,False,,0,0
+3,28,15.14,15',Arsenal,Merino,PASS,INTERCEPTED,,Akanji,,,11.3,62.1,49.4,72.9,51.0,,68,HIGH,77,2.1,,64.3,15.1,5,True,Arsenal,True,high_press_turnover,0,0
+3,29,15.71,15',ManCity,Akanji,PASS,INTERCEPTED,,Merino,,,18.3,72.9,51.0,56.3,42.7,,65,LOW,27,6.7,,76.4,27.9,6,True,Arsenal,False,,0,0
+3,30,16.19,16',Arsenal,Merino,PASS,COMPLETE,Timber,,,,27.1,56.3,42.7,48.1,4.9,,48,MEDIUM,36,5.8,,75.8,-8.6,0,False,Arsenal,False,,0,0
+3,31,16.68,16',Arsenal,Timber,PASS,INTERCEPTED,,Akanji,,,31.8,48.1,4.9,72.8,31.9,,99,HIGH,75,2.3,29.7,105.6,39.8,7,True,Arsenal,True,high_press_turnover,0,0
+3,32,17.23,17',ManCity,Akanji,PASS,COMPLETE,Rodri,,,,17.3,72.8,31.9,60.0,47.7,,47,LOW,15,7.7,,62.2,13.5,4,False,Arsenal,False,,0,0
+3,33,17.9,17',ManCity,Rodri,DRIBBLE,SUCCESS,,,,,8.8,60.0,47.7,51.9,44.4,,,MEDIUM,58,3.8,31.0,31.0,,,False,Arsenal,False,,0,0
+3,34,18.31,18',ManCity,Rodri,PASS,COMPLETE,Haaland,,,,42.9,51.9,44.4,11.0,44.8,,74,LOW,0,9.7,29.0,88.0,42.9,8,False,Arsenal,True,line_breaking_pass,0,0
+3,35,18.63,18',ManCity,Haaland,DRIBBLE,SUCCESS,,,,,8.5,11.0,44.8,3,44.0,,,HIGH,69,2.8,29.7,29.7,,,False,Arsenal,False,,0,0
+3,36,19.15,19',ManCity,Haaland,SHOT,GOAL,,,,,5.2,3,44.0,0.0,49.0,0.39,,HIGH,67,3.0,,110.1,,,True,Arsenal,True,goal|big_chance,0,1
+3,37,19.76,19',Arsenal,Havertz,PASS,INTERCEPTED,,Haaland,,,18.6,50.0,50.0,32.3,51.0,,61,HIGH,77,2.1,,74.8,-27.2,0,True,Arsenal,True,high_press_turnover,0,1
+3,38,20.41,20',ManCity,Haaland,PASS,COMPLETE,Bernardo,,,,26.9,32.3,51.0,26.4,12.5,,64,MEDIUM,63,3.3,,75.6,6.1,4,False,Arsenal,False,,0,1
+3,39,21.15,21',ManCity,Bernardo,DRIBBLE,SUCCESS,,,,,5.3,26.4,12.5,22.1,16.4,,,MEDIUM,60,3.6,30.8,30.8,,,False,Arsenal,False,,0,1
+3,40,21.83,21',ManCity,Bernardo,PASS,COMPLETE,Walker,,,,24.6,22.1,16.4,44.5,5.8,,45,LOW,0,10.0,,67.4,-23.5,0,False,Arsenal,False,,0,1
+3,41,22.13,22',ManCity,Walker,PASS,COMPLETE,Haaland,,,,45.9,44.5,5.8,7.5,41.8,,89,LOW,29,6.5,30.6,105.6,38.8,7,False,Arsenal,True,line_breaking_pass,0,1
+3,42,22.49,22',ManCity,Haaland,SHOT,MISS,,,,,9.7,7.5,41.8,0.0,36.8,0.2,,MEDIUM,53,4.3,,92.2,,,True,Arsenal,True,shot,0,1
+3,43,23.26,23',Arsenal,Raya,PASS,COMPLETE,Gabriel,,,,17.0,6,50,21.1,40.8,,50,LOW,27,6.6,,61.3,15.8,2,False,Arsenal,False,,0,1
+3,44,23.9,23',Arsenal,Gabriel,PASS,COMPLETE,Merino,,,,27.6,21.1,40.8,47.0,33.5,,75,MEDIUM,63,3.4,,70.8,27.2,6,False,Arsenal,True,line_breaking_pass,0,1
+3,45,24.3,24',Arsenal,Merino,PASS,COMPLETE,Martinelli,,,,41.3,47.0,33.5,86.3,34.5,,87,MEDIUM,48,4.7,28.5,89.4,41.3,6,False,Arsenal,True,line_breaking_pass,0,1
+3,46,24.97,24',Arsenal,Martinelli,DRIBBLE,SUCCESS,,,,,11.0,86.3,34.5,96.5,37.8,,,HIGH,80,1.8,26.8,26.8,,,False,Arsenal,False,,0,1
+3,47,25.45,25',Arsenal,Martinelli,SHOT,SAVED,,Ederson,,,9.1,96.5,37.8,100.0,51.7,0.14,,HIGH,73,2.5,,90.5,,,True,Arsenal,True,shot,0,1
+3,48,26.15,26',ManCity,Ederson,PASS,COMPLETE,Walker,,,,32.1,95,50,76.3,12.6,,76,HIGH,71,2.7,,77.1,19.6,2,False,Arsenal,False,,0,1
+3,49,26.52,26',ManCity,Walker,PASS,INTERCEPTED,,Gabriel,,,38.3,76.3,12.6,42.8,34.9,,90,LOW,29,6.5,,99.1,41.0,10,True,Arsenal,False,,0,1
+3,50,26.82,26',Arsenal,Gabriel,PASS,COMPLETE,Martinelli,,,,33.0,42.8,34.9,73.6,24.9,,72,LOW,32,6.2,32.0,83.2,32.3,8,False,Arsenal,True,line_breaking_pass,0,1
+3,51,27.22,27',Arsenal,Martinelli,DRIBBLE,SUCCESS,,,,,10.1,73.6,24.9,83.3,25.1,,,MEDIUM,60,3.6,30.6,30.6,,,False,Arsenal,False,,0,1
+3,52,27.87,27',Arsenal,Martinelli,DRIBBLE,SUCCESS,,,,,14.3,83.3,25.1,93.9,38.2,,,MEDIUM,54,4.2,34.0,34.0,,,False,Arsenal,False,,0,1
+3,53,28.3,28',Arsenal,Martinelli,PASS,COMPLETE,Havertz,,,,7.3,93.9,38.2,95.3,48.8,,34,MEDIUM,50,4.6,27.6,45.1,1.4,0,False,Arsenal,False,,0,1
+3,54,28.62,28',Arsenal,Havertz,SHOT,GOAL,,,,,5.0,95.3,48.8,100.0,45.2,0.47,,HIGH,67,3.0,,86.4,,,True,Arsenal,True,goal|big_chance,1,1
+3,55,29.37,29',ManCity,Haaland,PASS,COMPLETE,Rodri,,,,26.2,50.0,50.0,75.0,50.0,,58,HIGH,73,2.4,,77.0,-26.2,0,False,Arsenal,False,,1,1
+3,56,30.05,30',ManCity,Rodri,PASS,COMPLETE,Doku,,,,45.8,75.0,50.0,39.4,89.0,,75,LOW,0,9.2,,91.8,37.3,10,False,Arsenal,True,line_breaking_pass,1,1
+3,57,30.39,30',ManCity,Doku,PASS,COMPLETE,De Bruyne,,,,28.1,39.4,89.0,31.6,49.5,,51,LOW,23,7.0,,75.5,8.2,2,False,Arsenal,False,,1,1
+3,58,30.88,30',ManCity,De Bruyne,PASS,COMPLETE,Haaland,,,,26.2,31.6,49.5,6.7,46.4,,76,HIGH,71,2.7,31.6,79.8,26.2,5,False,Arsenal,True,line_breaking_pass,1,1
+3,59,31.18,31',ManCity,Haaland,SHOT,SAVED,,Raya,,,7.4,6.7,46.4,0.0,45.2,0.29,,HIGH,75,2.3,,102.0,,,True,Arsenal,True,shot,1,1
+3,60,31.7,31',Arsenal,Raya,PASS,COMPLETE,Ødegaard,,,,42.8,5,50,44.5,65.4,,76,LOW,7,8.5,,101.2,41.5,6,False,Arsenal,True,line_breaking_pass,1,1
+3,61,32.23,32',ManCity,Foden,TACKLE,WON,,Ødegaard,,,1.7,44.5,65.4,43.1,66.6,,,MEDIUM,47,4.8,,,,,True,Arsenal,False,,1,1
+3,62,32.93,32',ManCity,Foden,PASS,COMPLETE,De Bruyne,,,,19.2,43.1,66.6,32.8,43.2,,53,MEDIUM,41,5.3,,58.3,10.8,2,False,Arsenal,False,,1,1
+3,63,33.63,33',ManCity,De Bruyne,PASS,COMPLETE,Rodri,,,,9.5,32.8,43.2,41.2,48.4,,33,MEDIUM,56,4.0,,49.6,-8.8,0,False,Arsenal,False,,1,1
+3,64,34.4,34',ManCity,Rodri,PASS,COMPLETE,Doku,,,,36.2,41.2,48.4,8.7,66.2,,84,MEDIUM,62,3.5,28.1,91.1,34.2,5,False,Arsenal,True,line_breaking_pass,1,1
+3,65,35.11,35',ManCity,Doku,SHOT,MISS,,,,,14.3,8.7,66.2,0.0,38.8,0.09,,HIGH,68,2.9,,88.2,,,True,Arsenal,True,shot,1,1
+3,66,35.49,35',Arsenal,Raya,PASS,COMPLETE,Gabriel,,,,18.0,6,50,20.6,36.2,,52,MEDIUM,34,6.0,,65.6,15.3,2,False,Arsenal,False,,1,1
+3,67,35.79,35',Arsenal,Gabriel,PASS,INTERCEPTED,,Foden,,,24.7,20.6,36.2,40.8,54.5,,78,MEDIUM,52,4.4,,78.2,30.0,6,True,Arsenal,False,,1,1
+3,68,36.33,36',ManCity,Foden,PASS,COMPLETE,Akanji,,,,19.5,40.8,54.5,58.5,63.1,,35,LOW,22,7.1,,69.2,-18.6,0,False,Arsenal,False,,1,1
+3,69,36.9,36',ManCity,Akanji,PASS,COMPLETE,Bernardo,,,,41.8,58.5,63.1,25.0,30.1,,77,LOW,24,6.9,28.4,96.1,35.2,8,False,Arsenal,True,line_breaking_pass,1,1
+3,70,37.55,37',ManCity,Bernardo,PASS,COMPLETE,Doku,,,,35.3,25.0,30.1,17.8,80.8,,59,LOW,27,6.6,,79.4,7.5,3,False,Arsenal,False,,1,1
+3,71,38.24,38',ManCity,Doku,PASS,COMPLETE,Rodri,,,,22.2,17.8,80.8,35.0,61.7,,56,HIGH,80,1.8,,61.8,-18.0,0,False,Arsenal,False,,1,1
+3,72,38.64,38',ManCity,Rodri,PASS,COMPLETE,De Bruyne,,,,14.4,35.0,61.7,27.9,43.6,,34,LOW,5,8.6,,52.7,7.4,3,False,Arsenal,False,,1,1
+3,73,39.41,39',Arsenal,Rice,TACKLE,WON,,De Bruyne,,,2.2,27.9,43.6,29.6,45.3,,,MEDIUM,49,4.7,,,,,True,Arsenal,False,,1,1
+3,74,40.02,40',Arsenal,Rice,PASS,COMPLETE,Saka,,,,42.1,29.6,45.3,57.0,90.6,,68,LOW,0,10.0,,99.4,28.8,6,False,Arsenal,True,line_breaking_pass,1,1
+3,75,40.71,40',Arsenal,Saka,DRIBBLE,SUCCESS,,,,,7.2,57.0,90.6,62.2,83.5,,,MEDIUM,57,3.9,26.9,26.9,,,False,Arsenal,False,,1,1
+3,76,41.03,41',Arsenal,Saka,PASS,COMPLETE,Havertz,,,,23.0,62.2,83.5,77.8,59.9,,45,LOW,0,11.7,,63.1,16.5,4,False,Arsenal,False,,1,1
+3,77,41.8,41',Arsenal,Havertz,PASS,COMPLETE,Martinelli,,,,25.2,77.8,59.9,94.4,33.2,,63,MEDIUM,51,4.5,31.8,77.3,17.4,4,False,Arsenal,False,,1,1
+3,78,42.43,42',Arsenal,Martinelli,SHOT,SAVED,,Ederson,,,12.9,94.4,33.2,100.0,54.9,0.09,,HIGH,76,2.1,,82.2,,,True,Arsenal,True,shot,1,1
+3,79,42.83,42',ManCity,Ederson,PASS,COMPLETE,Dias,,,,23.2,95,50,75.8,33.0,,58,LOW,32,6.2,,65.0,20.1,3,False,Arsenal,False,,1,1
+3,80,43.4,43',ManCity,Dias,PASS,COMPLETE,Foden,,,,34.7,75.8,33.0,46.8,57.2,,72,LOW,32,6.2,,80.5,30.5,6,False,Arsenal,True,line_breaking_pass,1,1
+3,81,44.17,44',ManCity,Foden,PASS,INTERCEPTED,,Saka,,,18.9,46.8,57.2,53.6,83.0,,44,LOW,23,7.0,,68.7,-8.1,0,True,Arsenal,False,,1,1
+3,82,44.87,44',Arsenal,Saka,DRIBBLE,SUCCESS,,,,,14.3,53.6,83.0,66.0,74.2,,,HIGH,72,2.6,27.9,27.9,,,False,Arsenal,False,,1,1
+3,83,45.53,45',Arsenal,Saka,PASS,COMPLETE,Saliba,,,,20.4,66.0,74.2,47.3,65.8,,39,LOW,30,6.4,,65.8,-19.6,0,False,Arsenal,False,,1,1
+3,84,45.0,HT,,,HALF_TIME,,,,,,,50.0,50.0,50.0,50.0,,,,,,,,,,False,ManCity,False,,1,1
+3,85,45.6,45',ManCity,Haaland,PASS,COMPLETE,Rodri,,,,26.9,50.0,50.0,24.3,49.5,,59,HIGH,73,2.4,,80.5,-26.9,0,False,ManCity,False,,1,1
+3,86,46.25,46',Arsenal,Havertz,TACKLE,FOUL,,Rodri,,YELLOW,0.0,24.3,49.5,24.3,49.5,,,LOW,26,6.7,,,,,False,ManCity,True,yellow_card,1,1
+3,87,46.77,46',ManCity,Rodri,PASS,INTERCEPTED,,Rice,,,27.5,24.3,49.5,49.5,38.4,,81,HIGH,66,3.1,,80.4,31.1,6,True,ManCity,True,high_press_turnover,1,1
+3,88,47.29,47',Arsenal,Rice,PASS,COMPLETE,White,,,,24.0,49.5,38.4,56.0,4.6,,40,LOW,22,7.1,,71.9,-6.9,0,False,ManCity,False,,1,1
+3,89,48.07,48',Arsenal,White,PASS,COMPLETE,Ødegaard,,,,20.5,56.0,4.6,41.0,23.9,,59,MEDIUM,35,5.9,,68.0,15.8,4,False,ManCity,False,,1,1
+3,90,48.51,48',Arsenal,Ødegaard,PASS,COMPLETE,Saka,,,,21.5,41.0,23.9,26.1,2.3,,55,MEDIUM,36,5.8,,73.5,15.6,4,False,ManCity,False,,1,1
+3,91,49.06,49',Arsenal,Saka,PASS,INTERCEPTED,,Akanji,,,15.3,26.1,2.3,20.5,23.0,,58,MEDIUM,50,4.5,29.8,66.1,9.9,3,True,ManCity,False,,1,1
+3,92,49.65,49',ManCity,Akanji,PASS,COMPLETE,Gvardiol,,,,17.9,20.5,23.0,35.4,10.2,,42,LOW,0,9.9,,67.8,15.7,2,False,ManCity,False,,1,1
+3,93,50.45,50',ManCity,Gvardiol,PASS,COMPLETE,De Bruyne,,,,38.1,35.4,10.2,59.7,51.9,,70,LOW,24,6.9,,87.1,25.5,5,False,ManCity,True,line_breaking_pass,1,1
+3,94,50.98,50',ManCity,De Bruyne,PASS,COMPLETE,Doku,,,,27.5,59.7,51.9,68.5,13.9,,53,LOW,30,6.4,,74.9,9.2,1,False,ManCity,False,,1,1
+3,95,51.59,51',ManCity,Doku,PASS,INTERCEPTED,,Saliba,,,21.5,68.5,13.9,83.7,35.0,,76,MEDIUM,63,3.4,32.2,74.3,24.0,6,True,ManCity,False,,1,1
+3,96,52.11,52',Arsenal,Saliba,PASS,COMPLETE,Rice,,,,21.0,83.7,35.0,66.1,49.7,,72,MEDIUM,52,4.3,,73.3,18.5,4,False,ManCity,False,,1,1
+3,97,52.43,52',Arsenal,Rice,PASS,COMPLETE,Ødegaard,,,,24.5,66.1,49.7,45.5,32.6,,57,LOW,24,7.0,,77.0,21.6,6,False,ManCity,True,line_breaking_pass,1,1
+3,98,52.78,52',Arsenal,Ødegaard,PASS,COMPLETE,Havertz,,,,39.2,45.5,32.6,9.7,48.9,,87,MEDIUM,53,4.3,30.2,89.7,37.7,5,False,ManCity,True,line_breaking_pass,1,1
+3,99,53.35,53',Arsenal,Havertz,SHOT,BLOCKED,,Dias,,,10.2,9.7,48.9,7.3,49.2,0.19,,HIGH,73,2.5,,74.3,,,False,ManCity,True,shot,1,1
+3,100,53.7,53',Arsenal,Havertz,SHOT,SAVED,,Ederson,,,7.6,7.3,49.2,0.0,53.1,0.28,,HIGH,83,1.5,,87.4,,,True,ManCity,True,shot,1,1
+3,101,54.27,54',ManCity,Ederson,PASS,COMPLETE,Rodri,,,,29.7,5,50,33.2,48.5,,65,LOW,20,7.3,,78.6,29.6,4,False,ManCity,False,,1,1
+3,102,54.64,54',ManCity,Rodri,PASS,COMPLETE,Foden,,,,25.6,33.2,48.5,55.1,32.0,,59,LOW,25,6.8,,69.7,23.0,5,False,ManCity,False,,1,1
+3,103,55.4,55',ManCity,Foden,PASS,COMPLETE,De Bruyne,,,,18.5,55.1,32.0,65.9,53.5,,61,HIGH,75,2.3,,65.9,11.3,2,False,ManCity,False,,1,1
+3,104,56.09,56',ManCity,De Bruyne,PASS,COMPLETE,Foden,,,,13.2,65.9,53.5,69.6,35.0,,35,LOW,30,6.4,,58.8,3.8,1,False,ManCity,False,,1,1
+3,105,56.55,56',Arsenal,Rice,TACKLE,WON,,Foden,,,0.5,69.6,35.0,69.7,34.3,,,MEDIUM,56,4.0,,,,,True,ManCity,False,,1,1
+3,106,56.97,56',Arsenal,Rice,PASS,COMPLETE,White,,,,22.3,69.7,34.3,62.2,3.6,,38,LOW,0,11.5,,70.3,7.9,2,False,ManCity,False,,1,1
+3,107,57.6,57',Arsenal,White,PASS,INTERCEPTED,,Gvardiol,,,17.5,62.2,3.6,45.5,3.1,,77,HIGH,70,2.8,,69.3,27.5,5,True,ManCity,True,high_press_turnover,1,1
+3,108,58.07,58',ManCity,Gvardiol,PASS,COMPLETE,Akanji,,,,14.4,45.5,3.1,37.9,20.7,,32,LOW,32,6.2,,54.7,-8.0,0,False,ManCity,False,,1,1
+3,109,58.58,58',ManCity,Akanji,DRIBBLE,SUCCESS,,,,,4.9,37.9,20.7,42.5,19.8,,,HIGH,75,2.3,33.6,33.6,,,False,ManCity,False,,1,1
+3,110,59.31,59',Arsenal,Ødegaard,TACKLE,WON,,Akanji,,,1.0,42.5,19.8,41.7,20.6,,,HIGH,71,2.6,,,,,True,ManCity,True,high_press_turnover,1,1
+3,111,59.83,59',Arsenal,Ødegaard,PASS,INTERCEPTED,,Akanji,,,19.2,41.7,20.6,23.7,25.3,,58,LOW,9,8.3,29.0,69.8,26.5,6,True,ManCity,False,,1,1
+3,112,60.58,60',ManCity,Akanji,PASS,COMPLETE,Gvardiol,,,,13.5,23.7,25.3,32.8,11.2,,46,MEDIUM,40,5.4,,55.1,9.5,2,False,ManCity,False,,1,1
+3,113,60.58,60',ManCity,Stones,SUBSTITUTION,,,,Akanji,,,32.8,11.2,32.8,11.2,,,,,,,,,,False,ManCity,False,,1,1
+3,114,61.17,61',ManCity,Gvardiol,PASS,COMPLETE,Rodri,,,,24.2,32.8,11.2,48.8,36.6,,65,MEDIUM,39,5.5,,71.3,16.9,4,False,ManCity,False,,1,1
+3,115,61.95,61',ManCity,Rodri,PASS,COMPLETE,Doku,,,,27.8,48.8,36.6,74.7,28.0,,79,HIGH,77,2.1,27.1,78.9,27.2,8,False,ManCity,True,line_breaking_pass,1,1
+3,116,62.56,62',ManCity,Doku,PASS,COMPLETE,De Bruyne,,,,17.7,74.7,28.0,74.5,54.0,,48,HIGH,74,2.3,,61.8,-0.2,0,False,ManCity,False,,1,1
+3,117,63.34,63',ManCity,De Bruyne,PASS,COMPLETE,Foden,,,,13.8,74.5,54.0,76.3,34.0,,37,MEDIUM,45,5.0,,54.8,1.8,0,False,ManCity,False,,1,1
+3,118,64.03,64',ManCity,Foden,PASS,COMPLETE,Haaland,,,,12.9,76.3,34.0,84.4,48.2,,47,LOW,12,8.0,,54.2,8.5,2,False,ManCity,False,,1,1
+3,119,64.03,64',Arsenal,Trossard,SUBSTITUTION,,,,Martinelli,,,84.4,48.2,84.4,48.2,,,,,,,,,,False,ManCity,False,,1,1
+3,120,64.68,64',ManCity,Haaland,SHOT,GOAL,,,,,16.4,84.4,48.2,100.0,46.7,0.09,,HIGH,70,2.7,,84.2,,,True,ManCity,True,goal,1,2
+3,121,65.24,65',Arsenal,Havertz,PASS,COMPLETE,Ødegaard,,,,19.0,50.0,50.0,65.5,35.4,,51,HIGH,77,2.1,,61.9,-16.2,0,False,ManCity,False,,1,2
+3,122,66.03,66',Arsenal,Ødegaard,PASS,COMPLETE,White,,,,20.8,65.5,35.4,60.8,5.7,,51,MEDIUM,56,4.0,,63.3,4.8,3,False,ManCity,False,,1,2
+3,123,66.37,66',Arsenal,White,PASS,INTERCEPTED,,Rodri,,,16.2,60.8,5.7,48.9,20.9,,59,MEDIUM,35,5.9,,68.9,15.9,5,True,ManCity,False,,1,2
+3,124,66.96,66',ManCity,Rodri,PASS,COMPLETE,De Bruyne,,,,23.8,48.9,20.9,59.7,51.7,,56,MEDIUM,47,4.8,,73.8,11.4,2,False,ManCity,False,,1,2
+3,125,66.96,66',Arsenal,Kiwior,SUBSTITUTION,,,,Gabriel,,,59.7,51.7,59.7,51.7,,,,,,,,,,False,ManCity,False,,1,2
+3,126,67.66,67',ManCity,De Bruyne,PASS,COMPLETE,Foden,,,,12.6,59.7,51.7,64.6,34.8,,29,LOW,6,8.6,,51.7,5.1,1,False,ManCity,False,,1,2
+3,127,68.13,68',ManCity,Foden,PASS,COMPLETE,Dias,,,,26.8,64.6,34.8,46.0,61.7,,58,HIGH,71,2.6,,69.7,-19.6,0,False,ManCity,False,,1,2
+3,128,68.78,68',ManCity,Dias,PASS,COMPLETE,Stones,,,,15.1,46.0,61.7,38.2,42.9,,25,LOW,6,8.6,,62.9,-8.1,0,False,ManCity,False,,1,2
+3,129,69.42,69',ManCity,Stones,PASS,COMPLETE,De Bruyne,,,,21.0,38.2,42.9,55.9,57.2,,46,LOW,0,9.4,,60.8,18.6,3,False,ManCity,False,,1,2
+3,130,69.99,69',ManCity,De Bruyne,DRIBBLE,SUCCESS,,,,,6.9,55.9,57.2,61.7,62.2,,,LOW,0,11.2,31.5,31.5,,,False,ManCity,False,,1,2
+3,131,70.63,70',ManCity,De Bruyne,DRIBBLE,SUCCESS,,,,,9.4,61.7,62.2,70.2,58.1,,,HIGH,76,2.2,26.0,26.0,,,False,ManCity,False,,1,2
+3,132,71.19,71',Arsenal,Rice,TACKLE,WON,,De Bruyne,,,1.6,70.2,58.1,71.3,56.3,,,HIGH,73,2.5,,,,,True,ManCity,True,high_press_turnover,1,2
+3,133,71.19,71',Arsenal,Jorginho,SUBSTITUTION,,,,Merino,,,71.3,56.3,71.3,56.3,,,,,,,,,,False,ManCity,False,,1,2
+3,134,71.77,71',Arsenal,Rice,PASS,COMPLETE,Jorginho,,,,23.9,71.3,56.3,48.9,62.8,,69,MEDIUM,60,3.7,,65.1,23.5,5,False,ManCity,False,,1,2
+3,135,72.17,72',Arsenal,Jorginho,PASS,COMPLETE,Saka,,,,45.4,48.9,62.8,11.5,29.6,,95,HIGH,67,3.0,34.1,101.6,39.3,7,False,ManCity,True,line_breaking_pass,1,2
+3,136,72.77,72',Arsenal,Saka,PASS,INTERCEPTED,,Walker,,,25.2,11.5,29.6,11.4,66.7,,75,HIGH,76,2.2,,87.0,0.2,0,True,ManCity,True,high_press_turnover,1,2
+3,137,72.77,72',ManCity,Grealish,SUBSTITUTION,,,,Doku,,,11.4,66.7,11.4,66.7,,,,,,,,,,False,ManCity,False,,1,2
+3,138,73.48,73',ManCity,Walker,PASS,COMPLETE,Stones,,,,20.4,11.4,66.7,26.0,47.0,,43,LOW,0,11.5,,70.0,15.3,2,False,ManCity,False,,1,2
+3,139,73.48,73',ManCity,Kovačić,SUBSTITUTION,,,,De Bruyne,,,26.0,47.0,26.0,47.0,,,,,,,,,,False,ManCity,False,,1,2
+3,140,74.13,74',ManCity,Stones,PASS,COMPLETE,Rodri,,,,17.2,26.0,47.0,42.2,51.0,,43,LOW,0,9.9,,58.5,17.0,3,False,ManCity,False,,1,2
+3,141,74.72,74',ManCity,Rodri,PASS,COMPLETE,Foden,,,,16.5,42.2,51.0,53.1,33.6,,54,MEDIUM,54,4.2,,61.1,11.5,2,False,ManCity,False,,1,2
+3,142,75.1,75',ManCity,Foden,PASS,COMPLETE,Grealish,,,,31.3,53.1,33.6,82.4,25.6,,69,LOW,12,8.0,31.4,80.5,30.8,7,False,ManCity,True,line_breaking_pass,1,2
+3,143,75.77,75',ManCity,Grealish,SHOT,MISS,,,,,24.8,82.4,25.6,100.0,60.8,0.03,,HIGH,73,2.5,,75.7,,,True,ManCity,True,shot,1,2
+3,144,76.16,76',Arsenal,Raya,PASS,COMPLETE,Saliba,,,,17.7,94,50,79.5,36.6,,45,LOW,10,8.2,,68.4,15.2,1,False,ManCity,False,,1,2
+3,145,76.96,76',Arsenal,Saliba,PASS,COMPLETE,White,,,,24.0,79.5,36.6,67.7,6.3,,47,LOW,12,8.0,,65.7,12.4,1,False,ManCity,False,,1,2
+3,146,77.38,77',Arsenal,White,PASS,COMPLETE,Kiwior,,,,30.2,67.7,6.3,64.1,50.4,,53,LOW,32,6.2,,80.0,3.8,0,False,ManCity,False,,1,2
+3,147,77.76,77',Arsenal,Kiwior,PASS,COMPLETE,Ødegaard,,,,21.0,64.1,50.4,46.5,35.6,,50,LOW,12,8.0,,66.1,18.5,5,False,ManCity,False,,1,2
+3,148,78.08,78',Arsenal,Ødegaard,DRIBBLE,SUCCESS,,,,,10.9,46.5,35.6,36.7,40.8,,,MEDIUM,56,4.0,32.0,32.0,,,False,ManCity,False,,1,2
+3,149,78.72,78',Arsenal,Ødegaard,PASS,INTERCEPTED,,Gvardiol,,,22.0,36.7,40.8,22.2,17.3,,52,LOW,14,7.8,,71.8,17.3,6,True,ManCity,False,,1,2
+3,150,79.19,79',ManCity,Gvardiol,PASS,COMPLETE,Foden,,,,25.3,22.2,17.3,45.3,28.0,,61,LOW,29,6.5,,65.2,24.3,5,False,ManCity,False,,1,2
+3,151,79.55,79',ManCity,Foden,PASS,INTERCEPTED,,Jorginho,,,15.0,45.3,28.0,52.6,47.0,,39,LOW,0,9.2,,69.4,10.7,3,True,ManCity,False,,1,2
+3,152,80.04,80',Arsenal,Jorginho,PASS,INTERCEPTED,,Stones,,,25.3,52.6,47.0,28.5,45.5,,56,LOW,4,8.7,,78.4,26.8,6,True,ManCity,False,,1,2
+3,153,80.4,80',ManCity,Stones,PASS,COMPLETE,Rodri,,,,14.8,28.5,45.5,42.6,47.7,,57,MEDIUM,53,4.3,,62.1,14.8,3,False,ManCity,False,,1,2
+3,154,81.18,81',ManCity,Rodri,PASS,COMPLETE,Gvardiol,,,,23.3,42.6,47.7,40.4,13.7,,48,MEDIUM,50,4.5,,72.5,-2.3,0,False,ManCity,False,,1,2
+3,155,81.93,81',ManCity,Gvardiol,PASS,COMPLETE,Kovačić,,,,31.8,40.4,13.7,56.9,53.0,,53,LOW,0,9.2,,78.0,17.3,2,False,ManCity,False,,1,2
+3,156,82.26,82',ManCity,Kovačić,PASS,COMPLETE,Walker,,,,22.1,56.9,53.0,51.7,84.5,,46,MEDIUM,50,4.5,,70.9,-5.4,0,False,ManCity,False,,1,2
+3,157,82.7,82',ManCity,Walker,PASS,COMPLETE,Stones,,,,25.7,51.7,84.5,43.5,48.8,,52,MEDIUM,52,4.4,,72.8,-8.6,0,False,ManCity,False,,1,2
+3,158,83.06,83',ManCity,Stones,PASS,COMPLETE,Kovačić,,,,16.4,43.5,48.8,58.0,57.8,,60,MEDIUM,63,3.4,,63.2,15.2,3,False,ManCity,False,,1,2
+3,159,83.8,83',ManCity,Kovačić,PASS,COMPLETE,Foden,,,,12.5,58.0,57.8,63.3,41.4,,44,MEDIUM,52,4.4,,60.1,5.6,2,False,ManCity,False,,1,2
+3,160,84.17,84',ManCity,Foden,DRIBBLE,SUCCESS,,,,,5.1,63.3,41.4,68.1,40.5,,,HIGH,70,2.7,28.6,28.6,,,False,ManCity,False,,1,2
+3,161,84.54,84',ManCity,Foden,DRIBBLE,SUCCESS,,,,,5.2,68.1,40.5,72.8,38.0,,,HIGH,76,2.2,28.9,28.9,,,False,ManCity,False,,1,2
+3,162,85.19,85',ManCity,Foden,PASS,COMPLETE,Haaland,,,,19.4,72.8,38.0,89.7,49.4,,51,LOW,20,7.3,34.2,62.2,17.7,5,False,ManCity,False,,1,2
+3,163,85.68,85',ManCity,Haaland,SHOT,MISS,,,,,10.8,89.7,49.4,100.0,56.5,0.17,,HIGH,76,2.2,,74.3,,,True,ManCity,True,shot,1,2
+3,164,86.45,86',Arsenal,Raya,PASS,INTERCEPTED,,Grealish,,,32.5,94,50,73.3,14.6,,74,MEDIUM,51,4.5,,79.8,23.1,3,True,ManCity,False,,1,2
+3,165,87.14,87',ManCity,Grealish,DRIBBLE,SUCCESS,,,,,10.5,73.3,14.6,77.9,28.3,,,HIGH,73,2.4,32.6,32.6,,,False,ManCity,False,,1,2
+3,166,87.78,87',ManCity,Grealish,DRIBBLE,SUCCESS,,,,,14.8,77.9,28.3,90.4,38.2,,,LOW,17,7.6,25.4,25.4,,,False,ManCity,False,,1,2
+3,167,88.48,88',ManCity,Grealish,SHOT,MISS,,,,,12.9,90.4,38.2,100.0,43.5,0.11,,HIGH,72,2.6,,99.0,,,True,ManCity,True,shot,1,2
+3,168,88.88,88',Arsenal,Raya,PASS,INTERCEPTED,,Grealish,,,17.5,94,50,83.4,30.2,,56,LOW,0,11.8,,79.7,20.9,1,True,ManCity,False,,1,2
+3,169,89.58,89',ManCity,Grealish,PASS,COMPLETE,Gvardiol,,,,30.5,83.4,30.2,57.5,9.7,,56,MEDIUM,48,4.7,,77.0,-27.2,0,False,ManCity,False,,1,2
+3,170,90.15,90',ManCity,Gvardiol,DRIBBLE,SUCCESS,,,,,13.2,57.5,9.7,69.8,14.1,,,LOW,4,8.7,25.8,25.8,,,False,ManCity,False,,1,2
+3,171,90.0,FT,,,FULL_TIME,,,,,,,50.0,50.0,50.0,50.0,,,,,,,,,,False,ManCity,False,,1,2

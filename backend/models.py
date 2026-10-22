@@ -18,6 +18,7 @@ class ClientConfig(BaseModel):
     speed: Optional[int] = None
     lang: Optional[Lang] = None
     interval: Optional[float] = None
+    fav_team: Optional[Literal["NONE", "Arsenal", "ManCity"]] = None  # favourite club, "NONE" for neutral
 
     @field_validator("speed")
     @classmethod
@@ -74,4 +75,6 @@ class Event(BaseModel):
     score: dict
     is_impact_moment: bool = False
     impact_reasons: list[str] = []
+    possession_change: bool = False
+    right_team: str
     generated_at: float

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SecondTouch — Match Intelligence</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -25,18 +26,39 @@
                     <i class="fa-solid fa-microchip"></i> <span id="ai-status-text">AI: —</span>
                 </div>
 
-                <div class="mode-switcher" role="group" aria-label="Commentary style">
+                <div class="mode-switcher" role="group" aria-label="Viewing mode">
                     <button class="mode-btn" data-mode="ANALYST"><i class="fa-solid fa-chart-line"></i> Analyst</button>
                     <button class="mode-btn" data-mode="CASUAL"><i class="fa-solid fa-bolt"></i> Casual</button>
                     <button class="mode-btn active" data-mode="PLAYER_CAM"><i class="fa-solid fa-crosshairs"></i> Player Cam</button>
                 </div>
 
-                <div class="select-wrapper">
+                <div class="select-wrapper" title="Commentary language">
                     <i class="fa-solid fa-language select-icon"></i>
                     <select id="lang-select" class="custom-select" aria-label="Commentary language">
                         <option value="en">English</option>
                         <option value="es">Español</option>
                         <option value="ja">日本語</option>
+                    </select>
+                </div>
+                <div class="select-wrapper" title="Your club: highlights its moments and makes Casual commentary cheer for it">
+                    <i class="fa-solid fa-star select-icon"></i>
+                    <select id="fav-select" class="custom-select" aria-label="Favourite club">
+                        <option value="NONE">No favourite</option>
+                        <option value="Arsenal">Arsenal fan</option>
+                        <option value="ManCity">Man City fan</option>
+                    </select>
+                </div>
+                <div class="select-wrapper" title="Pin one metric to keep it on screen">
+                    <i class="fa-solid fa-thumbtack select-icon"></i>
+                    <select id="pin-select" class="custom-select" aria-label="Pinned metric">
+                        <option value="none">No pinned metric</option>
+                        <option value="xg">Pin: xG</option>
+                        <option value="possession">Pin: Possession</option>
+                        <option value="on_target">Pin: Shots on target</option>
+                        <option value="pass_pct">Pin: Pass accuracy</option>
+                        <option value="press">Pin: Pressure applied</option>
+                        <option value="distance">Pin: Distance covered</option>
+                        <option value="top_speed">Pin: Top speed</option>
                     </select>
                 </div>
 
@@ -61,7 +83,7 @@
             <section class="pitch-section">
                 <!-- SCOREBOARD BANNER -->
                 <div class="scoreboard-banner">
-                    <div class="team-col home">
+                    <div class="team-col home" id="team-col-Arsenal">
                         <span class="team-color-indicator home-red"></span>
                         <img src="/static/images/arsenal.png" alt="Arsenal" class="team-logo-img">
                         <span class="team-name">ARSENAL</span>
@@ -74,22 +96,43 @@
                             <i class="fa-solid fa-play"></i> START MATCH
                         </button>
                     </div>
-                    <div class="team-col away">
+                    <div class="team-col away" id="team-col-ManCity">
                         <span class="score" id="score-away">0</span>
                         <span class="team-name">MAN CITY</span>
                         <img src="/static/images/mancity.png" alt="Man City" class="team-logo-img">
                         <span class="team-color-indicator away-blue"></span>
                     </div>
                 </div>
+                <div class="match-info" id="match-info">Synthetic match · press START MATCH</div>
                 <div class="possession-strip" aria-label="Possession">
                     <span id="poss-home-label">50%</span>
                     <div class="possession-bar"><div id="poss-home-bar" style="width:50%"></div></div>
                     <span id="poss-away-label">50%</span>
+                    <span class="pinned-metric" id="pinned-metric" hidden></span>
                 </div>
 
-                <!-- CANVAS CONTAINER -->
+                <!-- CANVAS + OVERLAYS -->
                 <div class="canvas-container">
                     <canvas id="pitchCanvas" aria-label="Live 2D pitch"></canvas>
+                    <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+                    <div class="report-modal" id="report-modal" hidden>
+                        <div class="report-inner">
+                            <div class="report-head">
+                                <h3 id="report-title">HALF-TIME REPORT</h3>
+                                <button class="report-close" id="report-close" aria-label="Close report">✕</button>
+                            </div>
+                            <div class="report-score" id="report-score"></div>
+                            <div class="report-body">
+                                <div class="report-stats" id="report-stats"></div>
+                                <div class="report-side">
+                                    <p class="report-narrative" id="report-narrative"></p>
+                                    <div class="report-best" id="report-best"></div>
+                                    <ul class="report-moments" id="report-moments"></ul>
+                                </div>
+                            </div>
+                            <span class="ai-source" id="report-source"></span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- REPLAY CONTROLS -->
@@ -126,8 +169,8 @@
 
                 <!-- PITCH LEGEND -->
                 <div class="pitch-legend">
-                    <div class="legend-item"><span class="legend-dot home-red"></span> Arsenal</div>
-                    <div class="legend-item"><span class="legend-dot away-blue"></span> Man City</div>
+                    <div class="legend-item"><span class="legend-dot home-red"></span> <span id="dir-Arsenal">Arsenal attack →</span></div>
+                    <div class="legend-item"><span class="legend-dot away-blue"></span> <span id="dir-ManCity">Man City attack ←</span></div>
                     <div class="legend-item"><span class="legend-gradient"></span> Pass difficulty easy → hard</div>
                     <div class="legend-item text-muted">Click a player to follow them · Space pause · ← → step · L live</div>
                 </div>
@@ -144,25 +187,39 @@
                     <span class="ai-source" id="ai-source">—</span>
                 </div>
 
-                <div class="card telemetry-card">
-                    <div class="card-header-flex">
-                        <h3>Live Telemetry</h3>
-                        <span class="actor-chip" id="telemetry-actor">Current action</span>
+                <!-- ANALYST: one telemetry card per team -->
+                <div class="mode-panel" id="panel-mode-ANALYST" hidden>
+                    <div id="team-telemetry"></div>
+                </div>
+
+                <!-- CASUAL: the match at a glance -->
+                <div class="mode-panel" id="panel-mode-CASUAL" hidden>
+                    <div class="card glance-card">
+                        <h3>Match at a glance</h3>
+                        <p class="glance-mood" id="glance-mood">Waiting for kick-off</p>
+                        <div id="glance-bars"></div>
+                        <div class="glance-momentum">
+                            <div class="glance-label"><span>Arsenal</span><span>Who's on top</span><span>Man City</span></div>
+                            <div class="momentum-meter"><div class="momentum-needle" id="momentum-needle"></div></div>
+                        </div>
+                        <ul class="glance-goals" id="glance-goals"></ul>
                     </div>
-                    <p class="card-note">Metrics of the action on screen, for whichever team is on the ball.</p>
-                    <div class="metric-row"><span>xG (shots)</span><span id="val-xg">—</span></div>
-                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" id="bar-xg" style="width:0%"></div></div>
+                </div>
 
-                    <div class="metric-row"><span>Pass difficulty</span><span id="val-pass-diff">—</span></div>
-                    <div class="progress-bar-bg"><div class="progress-bar-fill blue" id="bar-pass-diff" style="width:0%"></div></div>
-
-                    <div class="metric-row"><span>Pressure <small id="val-defender" class="text-muted"></small></span><span class="highlight-yellow" id="val-pressure">—</span></div>
-                    <div class="progress-bar-bg"><div class="progress-bar-fill yellow" id="bar-pressure" style="width:0%"></div></div>
-
-                    <div class="telemetry-grid">
-                        <div><span class="tg-label">Ball speed</span><span id="val-ball-speed">—</span></div>
-                        <div><span class="tg-label">Forward gain</span><span id="val-gain">—</span></div>
-                        <div><span class="tg-label">Players bypassed</span><span id="val-bypassed">—</span></div>
+                <!-- PLAYER CAM: the followed player's card -->
+                <div class="mode-panel" id="panel-mode-PLAYER_CAM">
+                    <div class="card player-card">
+                        <div class="pc-head">
+                            <span class="pc-num" id="pc-num">7</span>
+                            <div class="pc-name-wrap">
+                                <div class="pc-name" id="pc-name">Bukayo Saka</div>
+                                <div class="pc-sub" id="pc-sub">RW · Arsenal</div>
+                            </div>
+                            <span class="pc-rating" id="pc-rating">6.0</span>
+                        </div>
+                        <div id="pc-bars"></div>
+                        <div class="pc-heat-head"><span>Heat map</span><span class="text-muted" id="pc-heat-note">attacking →</span></div>
+                        <canvas id="pc-heat" width="420" height="272" aria-label="Player heat map"></canvas>
                     </div>
                 </div>
 
@@ -182,9 +239,10 @@
             <div class="drawer-tabs" role="tablist">
                 <button class="drawer-tab-btn active" data-tab="stats"><i class="fa-solid fa-chart-column"></i> Match Stats</button>
                 <button class="drawer-tab-btn" data-tab="tactics"><i class="fa-solid fa-shield-halved"></i> Tactics</button>
-                <button class="drawer-tab-btn" data-tab="events"><i class="fa-solid fa-bolt"></i> Key Events</button>
+                <button class="drawer-tab-btn" data-tab="events"><i class="fa-solid fa-book-open"></i> Key Events &amp; Stories</button>
                 <button class="drawer-tab-btn" data-tab="analysis"><i class="fa-solid fa-magnifying-glass-chart"></i> In-Depth Analysis</button>
                 <button class="drawer-tab-btn" data-tab="ask-ai"><i class="fa-solid fa-comments"></i> Talk to AI</button>
+                <button class="drawer-tab-btn" data-tab="data"><i class="fa-solid fa-database"></i> Data &amp; Overlays</button>
             </div>
 
             <div class="drawer-content">
@@ -206,7 +264,7 @@
                     <div class="table-scroll">
                         <table class="player-table" id="player-table"></table>
                     </div>
-                    <p class="card-note">Click a column to sort, click a player to follow them in Player Cam. Ratings start at 6.0 and move with each action.</p>
+                    <p class="card-note">Click a column to sort, click a player to follow them in Player Cam. Ratings start at 6.0 and move with each action. Distance is estimated from the simulated positions.</p>
                 </div>
 
                 <!-- TAB 2: TACTICS -->
@@ -216,39 +274,53 @@
                         <div class="avg-pitch-wrap">
                             <h5>Average positions</h5>
                             <svg id="avg-pitch" viewBox="-2 -2 109 72" role="img" aria-label="Average player positions"></svg>
-                            <p class="card-note">Where each player has stood on average this match. Both teams on one pitch; Arsenal attack →.</p>
+                            <p class="card-note">Where each player has stood on average this match, shown with Arsenal attacking → for both halves.</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- TAB 3: KEY EVENTS -->
+                <!-- TAB 3: KEY EVENTS & STORIES -->
                 <div class="tab-panel" id="panel-events">
-                    <p class="card-note">The match summary: goals, cards, substitutions, big chances and saves. Click any moment to replay its build-up.</p>
+                    <div class="ke-head">
+                        <p class="card-note">Goals, cards, substitutions, big chances, saves and the half-time and full-time reports, each with the story behind it. Click a moment to replay its build-up.</p>
+                        <label class="toggle-label"><input type="checkbox" id="ke-fav-only"> My club only</label>
+                    </div>
                     <ul class="event-timeline-list" id="key-events-list"></ul>
                 </div>
 
                 <!-- TAB 4: IN-DEPTH ANALYSIS -->
                 <div class="tab-panel" id="panel-analysis">
                     <div class="analysis-grid">
-                        <div class="analysis-card wide">
+                        <div class="analysis-card">
                             <h5>xG race</h5>
                             <p class="card-note">Cumulative expected goals; dots are goals. Hover for the minute-by-minute value.</p>
                             <div class="chart-box"><svg id="xg-chart" role="img" aria-label="Cumulative xG over time"></svg></div>
                         </div>
-                        <div class="analysis-card wide">
+                        <div class="analysis-card">
                             <h5>Momentum</h5>
                             <p class="card-note">Bars above the line: Arsenal on top. Below: Man City. Built from final-third actions, shots, line breaks and ball wins.</p>
                             <div class="chart-box short"><svg id="momentum-chart" role="img" aria-label="Momentum over time"></svg></div>
                         </div>
                         <div class="analysis-card">
+                            <h5>Game flow: control vs chaos, and pressure</h5>
+                            <p class="card-note">The band shows each phase: one team in control (long spells, few turnovers), balanced, or chaotic (frequent turnovers). Lines show the pressure index each team applies to the opponent on the ball.</p>
+                            <div class="chart-box"><svg id="flow-chart" role="img" aria-label="Game flow and pressure over time"></svg></div>
+                            <p class="flow-now" id="flow-now"></p>
+                        </div>
+                        <div class="analysis-card">
                             <h5>Shot map</h5>
-                            <p class="card-note">Size = xG. Filled = goal, ring = no goal.</p>
+                            <p class="card-note">Size = xG. Filled = goal, ring = no goal. Arsenal shown attacking → all match.</p>
                             <svg id="shot-map" viewBox="-2 -2 109 72" role="img" aria-label="Shot map"></svg>
                         </div>
                         <div class="analysis-card">
                             <h5>Impact moments</h5>
                             <p class="card-note">Moments the engine flagged for AI analysis, with the explanation. Click to replay.</p>
                             <ul class="impact-list" id="impact-list"></ul>
+                        </div>
+                        <div class="analysis-card">
+                            <h5>Reports</h5>
+                            <p class="card-note">Half-time and full-time reports appear here when they happen.</p>
+                            <div id="reports-list" class="reports-list"></div>
                         </div>
                     </div>
                 </div>
@@ -261,12 +333,38 @@
                     </div>
                     <div class="suggestions" id="ai-suggestions">
                         <button class="chip">Who has the momentum?</button>
-                        <button class="chip">Compare the xG</button>
+                        <button class="chip">Is the game in control or chaos?</button>
                         <button class="chip">How are the teams pressing?</button>
                         <button class="chip">How is Haaland playing?</button>
+                        <button class="chip">Give me the half-time report</button>
                     </div>
                     <div class="ai-query-response" id="ai-query-response">
                         <p class="placeholder-text">Answers use the live match data. With Azure OpenAI keys set they come from the model; otherwise from the local engine.</p>
+                    </div>
+                </div>
+
+                <!-- TAB 6: DATA & OVERLAYS -->
+                <div class="tab-panel" id="panel-data">
+                    <div class="data-layout">
+                        <div class="analysis-card">
+                            <h5>Synthetic dataset</h5>
+                            <p class="card-note">Download this match exactly as it was streamed. For bulk data, run <code>python export_dataset.py --matches 50</code> in the backend folder (events, players and matches as JSONL/CSV).</p>
+                            <div class="data-buttons">
+                                <button class="chip" id="dl-jsonl"><i class="fa-solid fa-download"></i> Events + positions (JSONL)</button>
+                                <button class="chip" id="dl-csv"><i class="fa-solid fa-download"></i> Events (CSV)</button>
+                                <button class="chip" id="dl-players"><i class="fa-solid fa-download"></i> Player stats (CSV)</button>
+                                <button class="chip" id="dl-cues"><i class="fa-solid fa-download"></i> Overlay cues (JSONL)</button>
+                            </div>
+                            <div class="meta-table" id="meta-table"></div>
+                        </div>
+                        <div class="analysis-card">
+                            <div class="card-header-flex">
+                                <h5>Overlay cue feed</h5>
+                                <span class="badge" id="cue-count">0 cues</span>
+                            </div>
+                            <p class="card-note">Timed, machine-readable graphics instructions sent with every event, ready for a broadcast graphics engine to render in sync with the match. The speed and distance badges on the pitch are drawn from this feed. Schema: <code>/api/overlay-schema</code>.</p>
+                            <pre class="cue-feed" id="cue-feed">Start the match to see cues.</pre>
+                        </div>
                     </div>
                 </div>
             </div>

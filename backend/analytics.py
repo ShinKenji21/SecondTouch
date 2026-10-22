@@ -1,8 +1,11 @@
 """Stage 1b - analytics. Pure metric formulas, the impact-moment filter, and the
-running match/player/tactics statistics built from the event stream.
+running match/player/tactics statistics built from the event stream: game flow
+(control vs chaos, pressure shifts, tempo), milestones and threshold alerts,
+possession spells for key-event stories, and half-time/full-time reports.
 
 Coordinates are percentages of the pitch. "Attack frame" (u, v) means the
 acting team's view: u=100 is the goal it attacks, v<33 is its left flank.
+Teams change ends at half-time; `right_team` is whoever attacks towards x=100.
 """
 import math
 from collections import deque
@@ -11,6 +14,12 @@ PITCH_L, PITCH_W = 105.0, 68.0
 GOAL_W = 7.32
 BACK_LINE = {"CB", "RB", "LB"}
 ON_BALL = {"PASS", "DRIBBLE", "SHOT"}
+STATUS = {"SUBSTITUTION", "HALF_TIME", "FULL_TIME"}
+
+SPEED_ALERT_KMH = 32.0          # sprint that triggers an on-screen speed badge
+DISTANCE_ALERTS_KM = (5, 10)    # distance covered that triggers a badge
+JOG_M_PER_MIN = {"GK": 40}      # running between snapshots; outfield default below
+JOG_DEFAULT = 92
 
 
 def metres(du, dv):
@@ -70,14 +79,29 @@ def impact_moment(ev):
     return bool(reasons), reasons
 
 
-def attack_frame(team, home, x, y):
-    return (x, y) if team == home else (100 - x, 100 - y)
+def is_key_event(ev):
+    """Moments that belong in the match summary and get a story."""
+    t, o = ev["event_type"], ev["outcome"]
+    return (o == "GOAL" or bool(ev.get("card")) or t == "SUBSTITUTION"
+            or (t == "SHOT" and (o == "SAVED" or (ev["metrics"]["xg"] or 0) >= 0.3)))
+
+
+def attack_frame(team, right_team, x, y):
+    """Absolute pitch % -> the team's attack frame. Its own inverse."""
+    return (x, y) if team == right_team else (100 - x, 100 - y)
 
 
 def zone_of(u, v):
     third = "defensive" if u < 33.3 else "middle" if u < 66.6 else "final"
     channel = "left" if v < 33.3 else "central" if v < 66.6 else "right"
     return third, channel
+
+
+def ball_team(ev, other):
+    """Which team had the ball when the action started."""
+    if ev["event_type"] == "TACKLE":
+        return other(ev["team"])
+    return ev["team"]
 
 
 class MatchStats:
@@ -87,7 +111,9 @@ class MatchStats:
         self.squads, self.formations = squads, formations
         self.home, self.away = home, away
         self.teams = (home, away)
+        self.right_team = home
         self.minute = 0.0
+        self.n = 0
         self.players = {}
         for team, squad in squads.items():
             for pid, p in squad.items():
@@ -98,13 +124,14 @@ class MatchStats:
                     "passes": 0, "passes_completed": 0, "key_passes": 0, "line_breaks": 0,
                     "dribbles": 0, "dribbles_won": 0, "tackles": 0, "tackles_won": 0,
                     "interceptions": 0, "fouls": 0, "yellow": 0, "red": 0, "saves": 0,
-                    "touches": 0, "sprints": 0,
+                    "touches": 0, "sprints": 0, "distance_m": 0.0, "top_speed": 0.0,
                 }
         z = lambda: {t: 0 for t in self.teams}
         self.t_on_ball, self.t_shots, self.t_on_target, self.t_xg = z(), z(), z(), {t: 0.0 for t in self.teams}
         self.t_passes, self.t_passes_ok, self.t_big_chances = z(), z(), z()
         self.t_def_actions_high, self.t_opp_passes_deep = z(), z()
         self.t_press_wins = z()
+        self.t_diff_sum, self.t_diff_n, self.t_top_ball = z(), z(), {t: 0.0 for t in self.teams}
         self.channels = {t: {"left": 0, "central": 0, "right": 0} for t in self.teams}
         self.final_third = z()
         self.shape = {t: {"in": [0.0, 0.0, 0.0, 0], "out": [0.0, 0.0, 0.0, 0]} for t in self.teams}
@@ -112,28 +139,66 @@ class MatchStats:
         self.goals_against = z()
         self.momentum_window = deque(maxlen=12)
         self.last_pass_to = {t: None for t in self.teams}
+        # game flow
+        self.flow_window = deque(maxlen=16)
+        self.press_under = {t: deque(maxlen=12) for t in self.teams}
+        self.press_hist = {t: [] for t in self.teams}
+        self.direct = {t: deque(maxlen=12) for t in self.teams}
+        self.action_minutes = deque()
+        self.total_actions = 0
+        self.state, self.state_team = "BALANCED", None
+        self.flow_log = []
+        self.last_flow_alert = -99
+        self.last_press_alert = {t: -99 for t in self.teams}
+        # spells, milestones, alerts
+        self.spell, self.spell_team, self.spell_alerted = [], None, False
+        self.max_spell = z()
+        self.buildup = []
+        self.done = set()
+        self.match_top_speed = 0.0
+        self.prev_positions = None
+        self.key_moments = []
+        self.momentum_log = []
+        self.alerts = []
 
     # ---- helpers -------------------------------------------------------
     def other(self, team):
         return self.away if team == self.home else self.home
 
     def frame(self, team, x, y):
-        return attack_frame(team, self.home, x, y)
+        return attack_frame(team, self.right_team, x, y)
 
     def p(self, team, pid):
         return self.players.get((team, pid))
 
+    def _alert(self, kind, key, team=None, player=None, value=None, value2=None):
+        self.alerts.append({"kind": kind, "key": key, "team": team, "player": player,
+                            "value": value, "value2": value2})
+
+    def _once(self, tag):
+        if tag in self.done:
+            return False
+        self.done.add(tag)
+        return True
+
     # ---- update --------------------------------------------------------
     def update(self, ev, positions, possession):
+        self.alerts = []
+        self.n += 1
+        dt = max(0.0, ev["minute"] - self.minute)
         self.minute = ev["minute"]
         t, o, team, pid = ev["event_type"], ev["outcome"], ev["team"], ev["player"]
         m, loc = ev["metrics"], ev["location"]
 
+        if t in ("HALF_TIME", "FULL_TIME"):
+            self.right_team = ev.get("right_team", self.right_team)
+            self.prev_positions = positions  # ends swapped: don't count the walk as running
+            return
+        self._distance(positions, dt)
         if t == "SUBSTITUTION":
             self.p(team, pid)["on"] = ev["minute"]
             self.p(team, ev["player_off"])["off"] = ev["minute"]
-            return
-        if t in ("HALF_TIME", "FULL_TIME"):
+            self.key_moments.append(self._moment(ev))
             return
 
         self._update_shape(positions, possession)
@@ -141,6 +206,8 @@ class MatchStats:
         me = self.p(team, pid)
         opp_team = self.other(team)
         weight_for = {self.home: 0.0, self.away: 0.0}
+        holder = ball_team(ev, self.other)
+        self.buildup = [e for e in self.spell if self.spell_team == holder][-4:]
 
         if t in ON_BALL:
             me["touches"] += 1
@@ -149,10 +216,15 @@ class MatchStats:
                 self.final_third[team] += 1
                 self.channels[team][zone_of(u, v)[1]] += 1
                 weight_for[team] += 1
+            if m["ball_speed_kmh"]:
+                self.t_top_ball[team] = max(self.t_top_ball[team], m["ball_speed_kmh"])
 
         if t == "PASS":
             me["passes"] += 1
             self.t_passes[team] += 1
+            self.t_diff_sum[team] += m["pass_difficulty"] or 0
+            self.t_diff_n[team] += 1
+            self.direct[team].append((m["forward_gain_m"] or 0) >= 15)
             if u < 60:
                 self.t_opp_passes_deep[opp_team] += 1
             if o == "COMPLETE":
@@ -162,17 +234,26 @@ class MatchStats:
                 rec["touches"] += 1
                 if (m["forward_gain_m"] or 0) >= 15:
                     rec["sprints"] += 1  # a run in behind to meet a forward pass
+                if m["sprint_speed_kmh"]:
+                    self._speed(team, ev["receiver"], m["sprint_speed_kmh"])
                 self.last_pass_to[team] = (pid, ev["receiver"])
                 if "line_breaking_pass" in ev["impact_reasons"]:
                     me["line_breaks"] += 1
                     weight_for[team] += 2
+                self._milestone_count(team, ev["receiver"], "touches", (25, 50))
             else:
                 self._turnover(team, ev, weight_for)
+            self._milestone_count(team, pid, "passes_completed", (20, 40))
+            for n in (50, 100, 150):
+                if self.t_passes_ok[team] >= n and self._once(f"tp{team}{n}"):
+                    self._alert("milestone", "team_passes", team=team, value=n)
         elif t == "DRIBBLE":
             me["dribbles"] += 1
             me["dribbles_won"] += 1
             if (m["sprint_speed_kmh"] or 0) >= 25:
                 me["sprints"] += 1
+            if m["sprint_speed_kmh"]:
+                self._speed(team, pid, m["sprint_speed_kmh"])
             if u >= 66.6:
                 weight_for[team] += 0.5
         elif t == "TACKLE":
@@ -186,6 +267,7 @@ class MatchStats:
                 me["touches"] += 1
                 self.last_pass_to[opp_team] = None
                 self._def_action(team, u, weight_for)
+                self._milestone_count(team, pid, "tackles_won", (3, 5))
             else:
                 me["fouls"] += 1
                 if u < 40:
@@ -211,18 +293,70 @@ class MatchStats:
                 me["on_target"] += 1
                 self.t_on_target[team] += 1
             if o == "SAVED":
-                self.p(opp_team, ev["opponent"])["saves"] += 1
+                keeper = self.p(opp_team, ev["opponent"])
+                keeper["saves"] += 1
+                self._milestone_count(opp_team, ev["opponent"], "saves", (3, 5))
             if o == "GOAL":
                 me["goals"] += 1
                 self.goals_against[opp_team] += 1
                 weight_for[team] += 4
                 if lp and lp[1] == pid:
                     self.p(team, lp[0])["assists"] += 1
+                if sum(ev["score"].values()) == 1:
+                    self._alert("milestone", "first_goal", team=team, player=pid)
+                if me["goals"] == 2:
+                    self._alert("milestone", "brace", team=team, player=pid)
+                elif me["goals"] == 3:
+                    self._alert("milestone", "hat_trick", team=team, player=pid)
             self.last_pass_to[team] = None
 
+        if t in ON_BALL:
+            self._milestone_count(team, pid, "touches", (25, 50))
+        if is_key_event(ev):
+            self.key_moments.append(self._moment(ev))
         for side, w in weight_for.items():
             if w:
                 self.momentum_window.append((side, w))
+        self.momentum_log.append((self.minute, self.momentum()))
+        self._flow(ev, holder)
+        self._spells(ev, holder)
+
+    def _moment(self, ev):
+        return {"seq": ev["seq"], "clock": ev["clock"], "team": ev["team"], "player": ev["player"],
+                "type": ev["event_type"], "outcome": ev["outcome"], "card": ev["card"],
+                "xg": ev["metrics"]["xg"], "player_off": ev["player_off"], "opponent": ev["opponent"]}
+
+    def _milestone_count(self, team, pid, stat, thresholds):
+        p = self.p(team, pid)
+        for n in thresholds:
+            if p[stat] == n and self._once(f"{stat}{team}{pid}{n}"):
+                self._alert("milestone", stat, team=team, player=pid, value=n)
+
+    def _speed(self, team, pid, kmh):
+        p = self.p(team, pid)
+        p["top_speed"] = max(p["top_speed"], kmh)
+        if kmh >= SPEED_ALERT_KMH:
+            self._alert("speed", "speed", team=team, player=pid, value=kmh)
+        if kmh >= 30 and kmh > self.match_top_speed + 0.2:
+            if self.match_top_speed:
+                self._alert("milestone", "top_speed", team=team, player=pid, value=kmh)
+            self.match_top_speed = kmh
+
+    def _distance(self, positions, dt):
+        prev = self.prev_positions or {}
+        for team, ps in positions.items():
+            for pid, (x, y) in ps.items():
+                p = self.p(team, pid)
+                before = p["distance_m"]
+                moved = 0.0
+                if pid in prev.get(team, {}):
+                    px, py = prev[team][pid]
+                    moved = metres(x - px, y - py)
+                p["distance_m"] = before + moved + dt * JOG_M_PER_MIN.get(p["pos"], JOG_DEFAULT)
+                for km in DISTANCE_ALERTS_KM:
+                    if before < km * 1000 <= p["distance_m"] and p["pos"] != "GK":
+                        self._alert("distance", "distance", team=team, player=pid, value=km)
+        self.prev_positions = positions
 
     def _turnover(self, team, ev, weight_for):
         winner = self.other(team)
@@ -247,8 +381,10 @@ class MatchStats:
             pts = []
             for pid, (x, y) in positions.get(team, {}).items():
                 key = (team, pid)
+                # average positions are stored as if Arsenal always attacked right
+                hx, hy = attack_frame(self.home, self.right_team, x, y)
                 acc = self.avg_pos.setdefault(key, [0.0, 0.0, 0])
-                acc[0] += x; acc[1] += y; acc[2] += 1
+                acc[0] += hx; acc[1] += hy; acc[2] += 1
                 pos = self.players[key]["pos"]
                 if pos != "GK":
                     u, v = self.frame(team, x, y)
@@ -261,6 +397,83 @@ class MatchStats:
             depth = max(u for u, _, _ in pts) - line
             acc = self.shape[team]["in" if possession == team else "out"]
             acc[0] += line; acc[1] += width; acc[2] += depth; acc[3] += 1
+
+    # ---- game flow: control vs chaos, pressure shifts, tempo ----------
+    def _flow(self, ev, holder):
+        m = ev["metrics"]
+        self.flow_window.append((holder, bool(ev.get("possession_change"))))
+        if ev["event_type"] in ON_BALL:
+            self.press_under[holder].append(m["pressure_index"] or 0)
+            self.action_minutes.append(self.minute)
+            self.total_actions += 1
+        while self.action_minutes and self.action_minutes[0] < self.minute - 6:
+            self.action_minutes.popleft()
+
+        f = self.flow()
+        new_state = (f["state"], f["state_team"])
+        if new_state != (self.state, self.state_team) and f["state"] != "BALANCED" \
+                and self.n - self.last_flow_alert >= 12:
+            self.last_flow_alert = self.n
+            if f["state"] == "CHAOS":
+                self._alert("flow", "chaos", value=f["turnover_rate"])
+            else:
+                self._alert("flow", "control", team=f["state_team"], value=f["control_share"])
+        self.state, self.state_team = new_state
+        for t in self.teams:
+            self.press_hist[t].append(f["press"][t])
+            hist = self.press_hist[t]
+            if len(hist) > 12 and self.n - self.last_press_alert[t] >= 15:
+                before = hist[-11]
+                if f["press"][t] - before >= 15 and f["press"][t] >= 45:
+                    self.last_press_alert[t] = self.n
+                    self._alert("flow", "press_up", team=t, value=f["press"][t], value2=before)
+        self.flow_log.append((self.minute, f["state"], f["state_team"]))
+
+    def flow(self):
+        w = list(self.flow_window)
+        changes = sum(1 for _, c in w if c)
+        rate = changes / len(w) if w else 0.0
+        share_home = sum(1 for h, _ in w if h == self.home) / len(w) if w else 0.5
+        leader = self.home if share_home >= 0.5 else self.away
+        share = max(share_home, 1 - share_home)
+        state, state_team = "BALANCED", None
+        if len(w) >= 8:
+            if rate >= 0.38:
+                state = "CHAOS"
+            elif rate <= 0.2 and share >= 0.6:
+                state, state_team = "CONTROL", leader
+        press = {}
+        for t in self.teams:
+            under = self.press_under[self.other(t)]
+            press[t] = round(sum(under) / len(under)) if under else 0
+        recent_rate = len(self.action_minutes) / min(6.0, max(self.minute, 1.0))
+        avg_rate = self.total_actions / max(self.minute, 1.0)
+        ratio = recent_rate / avg_rate if avg_rate else 1.0
+        tempo = "HIGH" if ratio >= 1.2 else "SLOW" if ratio <= 0.8 else "STEADY"
+        direct = {t: (round(100 * sum(d) / len(d)) if d else 0) for t, d in self.direct.items()}
+        return {"state": state, "state_team": state_team, "turnover_rate": round(100 * rate),
+                "control_share": round(100 * share), "press": press, "tempo": tempo,
+                "tempo_ratio": round(ratio, 2), "directness": direct}
+
+    def _spells(self, ev, holder):
+        """Track the current possession spell, the raw material of key-event stories."""
+        compact = {k: ev[k] for k in ("seq", "clock", "team", "player", "event_type", "outcome",
+                                      "receiver", "opponent", "impact_reasons")}
+        if not ev.get("possession_change"):
+            if self.spell_team != holder:
+                self.spell, self.spell_team, self.spell_alerted = [], holder, False
+            self.spell.append(compact)
+            length = sum(1 for e in self.spell if e["event_type"] in ON_BALL and e["team"] == holder)
+            if length >= 7 and length > self.max_spell[holder]:
+                self.max_spell[holder] = length
+                if not self.spell_alerted and self._once(f"spell{holder}{length // 3}"):
+                    self.spell_alerted = True
+                    self._alert("milestone", "spell", team=holder, value=length)
+            return
+        # possession changed: a won ball starts the new spell, anything else starts it empty
+        winner = self.other(holder)
+        won = ev["event_type"] == "TACKLE" or (ev["event_type"] == "PASS" and ev["outcome"] == "INTERCEPTED")
+        self.spell, self.spell_team, self.spell_alerted = ([compact] if won else []), winner, False
 
     # ---- outputs -------------------------------------------------------
     def momentum(self):
@@ -277,8 +490,11 @@ class MatchStats:
         return {
             "xg": [self.t_xg[self.home], self.t_xg[self.away]],
             "shots": [self.t_shots[self.home], self.t_shots[self.away]],
+            "on_target": [self.t_on_target[self.home], self.t_on_target[self.away]],
             "momentum": self.momentum(),
             "possession": self.possession(),
+            "flow": self.flow(),
+            "right_team": self.right_team,
         }
 
     def minutes(self, p):
@@ -311,11 +527,16 @@ class MatchStats:
             "xg": self.t_xg[team], "big_chances": self.t_big_chances[team],
             "passes": passes,
             "pass_pct": round(100 * self.t_passes_ok[team] / passes) if passes else 0,
+            "avg_pass_difficulty": round(self.t_diff_sum[team] / self.t_diff_n[team]) if self.t_diff_n[team] else 0,
+            "top_ball_speed": self.t_top_ball[team],
             "tackles_won": sum(p["tackles_won"] for p in ps),
             "interceptions": sum(p["interceptions"] for p in ps),
             "fouls": sum(p["fouls"] for p in ps),
             "yellow": sum(p["yellow"] for p in ps), "red": sum(p["red"] for p in ps),
             "saves": sum(p["saves"] for p in ps),
+            "distance_km": round(sum(p["distance_m"] for p in ps) / 1000, 1),
+            "top_speed": max(p["top_speed"] for p in ps),
+            "press_wins": self.t_press_wins[team],
         }
 
     def player_rows(self, team):
@@ -327,7 +548,8 @@ class MatchStats:
                                      "shots", "on_target", "xg", "passes", "passes_completed",
                                      "key_passes", "line_breaks", "dribbles", "dribbles_won",
                                      "tackles", "tackles_won", "interceptions", "fouls", "yellow",
-                                     "red", "saves", "touches", "sprints")}
+                                     "red", "saves", "touches", "sprints", "top_speed")}
+            row["distance_km"] = round(p["distance_m"] / 1000, 1)
             row["minutes"] = self.minutes(p)
             row["rating"] = self.rating(p)
             row["sub_on"] = None if p["starter"] or p["on"] is None else int(p["on"])
@@ -362,6 +584,7 @@ class MatchStats:
             "press_wins": self.t_press_wins[team],
             "ppda": round(self.t_opp_passes_deep[opp] / acts, 1) if acts else None,
             "avg_positions": avg_positions,
+            "directness": self.flow()["directness"][team],
         }
 
     def snapshot(self):
@@ -378,4 +601,39 @@ class MatchStats:
             return None
         return {"touches": p["touches"], "sprints": p["sprints"], "passes": p["passes"],
                 "passes_completed": p["passes_completed"], "shots": p["shots"], "goals": p["goals"],
-                "tackles_won": p["tackles_won"], "rating": self.rating(p)}
+                "tackles_won": p["tackles_won"], "rating": self.rating(p), "saves": p["saves"],
+                "distance_km": round(p["distance_m"] / 1000, 1), "top_speed": p["top_speed"],
+                "minutes": self.minutes(p), "yellow": p["yellow"]}
+
+    def report(self, ev):
+        """Structured half-time / full-time report."""
+        teams = {t: self.team_stats(t) for t in self.teams}
+        rows = [(t, r) for t in self.teams for r in self.player_rows(t) if r["minutes"] >= 20]
+        rows.sort(key=lambda tr: tr[1]["rating"] or 0, reverse=True)
+        best = None
+        if rows:
+            t, r = rows[0]
+            best = {"team": t, "id": r["id"], "name": r["name"], "rating": r["rating"], "goals": r["goals"],
+                    "assists": r["assists"], "shots": r["shots"], "tackles_won": r["tackles_won"],
+                    "interceptions": r["interceptions"], "passes_completed": r["passes_completed"],
+                    "touches": r["touches"]}
+        top = {t: [{"id": r["id"], "name": r["name"], "rating": r["rating"]} for tt, r in rows if tt == t][:3]
+               for t in self.teams}
+        states = [(s, st) for _, s, st in self.flow_log]
+        n = len(states) or 1
+        control = {t: round(100 * sum(1 for s, st in states if s == "CONTROL" and st == t) / n) for t in self.teams}
+        chaos = round(100 * sum(1 for s, _ in states if s == "CHAOS") / n)
+        # momentum of the half just finished
+        half = [mo for mi, mo in self.momentum_log if ev["event_type"] == "HALF_TIME" or mi > 45]
+        moments = [k for k in self.key_moments if k["type"] != "SUBSTITUTION"][-8:]
+        return {
+            "kind": ev["event_type"], "clock": ev["clock"], "score": ev["score"],
+            "home": self.home, "away": self.away,
+            "teams": {t: {k: teams[t][k] for k in ("xg", "shots", "on_target", "possession", "pass_pct",
+                                                    "big_chances", "tackles_won", "press_wins", "distance_km")}
+                      for t in self.teams},
+            "best_player": best, "top_performers": top,
+            "control": control, "chaos_pct": chaos,
+            "momentum_avg": round(sum(half) / len(half)) if half else 0,
+            "key_moments": moments,
+        }

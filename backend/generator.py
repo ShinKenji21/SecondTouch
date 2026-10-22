@@ -58,6 +58,9 @@ BENCH = {
            ("Stones", "John Stones", 5, "CB", "Akanji")],
 }
 FORMATIONS = {HOME: "4-3-3", AWAY: "4-1-4-1"}
+COACHES = {HOME: "Mikel Arteta", AWAY: "Pep Guardiola"}
+REFEREES = ["Daniel Okafor", "Sara Lindqvist", "Tomás Herrera", "Kenji Mori", "Amelia Brooks"]
+WEATHER = [("Clear", 14), ("Light rain", 9), ("Overcast", 11), ("Cold and dry", 4), ("Mild evening", 17)]
 
 SQUADS = {
     team: {
@@ -79,7 +82,9 @@ def clamp(v, lo=0.0, hi=100.0):
 class MatchSim:
     def __init__(self, seed=None):
         self.rng = random.Random(seed)
+        self.seed = seed
         self.minute = 0.0
+        self.right_team = HOME  # who attacks towards x=100; swaps at half-time
         self.seq = 0
         self.score = {HOME: 0, AWAY: 0}
         self.half_time_done = False
@@ -90,13 +95,24 @@ class MatchSim:
         self.jitter = {}
         self.subs = self._plan_subs()
         self.positions = self._kickoff_positions(HOME)  # also sets ball, possession, carrier
+        weather, temp = self.rng.choice(WEATHER)
+        self.metadata = {
+            "competition": "SecondTouch Synthetic League", "matchday": self.rng.randint(1, 38),
+            "venue": "Emirates Stadium, London", "attendance": self.rng.randint(58000, 60704),
+            "referee": self.rng.choice(REFEREES), "weather": weather, "temperature_c": temp,
+            "kickoff_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "home": HOME, "away": AWAY, "coaches": COACHES, "formations": FORMATIONS,
+            "lineups": {t: [pid for pid, *_ in STARTERS[t]] for t in (HOME, AWAY)},
+            "bench": {t: [pid for pid, *_ in BENCH[t]] for t in (HOME, AWAY)},
+            "seed": seed, "synthetic": True,
+        }
 
     # ---- geometry ------------------------------------------------------
     def frame(self, team, x, y):
-        return attack_frame(team, HOME, x, y)
+        return attack_frame(team, self.right_team, x, y)
 
     def absolute(self, team, u, v):
-        return attack_frame(team, HOME, u, v)  # the mirror is its own inverse
+        return attack_frame(team, self.right_team, u, v)  # the mirror is its own inverse
 
     def other(self, team):
         return AWAY if team == HOME else HOME
@@ -167,7 +183,7 @@ class MatchSim:
         """Move the nearest one or two defenders onto the ball, between it and their goal."""
         bu = self.frame(self.possession, *self.ball)[0]
         mean = max(3.0, 10 - bu / 12)  # closer to goal, tighter marking
-        goal = (0.0, 50.0) if dfn == HOME else (100.0, 50.0)
+        goal = (0.0, 50.0) if dfn == self.right_team else (100.0, 50.0)
         gx, gy = goal[0] - self.ball[0], goal[1] - self.ball[1]
         norm = math.hypot(gx * PITCH_L / 100, gy * PITCH_W / 100) or 1
         placed = []
@@ -228,6 +244,7 @@ class MatchSim:
         if self.minute >= 45 and not self.half_time_done:
             self.half_time_done = True
             self.minute = 45.0
+            self.right_team = AWAY  # change ends, as in a real match
             self.positions = self._kickoff_positions(AWAY)
             return self._status_event("HALF_TIME", 45.0)
         sub = self._due_sub()
@@ -236,6 +253,7 @@ class MatchSim:
 
         self.minute += self.rng.uniform(0.3, 0.8)
         self.seq += 1
+        self._poss_before = self.possession
         team, pid = self.possession, self.carrier
         role = self.slots[team][pid][0]
         u, v = self.frame(team, *self.ball)
@@ -285,7 +303,9 @@ class MatchSim:
             options.append((max(w, 0.01), mate, pos, gain, dist, space))
         _, rec, target, _, _, space = self.rng.choices(options, weights=[o[0] for o in options])[0]
         tu, tv = self.frame(team, *target)
+        run_kmh = None
         if self.slots[team][rec][0] in ("ST", "LW", "RW", "CAM") and tu >= 62 and self.rng.random() < 0.5:
+            run_kmh = round(self.rng.uniform(27.0, 35.0), 1)  # the runner sprints onto it
             # through ball: played into space for the runner to attack, behind the line
             tu, tv = min(94, tu + self.rng.uniform(8, 20)), tv + (50 - tv) * self.rng.uniform(0.3, 0.6)
             space = max(space, self.rng.uniform(2, 6))
@@ -299,7 +319,7 @@ class MatchSim:
         bypassed = sum(1 for opos in self.positions[opp].values() if su < self.frame(team, *opos)[0] < eu)
         speed = round(clamp(38 + length * 1.3 + self.rng.uniform(-6, 8), 25, 110), 1)
         ok = self.rng.random() > (diff / 100) ** 2.2 * 0.7
-        metrics = self._metrics(b, pass_difficulty=diff, ball_speed_kmh=speed,
+        metrics = self._metrics(b, pass_difficulty=diff, ball_speed_kmh=speed, sprint_speed_kmh=run_kmh,
                                 forward_gain_m=round(gain, 1), players_bypassed=bypassed)
         if ok:
             self.ball, self.carrier = end, rec
@@ -348,7 +368,7 @@ class MatchSim:
         start = self.ball
         xg, dist = xg_model(b["u"], b["v"], b["p_idx"])
         keeper = self.gk(opp)
-        goal_x = 100.0 if team == HOME else 0.0
+        goal_x = 100.0 if team == self.right_team else 0.0
         mouth = 3.66 / PITCH_W * 100
         if self.rng.random() < xg:
             outcome = "GOAL"
@@ -403,8 +423,10 @@ class MatchSim:
             self.positions = self._kickoff_positions(kick)
         else:
             self._reposition(receiver=ev["receiver"])
+        ev["possession_change"] = self.possession != self._poss_before
+        ev["right_team"] = self.right_team
         ev["is_impact_moment"], ev["impact_reasons"] = impact_moment(ev)
-        ev["generated_at"] = time.time() * 1000
+        ev["generated_at"] = round(time.time() * 1000)
         return ev
 
     def _status_event(self, etype, minute):
@@ -418,7 +440,8 @@ class MatchSim:
                                            "nearest_defender_m", "sprint_speed_kmh", "ball_speed_kmh",
                                            "forward_gain_m", "players_bypassed")},
             "score": {"home": self.score[HOME], "away": self.score[AWAY]},
-            "is_impact_moment": False, "impact_reasons": [], "generated_at": time.time() * 1000,
+            "is_impact_moment": False, "impact_reasons": [], "generated_at": round(time.time() * 1000),
+            "possession_change": False, "right_team": self.right_team,
         }
         return e
 
