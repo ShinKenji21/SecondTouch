@@ -71,7 +71,7 @@ async def overlay_schema():
 class Session:
     def __init__(self, ws):
         self.ws = ws
-        self.cfg = {"mode": "PLAYER_CAM", "team": HOME, "player": "Saka", "speed": 1,
+        self.cfg = {"mode": "PLAYER_CAM", "team": HOME, "player": "Thornquist", "speed": 1,
                     "lang": "en", "interval": DEFAULT_INTERVAL, "fav_team": "NONE"}
         self.lock = asyncio.Lock()
         self.wake = asyncio.Event()
@@ -189,8 +189,9 @@ class Session:
                              "ai_ms": round((time.time() - started) * 1000)})
 
     async def upgrade_story(self, ev, buildup, lines, lang, match_id):
-        facts = {"moment": {k: ev[k] for k in ("clock", "team", "player", "event_type", "outcome", "opponent",
-                                               "player_off", "card", "length_m", "score")},
+        facts = {"moment": {k: ev.get(k) for k in ("clock", "team", "player", "event_type", "outcome", "opponent",
+                                                   "player_off", "card", "set_piece", "restart", "restart_team",
+                                                   "body_part", "length_m", "score")},
                  "xg": ev["metrics"]["xg"], "build_up": buildup,
                  "players": {f"{t}:{p}": v for (t, p), v in lines.items()
                              if p in (ev["player"], ev["opponent"], ev["player_off"]) and v}}
@@ -271,7 +272,8 @@ class Session:
             "summary": self.stats.summary(), "teams": snap["teams"], "tactics": tactics,
             "players": players, "favourite_club": self.fav(),
             "reports": {k: v["narrative"] for k, v in self.reports.items()},
-            "recent_events": [{k: e[k] for k in ("clock", "team", "player", "event_type", "outcome", "impact_reasons")}
+            "recent_events": [{k: e.get(k) for k in ("clock", "team", "player", "event_type", "outcome", "set_piece",
+                                                     "restart", "card", "impact_reasons")}
                               for e in self.recent],
         }
 
@@ -284,6 +286,9 @@ class Session:
         for team in (HOME, AWAY):
             for p in snap["players"][team]:
                 if p["id"].lower() in q or p["name"].lower() in q or p["name"].split()[-1].lower() in q:
+                    if p["minutes"] and any(w in q for w in ("foul", "card", "booked", "offside")):
+                        return (f"{p['name']} ({names[team]}): {p['fouls']} fouls committed, {p['fouls_won']} won, "
+                                f"{p['yellow']} yellow, {p['red']} red, caught offside {p['offsides']} times.")
                     if not p["minutes"]:
                         return f"{p['name']} hasn't played yet."
                     return (f"{p['name']} ({names[team]}, {p['pos']}): {p['minutes']} min, rating {p['rating']}, "
@@ -317,6 +322,18 @@ class Session:
                 parts.append(f"{names[team]} ({tac['formation']}) defend with a line {oop.get('line_height_m', '-')}m "
                              f"from goal, PPDA {tac['ppda'] or '-'}, and attack mostly down the {fav} ({ch[fav]}%).")
             return " ".join(parts)
+        if any(w in q for w in ("corner", "set piece", "set-piece", "free kick", "throw", "penalt", "offside",
+                                "foul", "card", "goal kick")):
+            def n(count, word):
+                return f"{count} {word}" if count == 1 else f"{count} {word}s"
+
+            def line(team):
+                x = t[team]
+                return (f"{names[team]}: {n(x['corners'], 'corner')}, {n(x['free_kicks'], 'free kick')}, "
+                        f"{n(x['throw_ins'], 'throw-in')}, {x['penalties']} {'penalty' if x['penalties'] == 1 else 'penalties'}, "
+                        f"{n(x['goal_kicks'], 'goal kick')}, {n(x['offsides'], 'offside')}, {n(x['fouls'], 'foul')}, "
+                        f"{x['yellow']} yellow and {x['red']} red {'card' if x['yellow'] + x['red'] == 1 else 'cards'}.")
+            return f"{line(HOME)} {line(AWAY)}"
         if any(w in q for w in ("xg", "chance", "shot")):
             return (f"xG {names[HOME]} {s['xg'][0]:.2f} from {t[HOME]['shots']} shots, "
                     f"{names[AWAY]} {s['xg'][1]:.2f} from {t[AWAY]['shots']} shots. {mom_text}")

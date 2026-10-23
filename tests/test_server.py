@@ -19,7 +19,7 @@ def recv(ws, kind):
 def test_dashboard_and_assets_are_served():
     client = TestClient(server.app)
     assert "SecondTouch" in client.get("/").text
-    for path in ("/static/app.js", "/static/styles.css", "/static/images/arsenal.png", "/static/images/mancity.png"):
+    for path in ("/static/app.js", "/static/styles.css", "/static/images/brackenford.svg", "/static/images/kestermouth.svg"):
         assert client.get(path).status_code == 200, path
 
 
@@ -27,20 +27,20 @@ def test_stream_settings_and_ask():
     client = TestClient(server.app)
     with client.websocket_connect("/ws/telemetry") as ws:
         hello = recv(ws, "hello")
-        assert hello["ai_configured"] is False and "Saka" in hello["squads"]["Arsenal"]
+        assert hello["ai_configured"] is False and "Thornquist" in hello["squads"]["Brackenford"]
         ws.send_text(json.dumps({"type": "config", "speed": 10}))
         first = recv(ws, "event")
         assert set(first["commentary"]) >= {"analyst", "casual", "player_cam", "source", "lang"}
-        assert len(first["positions"]["Arsenal"]) == 11 and "players" in first["stats"]
+        assert len(first["positions"]["Brackenford"]) == 11 and "players" in first["stats"]
 
         # a language change re-renders the latest commentary straight away
         ws.send_text(json.dumps({"type": "config", "lang": "es"}))
         update = recv(ws, "commentary")
         assert update["commentary"]["lang"] == "es"
 
-        ws.send_text(json.dumps({"type": "ask", "id": 1, "question": "How is Haaland playing?"}))
+        ws.send_text(json.dumps({"type": "ask", "id": 1, "question": "How is Strachley playing?"}))
         answer = recv(ws, "answer")
-        assert answer["id"] == 1 and "Haaland" in answer["text"] and answer["source"] == "LOCAL ENGINE"
+        assert answer["id"] == 1 and "Strachley" in answer["text"] and answer["source"] == "LOCAL ENGINE"
 
         # bad input is ignored, not fatal
         ws.send_text("not json")

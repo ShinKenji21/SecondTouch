@@ -8,6 +8,11 @@ from pydantic import BaseModel, Field, field_validator
 Mode = Literal["ANALYST", "CASUAL", "PLAYER_CAM"]
 Lang = Literal["en", "es", "ja"]
 EventType = Literal["PASS", "DRIBBLE", "SHOT", "TACKLE", "SUBSTITUTION", "HALF_TIME", "FULL_TIME"]
+SetPiece = Literal["FREE_KICK", "CORNER", "THROW_IN", "PENALTY", "GOAL_KICK"]
+OUTCOMES = {
+    "PASS": {"COMPLETE", "INTERCEPTED", "OUT", "OFFSIDE"}, "DRIBBLE": {"SUCCESS"}, "TACKLE": {"WON", "FOUL"},
+    "SHOT": {"GOAL", "SAVED", "MISS", "BLOCKED"},
+}
 
 
 class ClientConfig(BaseModel):
@@ -18,7 +23,7 @@ class ClientConfig(BaseModel):
     speed: Optional[int] = None
     lang: Optional[Lang] = None
     interval: Optional[float] = None
-    fav_team: Optional[Literal["NONE", "Arsenal", "ManCity"]] = None  # favourite club, "NONE" for neutral
+    fav_team: Optional[Literal["NONE", "Brackenford", "Kestermouth"]] = None  # favourite club, "NONE" for neutral
 
     @field_validator("speed")
     @classmethod
@@ -69,6 +74,10 @@ class Event(BaseModel):
     receiver: Optional[str] = None
     player_off: Optional[str] = None
     card: Optional[Literal["YELLOW", "RED"]] = None
+    set_piece: Optional[SetPiece] = None          # this action restarts play (corner, free kick, ...)
+    restart: Optional[SetPiece] = None            # play stopped after this action; this restart follows
+    restart_team: Optional[str] = None            # who takes that restart
+    body_part: Optional[Literal["FOOT", "HEAD"]] = None  # shots only
     length_m: Optional[float] = None
     location: Location
     metrics: Metrics
@@ -78,3 +87,11 @@ class Event(BaseModel):
     possession_change: bool = False
     right_team: str
     generated_at: float
+
+    @field_validator("outcome")
+    @classmethod
+    def _outcome(cls, v, info):
+        allowed = OUTCOMES.get(info.data.get("event_type"))
+        if allowed is not None and v not in allowed:
+            raise ValueError(f"{v} is not an outcome of {info.data.get('event_type')}")
+        return v

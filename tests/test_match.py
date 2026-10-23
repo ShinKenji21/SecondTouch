@@ -73,8 +73,8 @@ def test_every_event_renders_three_personas(lang):
     while (ev := sim.next_event()) is not None:
         stats.update(ev, sim.positions, sim.possession)
         teams = {t: stats.team_stats(t) for t in (HOME, AWAY)}
-        ctx = Context(HOME, AWAY, stats.summary(), sim.positions, HOME, "Saka",
-                      stats.player_line(HOME, "Saka"), {t: (teams[t]["xg"], teams[t]["shots"]) for t in teams})
+        ctx = Context(HOME, AWAY, stats.summary(), sim.positions, HOME, "Thornquist",
+                      stats.player_line(HOME, "Thornquist"), {t: (teams[t]["xg"], teams[t]["shots"]) for t in teams})
         out = render(ev, ctx, lang)
         assert set(out) == {"analyst", "casual", "player_cam"}
         assert all(isinstance(v, str) and v for v in out.values())
@@ -83,7 +83,7 @@ def test_every_event_renders_three_personas(lang):
 
 
 def test_model_output_validation_rejects_malformed_json():
-    good = {"analyst": "Saka shoots, 0.21 xG.", "casual": "What a hit!", "player_cam": "On the ball: Saka shoots."}
+    good = {"analyst": "Thornquist shoots, 0.21 xG.", "casual": "What a hit!", "player_cam": "On the ball: Thornquist shoots."}
     assert PersonaCommentary.model_validate_json(json.dumps(good)).casual == "What a hit!"
     with pytest.raises(Exception):
         PersonaCommentary.model_validate_json('{"analyst": "only one key"}')

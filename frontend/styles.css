@@ -9,8 +9,8 @@
     --accent-yellow: #EAB308;
     --accent-green: #10B981;
     --accent-red: #EF4444;
-    --home: #EF4444;
-    --away: #38BDF8;
+    --home: #22B5AF;
+    --away: #E8732C;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -52,8 +52,8 @@ body { background-color: var(--bg-dark); color: var(--text-main); font-family: s
 .team-col { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.1rem; }
 .team-logo-img { width: 28px; height: 28px; object-fit: contain; }
 .team-color-indicator, .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.home-red { background-color: var(--home); box-shadow: 0 0 8px rgba(239, 68, 68, 0.6); }
-.away-blue { background-color: var(--away); box-shadow: 0 0 8px rgba(56, 189, 248, 0.6); }
+.home-red { background-color: var(--home); box-shadow: 0 0 8px rgba(34, 181, 175, 0.6); }
+.away-blue { background-color: var(--away); box-shadow: 0 0 8px rgba(232, 115, 44, 0.6); }
 .score { font-size: 1.4rem; background: rgba(255,255,255,0.08); padding: 2px 10px; border-radius: 6px; color: var(--accent-yellow); }
 .match-meta { display: flex; align-items: center; gap: 8px; }
 .live-pill { background: var(--card-border); color: var(--text-muted); font-size: 0.65rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
@@ -64,6 +64,10 @@ body { background-color: var(--bg-dark); color: var(--text-main); font-family: s
 .kickoff-btn:hover { transform: scale(1.05); }
 
 .possession-strip { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 800; color: var(--text-muted); margin: 8px 0; }
+.poss-title { font-size: 0.62rem; font-weight: 900; letter-spacing: 0.08em; color: var(--text-muted); }
+.poss-pct { min-width: 32px; font-weight: 900; }
+.poss-pct.home { color: var(--home); text-align: right; }
+.poss-pct.away { color: var(--away); }
 .possession-bar { flex: 1; height: 5px; background: var(--away); border-radius: 3px; overflow: hidden; }
 .possession-bar > div { height: 100%; background: var(--home); border-right: 2px solid var(--card-bg); transition: width 0.4s ease; }
 
@@ -277,7 +281,36 @@ button:focus-visible, select:focus-visible, input:focus-visible, .event-item:foc
 @media (prefers-reduced-motion: reduce) { .event-item.new, .ai-card.ai-flash, .return-live-btn.is-live .live-dot { animation: none; } }
 
 /* ===== v3: personalization, mode panels, stories, reports, data ===== */
-.match-info { font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 8px; }
+.match-info { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 16px; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); margin-top: 8px; min-height: 18px; }
+.mi-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.mi-item i { color: var(--accent-yellow); opacity: 0.85; font-size: 0.7rem; }
+.mi-comp { color: var(--text-main); font-weight: 800; }
+.mi-dim { color: var(--text-muted); font-weight: 600; }
+.mi-tag { font-size: 0.58rem; font-weight: 900; letter-spacing: 0.06em; color: var(--accent-cyan); border: 1px solid rgba(56,189,248,0.4); padding: 1px 7px; border-radius: 10px; }
+
+/* Stable sidebar: nothing in it changes height as events stream in, so the page never shifts.
+ * The event log takes whatever room the pitch column leaves, and at least 260px. */
+.commentary-text { height: 7.25em; min-height: 0; overflow-y: auto; }
+.sidebar > * { flex: none; }
+.sidebar > .event-log-card { flex: 1 1 auto; display: flex; flex-direction: column; }
+.event-log-card .event-list { flex: 1 1 260px; min-height: 260px; max-height: none; }
+.metric-row > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; margin-right: 8px; }
+.tele-totals { display: grid; grid-template-columns: 1fr 1fr; }
+.tele-totals > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.glance-goals { max-height: 6.5em; overflow-y: auto; }
+.flow-now { min-height: 3em; }
+
+/* Tactics: both team cards share the same rows, so the read, table, channels and press line
+ * line up side by side however long each written read is. */
+.tactics-layout { row-gap: 0; }
+.tactical-card { display: grid; grid-row: span 6; grid-template-rows: subgrid; row-gap: 0; align-content: start; }
+.tactical-card .press-row { align-self: end; }
+.avg-pitch-wrap { grid-row: span 6; }
+.shape-table { table-layout: fixed; }
+.shape-table th:first-child { width: 34%; }
+.shape-table th, .shape-table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 1100px) { .avg-pitch-wrap { margin-top: 12px; } }
+@media (max-width: 640px) { .tactical-card + .tactical-card { margin-top: 12px; } }
 .team-col.fav .team-name::after { content: " ★"; color: var(--accent-yellow); }
 .team-col.fav .team-logo-img { filter: drop-shadow(0 0 6px rgba(234,179,8,0.8)); }
 .pinned-metric { flex: none; font-size: 0.72rem; font-weight: 800; color: var(--text-main); background: rgba(234,179,8,0.12); border: 1px solid rgba(234,179,8,0.5); padding: 2px 8px; border-radius: 12px; white-space: nowrap; }
@@ -348,6 +381,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, .event-item:foc
 
 .event-item.fav { background: rgba(234,179,8,0.06); }
 .poss-chg { color: #F59E0B; font-weight: 900; }
+.restart-tag { font-size: 0.68rem; font-weight: 800; color: var(--accent-cyan); white-space: nowrap; }
 .ke-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .event-timeline-list { max-height: 340px; }
 .event-timeline-list li { flex-direction: column; align-items: stretch; }
@@ -370,7 +404,8 @@ button:focus-visible, select:focus-visible, input:focus-visible, .event-item:foc
 .data-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .meta-table { display: grid; grid-template-columns: 1fr; gap: 3px; font-size: 0.74rem; }
 .meta-table div { display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.04); padding: 3px 0; }
-.meta-table div span:first-child { color: var(--text-muted); }
+.meta-table div span:first-child { color: var(--text-muted); flex: none; }
+.meta-table div span:last-child { text-align: right; }
 .cue-feed { background: #070B12; border: 1px solid var(--card-border); border-radius: 6px; padding: 8px; font-size: 0.66rem; color: #A7F3D0; max-height: 300px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
 code { background: rgba(255,255,255,0.08); padding: 0 4px; border-radius: 3px; font-size: 0.85em; }
 

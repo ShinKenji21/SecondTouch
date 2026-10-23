@@ -9,9 +9,9 @@ fallback whenever Azure OpenAI is unavailable; AI text replaces them later.
 from analytics import attack_frame, metres, zone_of
 
 TEAM_NAMES = {
-    "en": {"Arsenal": "Arsenal", "ManCity": "Man City"},
-    "es": {"Arsenal": "Arsenal", "ManCity": "Man City"},
-    "ja": {"Arsenal": "アーセナル", "ManCity": "マンチェスター・シティ"},
+    "en": {"Brackenford": "Brackenford", "Kestermouth": "Kestermouth"},
+    "es": {"Brackenford": "Brackenford", "Kestermouth": "Kestermouth"},
+    "ja": {"Brackenford": "ブラッケンフォード", "Kestermouth": "ケスターマス"},
 }
 LANG_NAMES = {"en": "English", "es": "Spanish", "ja": "Japanese"}
 
@@ -238,6 +238,100 @@ T = {
 }
 
 
+# Set pieces, offside and the ball going out of play.
+SET_PIECE_T = {
+    "en": {
+        "sp": {"FREE_KICK": "free kick", "CORNER": "corner", "THROW_IN": "throw-in", "PENALTY": "penalty", "GOAL_KICK": "goal kick"},
+        "sp_r": {"FREE_KICK": "Free kick", "CORNER": "Corner", "THROW_IN": "Throw-in", "PENALTY": "Penalty", "GOAL_KICK": "Goal kick"},
+        "restart": " {sp_r} to {rt}.",
+        "sp_pass": "{p} takes the {sp}, {len}m to {r}.",
+        "sp_cross": "{p} swings in the {sp} and {r} wins it in the air in {ezone} (delivery difficulty {diff}/100).",
+        "sp_cleared": "{p}'s {sp} is dealt with by {o}.",
+        "fk_shot": "{p} goes for goal with the free kick from {len}m, over the wall: {xg} xG. {res}",
+        "pen_shot": "{p} takes the penalty ({xg} xG). {res}",
+        "header": "{p} heads at goal from {len}m: {xg} xG. {res}",
+        "out": "{p}'s {len}m pass runs out of play.",
+        "offside": "{r} is caught offside from {p}'s pass.",
+        "pass_int_out": "{o} cuts out {p}'s {len}m pass in {zone} but can only turn it behind.",
+        "c_int_out": "{o} blocks it behind!",
+        "pen_foul": "{p} brings down {o} inside the box: penalty to {ot}!",
+        "c_sp_pass": {"THROW_IN": "{p} takes the throw to {r}.", "GOAL_KICK": "{p} restarts with a goal kick to {r}.",
+                      "FREE_KICK": "{p} plays the free kick to {r}.", "CORNER": "{p} plays the corner short to {r}."},
+        "c_cross": "{p} whips it in... {r} rises highest!", "c_cleared": "{o} heads it away.",
+        "c_fk_shot": "{p} curls the free kick... ", "c_pen_shot": "{p} steps up... ", "c_header": "{p} gets a head on it! ",
+        "c_out": "{p}'s pass runs out of play.", "c_offside": "Flag up! {r} is offside.",
+        "c_restart": {"CORNER": " Corner!", "GOAL_KICK": " Goal kick.", "THROW_IN": " Throw-in.", "FREE_KICK": " Free kick.", "PENALTY": " PENALTY!"},
+        "c_pen_foul": "PENALTY! {p} brings down {o}!",
+        "fan_pen_for": " Penalty to us!", "fan_pen_against": " Oh no, a penalty against us...",
+        "s_pen": "{p} brought down {o} inside the box and {ot} have a penalty.", "s_ctx_pen": "A penalty is worth about 0.76 xG.",
+        "s_from": {"CORNER": "It came from a corner.", "FREE_KICK": "It came from a free kick.", "PENALTY": "From the penalty spot.",
+                   "THROW_IN": "It started with a throw-in.", "GOAL_KICK": "It started with a goal kick."},
+        "b_sp": "{p} took the {sp} to {r}", "s_head": "It was a header.",
+        "r_set": "Set pieces: corners {hc}-{ac}, fouls {hf}-{af}.",
+    },
+    "es": {
+        "sp": {"FREE_KICK": "tiro libre", "CORNER": "córner", "THROW_IN": "saque de banda", "PENALTY": "penalti", "GOAL_KICK": "saque de puerta"},
+        "sp_r": {"FREE_KICK": "Tiro libre", "CORNER": "Córner", "THROW_IN": "Saque de banda", "PENALTY": "Penalti", "GOAL_KICK": "Saque de puerta"},
+        "restart": " {sp_r} a favor de {rt}.",
+        "sp_pass": "{p} pone el balón en juego ({sp}) con un pase de {len} m a {r}.",
+        "sp_cross": "{p} centra a balón parado ({sp}) y {r} gana el balón aéreo en {ezone} (dificultad {diff}/100).",
+        "sp_cleared": "{o} despeja el centro de {p} ({sp}).",
+        "fk_shot": "{p} lanza el tiro libre directo desde {len} m por encima de la barrera: {xg} xG. {res}",
+        "pen_shot": "{p} lanza el penalti ({xg} xG). {res}",
+        "header": "{p} cabecea desde {len} m: {xg} xG. {res}",
+        "out": "El pase de {len} m de {p} se va fuera.",
+        "offside": "{r} cae en fuera de juego tras el pase de {p}.",
+        "pass_int_out": "{o} corta el pase de {len} m de {p} en {zone}, pero el balón sale por la línea de fondo.",
+        "c_int_out": "¡{o} la manda a córner!",
+        "pen_foul": "{p} derriba a {o} dentro del área: ¡penalti a favor de {ot}!",
+        "c_sp_pass": {"THROW_IN": "{p} saca de banda para {r}.", "GOAL_KICK": "{p} saca de puerta hacia {r}.",
+                      "FREE_KICK": "{p} saca el tiro libre hacia {r}.", "CORNER": "{p} saca el córner en corto para {r}."},
+        "c_cross": "{p} la cuelga... ¡{r} se eleva más que nadie!", "c_cleared": "{o} la despeja de cabeza.",
+        "c_fk_shot": "{p} perfila el tiro libre... ", "c_pen_shot": "{p} se prepara... ", "c_header": "¡{p} remata de cabeza! ",
+        "c_out": "El pase de {p} se va fuera.", "c_offside": "¡Bandera arriba! {r} está en fuera de juego.",
+        "c_restart": {"CORNER": " ¡Córner!", "GOAL_KICK": " Saque de puerta.", "THROW_IN": " Saque de banda.", "FREE_KICK": " Tiro libre.", "PENALTY": " ¡PENALTI!"},
+        "c_pen_foul": "¡PENALTI! {p} derriba a {o}.",
+        "fan_pen_for": " ¡Penalti para nosotros!", "fan_pen_against": " Oh no, penalti en contra...",
+        "s_pen": "{p} derribó a {o} dentro del área y {ot} tiene un penalti.", "s_ctx_pen": "Un penalti vale unos 0,76 xG.",
+        "s_from": {"CORNER": "Llegó de un córner.", "FREE_KICK": "Llegó de un tiro libre.", "PENALTY": "Desde el punto de penalti.",
+                   "THROW_IN": "Empezó con un saque de banda.", "GOAL_KICK": "Empezó con un saque de puerta."},
+        "b_sp": "{p} puso en juego ({sp}) hacia {r}", "s_head": "Fue de cabeza.",
+        "r_set": "Balón parado: córners {hc}-{ac}, faltas {hf}-{af}.",
+    },
+    "ja": {
+        "sp": {"FREE_KICK": "フリーキック", "CORNER": "コーナーキック", "THROW_IN": "スローイン", "PENALTY": "PK", "GOAL_KICK": "ゴールキック"},
+        "sp_r": {"FREE_KICK": "フリーキック", "CORNER": "コーナーキック", "THROW_IN": "スローイン", "PENALTY": "PK", "GOAL_KICK": "ゴールキック"},
+        "restart": "{rt}の{sp_r}。",
+        "sp_pass": "{p}が{sp}で{len}m先の{r}へ。",
+        "sp_cross": "{p}の{sp}に{r}が{ezone}で競り勝つ（難易度{diff}/100）。",
+        "sp_cleared": "{p}の{sp}は{o}がクリア。",
+        "fk_shot": "{p}が{len}mの直接フリーキックで壁越しに狙う：xG {xg}。{res}",
+        "pen_shot": "{p}がPKを蹴る（xG {xg}）。{res}",
+        "header": "{p}が{len}mからヘディングシュート：xG {xg}。{res}",
+        "out": "{p}の{len}mのパスはピッチの外へ。",
+        "offside": "{p}のパスに抜け出した{r}はオフサイド。",
+        "pass_int_out": "{o}が{zone}で{p}の{len}mのパスをカットするも、ボールはゴールラインを割る。",
+        "c_int_out": "{o}がブロック、ボールはラインの外へ！",
+        "pen_foul": "{p}がペナルティエリア内で{o}を倒す：{ot}にPK！",
+        "c_sp_pass": {"THROW_IN": "{p}のスローインから{r}へ。", "GOAL_KICK": "{p}のゴールキックで{r}へ。",
+                      "FREE_KICK": "{p}のフリーキックから{r}へ。", "CORNER": "{p}がショートコーナーで{r}へ。"},
+        "c_cross": "{p}が蹴り込む…{r}が高い！", "c_cleared": "{o}が頭でクリア。",
+        "c_fk_shot": "{p}が直接狙う…", "c_pen_shot": "{p}がPKのキッカーに…", "c_header": "{p}のヘディング！",
+        "c_out": "{p}のパスはピッチの外へ。", "c_offside": "旗が上がった！{r}はオフサイド。",
+        "c_restart": {"CORNER": "コーナーキック！", "GOAL_KICK": "ゴールキック。", "THROW_IN": "スローイン。", "FREE_KICK": "フリーキック。", "PENALTY": "PK！"},
+        "c_pen_foul": "PK！{p}が{o}を倒した！",
+        "fan_pen_for": "PKだ、大チャンス！", "fan_pen_against": "ああ、PKを与えてしまった…",
+        "s_pen": "{p}がエリア内で{o}を倒し、{ot}にPKが与えられた。", "s_ctx_pen": "PKの期待値はおよそ0.76 xG。",
+        "s_from": {"CORNER": "コーナーキックから生まれた。", "FREE_KICK": "フリーキックから生まれた。", "PENALTY": "PKによる得点機。",
+                   "THROW_IN": "スローインから始まった。", "GOAL_KICK": "ゴールキックから始まった。"},
+        "b_sp": "{p}の{sp}から{r}へ", "s_head": "ヘディングでの一撃。",
+        "r_set": "セットプレー：コーナーキック{hc}-{ac}、ファウル{hf}-{af}。",
+    },
+}
+for _lang, _extra in SET_PIECE_T.items():
+    T[_lang].update(_extra)
+
+
 class Context:
     """Everything beyond the event itself that the personas may mention."""
 
@@ -294,15 +388,30 @@ def render(ev, ctx, lang="en"):
         "nd": m["nearest_defender_m"], "pi": m["pressure_index"],
         "xg": f"{m['xg']:.2f}" if m["xg"] is not None else "", "pct": round((m["xg"] or 0) * 100),
         "zone": _zone(L, team, ctx.right_team, loc["start_x"], loc["start_y"]),
+        "ezone": _zone(L, team, ctx.right_team, loc["end_x"], loc["end_y"]),
         "score": score, "min": int(ev["minute"]),
+        "sp": L["sp"].get(ev.get("set_piece"), ""),
     }
     reasons = ev["impact_reasons"]
+    sp, restart = ev.get("set_piece"), ev.get("restart")
 
     if t == "SUBSTITUTION":
         line = L["sub"].format(**f)
         return {"analyst": line, "casual": line, "player_cam": _player_cam(L, ev, ctx, line)}
 
-    if t == "PASS" and o == "COMPLETE":
+    if t == "PASS" and o == "COMPLETE" and _is_delivery(ev, ctx):
+        analyst = L["sp_cross"].format(**f)
+        casual = L["c_cross"].format(**f)
+    elif t == "PASS" and o == "COMPLETE" and sp:
+        analyst = L["sp_pass"].format(**f)
+        casual = L["c_sp_pass"][sp].format(**f)
+    elif t == "PASS" and o == "OUT":
+        analyst, casual = L["out"].format(**f), L["c_out"].format(**f)
+    elif t == "PASS" and o == "OFFSIDE":
+        analyst, casual = L["offside"].format(**f), L["c_offside"].format(**f)
+    elif t == "PASS" and _is_delivery(ev, ctx):
+        analyst, casual = L["sp_cleared"].format(**f), L["c_cleared"].format(**f)
+    elif t == "PASS" and o == "COMPLETE":
         forward = (m["forward_gain_m"] or 0) >= 5 and (m["players_bypassed"] or 0) > 0
         analyst = L["pass_ok" if forward else "pass_short"].format(**f)
         if "line_breaking_pass" in reasons:
@@ -310,6 +419,9 @@ def render(ev, ctx, lang="en"):
             casual = L["c_pass_lb"].format(**f)
         else:
             casual = L["c_pass_good" if (m["pass_difficulty"] or 0) >= 60 else "c_pass"].format(**f)
+    elif t == "PASS" and restart == "CORNER":
+        f["zone"] = _zone(L, team, ctx.right_team, loc["end_x"], loc["end_y"])
+        analyst, casual = L["pass_int_out"].format(**f), L["c_int_out"].format(**f)
     elif t == "PASS":
         f["zone"] = _zone(L, team, ctx.right_team, loc["end_x"], loc["end_y"])
         analyst = L["pass_int"].format(**f)
@@ -325,27 +437,32 @@ def render(ev, ctx, lang="en"):
         if o == "WON":
             analyst = L["tackle_won"].format(**f)
             casual = L["c_tackle"].format(**f)
-            if "high_press_turnover" in reasons:
+            if "high_press_turnover" in reasons and not restart:
                 f["gd"] = _goal_distance(team, ctx.right_team, loc["end_x"], loc["end_y"])
                 f["ot"] = names[team]
                 analyst += L["why_press" if f["gd"] <= 45 else "why_recover"].format(**f)
         else:
-            analyst = L["foul"].format(**f)
-            casual = L["c_foul"].format(**f)
+            analyst = L["pen_foul" if restart == "PENALTY" else "foul"].format(**f)
+            casual = L["c_pen_foul" if restart == "PENALTY" else "c_foul"].format(**f)
             if ev["card"] == "YELLOW":
                 analyst += L["card_y"]; casual += L["c_card_y"]
             elif ev["card"] == "RED":
                 analyst += L["card_r"].format(**f); casual += L["c_card_r"]
     else:  # SHOT
         f["res"] = L["res"][o].format(**f)
-        analyst = L["shot"].format(**f)
-        casual = L["c_res"][o].format(**f)
+        kind = "pen_shot" if sp == "PENALTY" else "fk_shot" if sp == "FREE_KICK" else             "header" if ev.get("body_part") == "HEAD" else "shot"
+        analyst = L[kind].format(**f)
+        lead = {"pen_shot": "c_pen_shot", "fk_shot": "c_fk_shot", "header": "c_header"}.get(kind)
+        casual = (L[lead].format(**f) if lead else "") + L["c_res"][o].format(**f)
         if "big_chance" in reasons:
             analyst += L["why_big"].format(**f)
         else:
             txg, ts = ctx.team_xg_shots[team]
             analyst += L["why_shot"].format(txg=f"{txg:.2f}", ts=ts, t=f["t"])
 
+    if restart and restart != "PENALTY":
+        analyst += L["restart"].format(sp_r=L["sp_r"][restart], rt=names[ev["restart_team"]])
+        casual += L["c_restart"][restart]
     casual = _fan_voice(L, ev, ctx, casual, names)
     mom = ctx.summary["momentum"]
     if abs(mom) >= 45 and t in ("PASS", "DRIBBLE", "SHOT") and not ctx.fav_team:
@@ -356,12 +473,23 @@ def render(ev, ctx, lang="en"):
     return {"analyst": analyst, "casual": casual, "player_cam": _player_cam(L, ev, ctx, analyst)}
 
 
+def _is_delivery(ev, ctx):
+    """A corner, or a free kick in the attacking third, swung into the box (not a short pass)."""
+    sp = ev.get("set_piece")
+    if sp == "CORNER":
+        return True
+    u, _ = attack_frame(ev["team"], ctx.right_team, ev["location"]["start_x"], ev["location"]["start_y"])
+    return sp == "FREE_KICK" and u >= 70
+
+
 def _fan_voice(L, ev, ctx, casual, names):
     """Casual commentary from the favourite club's side of the stands."""
     fav = ctx.fav_team
     if not fav or not ev.get("team"):
         return casual
     t, o, ours = ev["event_type"], ev["outcome"], ev["team"] == fav
+    if ev.get("restart") == "PENALTY":
+        return casual + (L["fan_pen_for"] if ev["restart_team"] == fav else L["fan_pen_against"])
     if t == "SHOT" and o == "GOAL":
         return (L["fan_goal_for"] if ours else L["fan_goal_against"]) + casual
     if t == "SHOT" and o in ("SAVED", "BLOCKED", "MISS"):
@@ -414,6 +542,8 @@ def _buildup_phrase(L, e):
         return L["b_won_tackle"].format(p=e["player"], o=e["opponent"])
     if t == "PASS" and o == "INTERCEPTED":
         return L["b_won_int"].format(p=e["opponent"], o=e["player"])
+    if t == "PASS" and o == "COMPLETE" and e.get("set_piece"):
+        return L["b_sp"].format(p=e["player"], r=e["receiver"], sp=L["sp"][e["set_piece"]])
     if t == "PASS" and o == "COMPLETE":
         key = "b_pass_lb" if "line_breaking_pass" in e["impact_reasons"] else "b_pass"
         return L[key].format(p=e["player"], r=e["receiver"])
@@ -430,7 +560,8 @@ def story(ev, buildup, ctx, lines, lang="en"):
     t, o, team = ev["event_type"], ev["outcome"], ev["team"]
     m = ev["metrics"]
     score = _score_text(lang, ev["score"], ctx.home, ctx.away)
-    f = {"p": ev["player"], "o": ev["opponent"] or ev["player_off"], "t": names[team],
+    opp = ctx.away if team == ctx.home else ctx.home
+    f = {"p": ev["player"], "o": ev["opponent"] or ev["player_off"], "t": names[team], "ot": names[opp],
          "len": ev["length_m"], "xg": f"{m['xg']:.2f}" if m["xg"] is not None else "", "score": score,
          "zone": _zone(L, team, ctx.right_team, ev["location"]["start_x"], ev["location"]["start_y"])}
     parts = []
@@ -460,7 +591,9 @@ def story(ev, buildup, ctx, lines, lang="en"):
             parts.append(L["s_block"].format(**f))
         else:
             parts.append(L["s_miss"].format(**f))
-    elif ev.get("card"):
+    if ev.get("restart") == "PENALTY":
+        parts += [L["s_pen"].format(**f), L["s_ctx_pen"]]
+    if ev.get("card"):
         if ev["card"] == "YELLOW":
             parts += [L["s_card_y"].format(**f), L["s_ctx_card_y"].format(**f)]
         else:
@@ -471,6 +604,12 @@ def story(ev, buildup, ctx, lines, lang="en"):
         parts.append(L["s_ctx_sub"].format(o=ev["player_off"], min=off.get("minutes", int(ev["minute"])),
                                            rating=off.get("rating") or "-", touches=off.get("touches", 0),
                                            km=off.get("distance_km", 0)))
+    if t == "SHOT":
+        origin = ev.get("set_piece") or next((e["set_piece"] for e in reversed(buildup) if e.get("set_piece")), None)
+        if origin:
+            parts.append(L["s_from"][origin])
+        if ev.get("body_part") == "HEAD":
+            parts.append(L["s_head"])
     sep = "" if lang == "ja" else " "
     return sep.join(parts)
 
@@ -506,6 +645,8 @@ def report_text(r, lang="en"):
     pl = max(pw, key=pw.get)
     if pw[pl] > pw[a if pl == h else h]:
         parts.append(L["r_press"].format(t=names[pl], v=pw[pl], w=pw[a if pl == h else h]))
+    if th["corners"] + ta["corners"]:
+        parts.append(L["r_set"].format(hc=th["corners"], ac=ta["corners"], hf=th["fouls"], af=ta["fouls"]))
     if abs(r["momentum_avg"]) >= 15:
         parts.append(L["r_mom"][r["kind"]].format(t=names[h if r["momentum_avg"] > 0 else a]))
     b = r["best_player"]

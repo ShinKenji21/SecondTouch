@@ -19,7 +19,7 @@ from analytics import MatchStats
 from generator import AWAY, FORMATIONS, HOME, SQUADS, MatchSim
 
 EVENT_COLS = ["match_id", "seq", "minute", "clock", "team", "player", "event_type", "outcome", "receiver",
-              "opponent", "player_off", "card", "length_m", "start_x", "start_y", "end_x", "end_y", "xg",
+              "opponent", "player_off", "card", "set_piece", "restart", "restart_team", "body_part", "length_m", "start_x", "start_y", "end_x", "end_y", "xg",
               "pass_difficulty", "pressure", "pressure_index", "nearest_defender_m", "sprint_speed_kmh",
               "ball_speed_kmh", "forward_gain_m", "players_bypassed", "possession_change", "right_team",
               "is_impact_moment", "impact_reasons", "score_home", "score_away"]
@@ -38,8 +38,11 @@ Coordinates are percentages of a 105 x 68 m pitch, x left to right, y top to bot
 | minute, clock | match time |
 | team, player | acting team and player (for TACKLE: the tackler) |
 | event_type | PASS, DRIBBLE, SHOT, TACKLE, SUBSTITUTION, HALF_TIME, FULL_TIME |
-| outcome | PASS: COMPLETE/INTERCEPTED; DRIBBLE: SUCCESS; TACKLE: WON/FOUL; SHOT: GOAL/SAVED/MISS/BLOCKED |
-| receiver, opponent, player_off, card | pass receiver; opposing player involved; player substituted off; YELLOW/RED |
+| outcome | PASS: COMPLETE/INTERCEPTED/OUT (out of play)/OFFSIDE; DRIBBLE: SUCCESS; TACKLE: WON/FOUL; SHOT: GOAL/SAVED/MISS/BLOCKED |
+| receiver, opponent, player_off, card | pass receiver (for OFFSIDE: the player flagged); opposing player involved; player substituted off; YELLOW/RED |
+| set_piece | this action restarts play: FREE_KICK, CORNER, THROW_IN, PENALTY or GOAL_KICK (a corner is a PASS, a penalty a SHOT) |
+| restart, restart_team | play stopped after this action and restarts with this set piece, taken by this team |
+| body_part | shots: FOOT or HEAD (headers mostly come from corners) |
 | start_x..end_y | where the action started and ended |
 | xg | expected goals of a shot (distance, angle, pressure) |
 | pass_difficulty | 5-99 from length, direction, pressure and receiver space |
@@ -55,8 +58,8 @@ events.jsonl adds `positions`: {team: {player: [x, y]}} after the event.
 
 ## players.csv
 One row per player per match: minutes, rating, goals, assists, shots, xG, passes, key passes,
-line breaks, dribbles, tackles, interceptions, fouls, cards, saves, touches, sprints, distance (km),
-top speed (km/h).
+line breaks, dribbles, tackles, interceptions, fouls, fouls won, offsides, cards, saves, touches, sprints,
+distance (km), top speed (km/h).
 
 ## matches.csv
 Metadata (competition, venue, referee, weather, seed) and final score, xG, shots and possession.

@@ -1,4 +1,4 @@
-match_id,competition,matchday,venue,attendance,referee,weather,temperature_c,kickoff_utc,home,away,seed,synthetic,score_home,score_away,xg_home,xg_away,shots_home,shots_away,possession_home,possession_away
-1,SecondTouch Synthetic League,14,"Emirates Stadium, London",58384,Kenji Mori,Cold and dry,4,2026-10-22T18:05:38Z,Arsenal,ManCity,1,True,0,1,1.45,1.17,9,7,52,48
-2,SecondTouch Synthetic League,17,"Emirates Stadium, London",60481,Sara Lindqvist,Overcast,11,2026-10-22T18:05:38Z,Arsenal,ManCity,2,True,0,1,2.1,0.63,10,4,46,54
-3,SecondTouch Synthetic League,31,"Emirates Stadium, London",59062,Amelia Brooks,Clear,14,2026-10-22T18:05:38Z,Arsenal,ManCity,3,True,1,2,1.53,1.37,7,8,44,56
+match_id,competition,season,matchday,venue,capacity,attendance,referee,weather,temperature_c,wind,pitch,kickoff_utc,home,away,seed,synthetic,score_home,score_away,xg_home,xg_away,shots_home,shots_away,possession_home,possession_away
+1,Northern Crown Division,2026-27,9,"Millrace Lane, Brackenford",32400,29815,Malcolm Threlkeld,Light drizzle,11,18 km/h SW,"damp, quick",2026-10-23T07:16:50Z,Brackenford,Kestermouth,1,True,0,1,0.34,1.92,5,13,42,58
+2,Northern Crown Division,2026-27,9,"Millrace Lane, Brackenford",32400,29815,Malcolm Threlkeld,Light drizzle,11,18 km/h SW,"damp, quick",2026-10-23T07:16:50Z,Brackenford,Kestermouth,2,True,1,1,1.0,0.69,8,8,46,54
+3,Northern Crown Division,2026-27,9,"Millrace Lane, Brackenford",32400,29815,Malcolm Threlkeld,Light drizzle,11,18 km/h SW,"damp, quick",2026-10-23T07:16:50Z,Brackenford,Kestermouth,3,True,0,0,0.65,0.96,5,7,55,45

@@ -3,18 +3,20 @@
  * persona commentaries, alerts, stories, reports, overlay cues and the running
  * statistics; this file only draws them. */
 
-const HOME = "Arsenal", AWAY = "ManCity";
+const HOME = "Brackenford", AWAY = "Kestermouth";
 const TEAMS = [HOME, AWAY];
-const TEAM_COLOR = { Arsenal: "#EF4444", ManCity: "#38BDF8" };
-const TEAM_INK = { Arsenal: "#FFFFFF", ManCity: "#06222F" };
-const TEAM_SHORT = { Arsenal: "ARS", ManCity: "MCI" };
-const TEAM_LABEL = { Arsenal: "Arsenal", ManCity: "Man City" };
+const TEAM_COLOR = { Brackenford: "#22B5AF", Kestermouth: "#E8732C" };
+const TEAM_INK = { Brackenford: "#04211F", Kestermouth: "#14213D" };
+const TEAM_SHORT = { Brackenford: "BRA", Kestermouth: "KHB" };
+const TEAM_LABEL = { Brackenford: "Brackenford", Kestermouth: "Kestermouth" };
 const MODE_KEY = { ANALYST: "analyst", CASUAL: "casual", PLAYER_CAM: "player_cam" };
 const MODE_LABEL = { ANALYST: "ANALYST", CASUAL: "CASUAL FAN", PLAYER_CAM: "PLAYER CAM" };
 const REASON_LABEL = {
     goal: "Goal", shot: "Shot", big_chance: "Big chance", line_breaking_pass: "Line-breaking pass",
     high_press_turnover: "High-press turnover", yellow_card: "Yellow card", red_card: "Red card",
+    penalty: "Penalty", penalty_awarded: "Penalty awarded", direct_free_kick: "Direct free kick",
 };
+const SP_LABEL = { FREE_KICK: "Free kick", CORNER: "Corner", THROW_IN: "Throw-in", PENALTY: "Penalty", GOAL_KICK: "Goal kick" };
 const ON_BALL = new Set(["PASS", "DRIBBLE", "SHOT"]);
 const MAX_HISTORY = 2000;
 const TRAIL = 4;
@@ -24,7 +26,7 @@ const canvas = $("pitchCanvas");
 const ctx = canvas.getContext("2d");
 
 /* ---------- STATE ---------- */
-const settings = { mode: "PLAYER_CAM", team: HOME, player: "Saka", speed: 1, lang: "en", fav_team: "NONE" };
+const settings = { mode: "PLAYER_CAM", team: HOME, player: "Thornquist", speed: 1, lang: "en", fav_team: "NONE" };
 let pinned = "none";
 let squads = null;            // team -> pid -> {name, num, pos, starter}
 let interval = 1.5;           // seconds between events at 1x (from the server)
@@ -42,9 +44,9 @@ let reportEntry = null, lastPinnedText = "";
 const latencies = [];
 let askId = 0;
 
-const crests = { Arsenal: new Image(), ManCity: new Image() };
-crests.Arsenal.src = "/static/images/arsenal.png";
-crests.ManCity.src = "/static/images/mancity.png";
+const crests = { Brackenford: new Image(), Kestermouth: new Image() };
+crests.Brackenford.src = "/static/images/brackenford.svg";
+crests.Kestermouth.src = "/static/images/kestermouth.svg";
 Object.values(crests).forEach(i => i.onload = buildPitchLayer);
 
 const player = (team, pid) => (squads && squads[team] && squads[team][pid]) || { name: pid, num: "", pos: "" };
@@ -52,11 +54,12 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const other = t => t === HOME ? AWAY : HOME;
 const fav = () => settings.fav_team === "NONE" ? null : settings.fav_team;
 const rightTeam = entry => (entry && entry.event.right_team) || HOME;
-/* Show Arsenal attacking → regardless of the half (shot map, average positions). */
+/* Show the home side attacking → regardless of the half (shot map, average positions). */
 const normHome = (x, y, rt) => rt === HOME ? [x, y] : [100 - x, 100 - y];
 
 /* ---------- PITCH GEOMETRY (metres, 105 x 68, 4m margin) ---------- */
 let W = 0, H = 0, S = 1, OX = 0, OY = 0, dpr = 1;
+let pitchRight = HOME;        // team attacking →; each crest sits in the half its team defends
 const pitchLayer = document.createElement("canvas");
 const X = m => OX + m * S;
 const Y = m => OY + m * S;
@@ -87,12 +90,18 @@ function buildPitchLayer() {
         c.fillStyle = i % 2 ? "#164227" : "#1B4D2E";
         c.fillRect(X(i * 7.5), Y(0), 7.5 * S, 68 * S);
     }
-    TEAMS.forEach((t, i) => {
+    [pitchRight, other(pitchRight)].forEach((t, i) => {  // left half, right half
         const img = crests[t];
         if (!img.complete || !img.naturalWidth) return;
         const sz = 13 * S;
+        const cx = i === 0 ? X(52.5) - sz / 2 - 2 * S : X(52.5) + sz / 2 + 2 * S;
         c.globalAlpha = 0.12;
-        c.drawImage(img, i === 0 ? X(52.5) - sz - 2 * S : X(52.5) + 2 * S, Y(34) - sz / 2, sz, sz);
+        c.drawImage(img, cx - sz / 2, Y(34) - sz / 2, sz, sz);
+        c.globalAlpha = 0.3;
+        c.fillStyle = "#FFFFFF";
+        c.font = `800 ${Math.max(10, Math.round(1.6 * S))}px system-ui, sans-serif`;
+        c.textAlign = "center"; c.textBaseline = "top";
+        c.fillText(i === 0 ? `${TEAM_SHORT[t]} →` : `← ${TEAM_SHORT[t]}`, cx, Y(34) + sz / 2 + S);
         c.globalAlpha = 1;
     });
     c.strokeStyle = "rgba(255,255,255,0.9)";
@@ -183,11 +192,11 @@ function drawAction(ev, t, alpha) {
     if (ev.event_type !== "TACKLE") {
         ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(cx, cy); ctx.stroke();
         ctx.setLineDash([]);
-        if (t >= 1 && ev.outcome !== "INTERCEPTED") arrowHead(x0, y0, x1, y1, Math.max(6, S * 0.9));
+        if (t >= 1 && ev.outcome !== "INTERCEPTED" && ev.outcome !== "OFFSIDE") arrowHead(x0, y0, x1, y1, Math.max(6, S * 0.9));
     }
-    if (t >= 1 && (ev.outcome === "INTERCEPTED" || ev.event_type === "TACKLE")) {
+    if (t >= 1 && (ev.outcome === "INTERCEPTED" || ev.outcome === "OFFSIDE" || ev.event_type === "TACKLE")) {
         const s = Math.max(5, S * 0.7);
-        ctx.strokeStyle = ev.outcome === "FOUL" ? "#EAB308" : "#F97316"; ctx.lineWidth = 3;
+        ctx.strokeStyle = ev.outcome === "FOUL" || ev.outcome === "OFFSIDE" ? "#EAB308" : "#F97316"; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.moveTo(x1 - s, y1 - s); ctx.lineTo(x1 + s, y1 + s);
         ctx.moveTo(x1 + s, y1 - s); ctx.lineTo(x1 - s, y1 + s); ctx.stroke();
     }
@@ -371,6 +380,9 @@ function drawOverlays(ev, t, now) {
         }
         const cheer = fav() ? (ev.team === fav() ? "GOAL! ★" : "GOAL") : "GOAL!";
         banner(cheer, "#EAB308", `${ev.player} · ${TEAM_LABEL[ev.team]} ${ev.score.home}-${ev.score.away}`);
+    } else if (ev.restart === "PENALTY" && done) {
+        const card = ev.card ? ` · ${ev.card === "RED" ? "🟥" : "🟨"} ${ev.player}` : "";
+        banner("PENALTY!", "#EF4444", `${TEAM_LABEL[ev.restart_team]} · ${ev.opponent} fouled by ${ev.player}${card}`);
     } else if (ev.card && done) {
         banner(ev.card === "RED" ? "RED CARD" : "YELLOW CARD", ev.card === "RED" ? "#EF4444" : "#EAB308",
             `${ev.player} (${TEAM_LABEL[ev.team]}) on ${ev.opponent}`);
@@ -378,11 +390,20 @@ function drawOverlays(ev, t, now) {
         banner("SUBSTITUTION", "#E5E7EB", `${TEAM_LABEL[ev.team]}: ${ev.player} on, ${ev.player_off} off`);
     } else if (ev.event_type === "HALF_TIME" || ev.event_type === "FULL_TIME") {
         banner(ev.event_type === "HALF_TIME" ? "HALF-TIME · TEAMS CHANGE ENDS" : "FULL-TIME", "#FFFFFF",
-            `Arsenal ${ev.score.home}-${ev.score.away} Man City`);
+            `${TEAM_LABEL[HOME]} ${ev.score.home}-${ev.score.away} ${TEAM_LABEL[AWAY]}`);
     }
+    let chipY = 8;
     if (ev.is_impact_moment) {
         const why = ev.impact_reasons.map(r => REASON_LABEL[r] || r).join(" · ");
-        chip(`⚡ IMPACT · ${why}`, 8, 8, "rgba(234,179,8,0.92)", "#000");
+        chip(`⚡ IMPACT · ${why}`, 8, chipY, "rgba(234,179,8,0.92)", "#000");
+        chipY += 24;
+    }
+    if (ev.set_piece) {
+        chip(`${ICON[ev.set_piece]} ${SP_LABEL[ev.set_piece].toUpperCase()} · ${ev.player}`, 8, chipY, "rgba(8,12,20,0.85)", TEAM_COLOR[ev.team]);
+    } else if (ev.outcome === "OFFSIDE" && done) {
+        chip(`🚩 OFFSIDE · ${ev.receiver}`, 8, chipY, "rgba(234,179,8,0.92)", "#000");
+    } else if (ev.restart && ev.restart !== "PENALTY" && done) {
+        chip(`${ICON[ev.restart]} ${SP_LABEL[ev.restart].toUpperCase()} · ${TEAM_SHORT[ev.restart_team]}`, 8, chipY, "rgba(8,12,20,0.85)", TEAM_COLOR[ev.restart_team]);
     }
     if (!live) chip(`REPLAY ${ev.clock}`, W - 8, 8, "rgba(8,12,20,0.85)", "#EAB308", "right");
 }
@@ -464,11 +485,13 @@ function showToasts(entry) {
 function pinnedText() {
     if (pinned === "none" || !liveStats || !anim.entry) return "";
     const s = anim.entry.summary, T = liveStats.teams;
-    const pair = (label, h, a) => `📌 ${label}  ARS ${h} · ${a} MCI`;
+    const pair = (label, h, a) => `📌 ${label}  ${TEAM_SHORT[HOME]} ${h} · ${a} ${TEAM_SHORT[AWAY]}`;
     switch (pinned) {
         case "xg": return pair("xG", s.xg[0].toFixed(2), s.xg[1].toFixed(2));
         case "possession": return pair("Possession", `${s.possession[0]}%`, `${s.possession[1]}%`);
         case "on_target": return pair("On target", s.on_target[0], s.on_target[1]);
+        case "corners": return pair("Corners", T[HOME].corners, T[AWAY].corners);
+        case "cards": return pair("Cards", `${T[HOME].yellow}🟨${T[HOME].red ? ` ${T[HOME].red}🟥` : ""}`, `${T[AWAY].yellow}🟨${T[AWAY].red ? ` ${T[AWAY].red}🟥` : ""}`);
         case "pass_pct": return pair("Pass accuracy", `${T[HOME].pass_pct}%`, `${T[AWAY].pass_pct}%`);
         case "press": return pair("Pressure applied", s.flow.press[HOME], s.flow.press[AWAY]);
         case "distance": return pair("Distance", `${T[HOME].distance_km} km`, `${T[AWAY].distance_km} km`);
@@ -504,8 +527,9 @@ function updateUI(entry) {
     $("poss-away-label").innerText = `${poss[1]}%`;
     $("poss-home-bar").style.width = `${poss[0]}%`;
     const rt = rightTeam(entry);
-    $("dir-Arsenal").innerText = `Arsenal attack ${rt === HOME ? "→" : "←"}`;
-    $("dir-ManCity").innerText = `Man City attack ${rt === AWAY ? "→" : "←"}`;
+    if (rt !== pitchRight) { pitchRight = rt; buildPitchLayer(); }  // teams changed ends: swap the crests
+    $(`dir-${HOME}`).innerText = `${TEAM_LABEL[HOME]} attack ${rt === HOME ? "→" : "←"}`;
+    $(`dir-${AWAY}`).innerText = `${TEAM_LABEL[AWAY]} attack ${rt === AWAY ? "→" : "←"}`;
     updatePinned();
     renderModePanel();
 }
@@ -539,7 +563,8 @@ function renderTeamTelemetry() {
     $("team-telemetry").innerHTML = TEAMS.map(team => {
         const ev = lastActionOf(team);
         const m = ev ? ev.metrics : {};
-        const what = ev ? `#${player(team, ev.player).num} ${esc(ev.player)} · ${ev.event_type}${ev.outcome ? " " + ev.outcome.toLowerCase() : ""} · ${ev.clock}` : "no action yet";
+        const kind = ev ? (ev.set_piece ? SP_LABEL[ev.set_piece].toUpperCase() : ev.body_part === "HEAD" ? "HEADER" : ev.event_type) : "";
+        const what = ev ? `#${player(team, ev.player).num} ${esc(ev.player)} · ${kind}${ev.outcome ? " " + ev.outcome.toLowerCase() : ""} · ${ev.clock}` : "no action yet";
         const ts = T ? T[team] : null;
         const i = team === HOME ? 0 : 1;
         return `<div class="card telemetry-card team-tele" style="--tc:${TEAM_COLOR[team]}">
@@ -581,6 +606,8 @@ function renderGlance() {
         ["Shots on target", s.on_target[0], s.on_target[1]],
         ["Big chances", T ? T[HOME].big_chances : 0, T ? T[AWAY].big_chances : 0],
         ["Saves", T ? T[HOME].saves : 0, T ? T[AWAY].saves : 0],
+        ["Corners", T ? T[HOME].corners : 0, T ? T[AWAY].corners : 0],
+        ["Fouls", T ? T[HOME].fouls : 0, T ? T[AWAY].fouls : 0],
         ["Cards", T ? T[HOME].yellow + T[HOME].red : 0, T ? T[AWAY].yellow + T[AWAY].red : 0],
     ];
     $("glance-bars").innerHTML = rows.map(([label, h, a, fmt = v => v]) => {
@@ -671,11 +698,13 @@ function openReport(entry) {
     if (!r) return;
     reportEntry = entry;
     $("report-title").innerText = r.kind === "HALF_TIME" ? "HALF-TIME REPORT" : "FULL-TIME REPORT";
-    $("report-score").innerHTML = `<span style="color:${TEAM_COLOR[HOME]}">ARSENAL</span> <strong>${r.score.home} – ${r.score.away}</strong> <span style="color:${TEAM_COLOR[AWAY]}">MAN CITY</span>`;
+    $("report-score").innerHTML = `<span style="color:${TEAM_COLOR[HOME]}">${TEAM_LABEL[HOME].toUpperCase()}</span> <strong>${r.score.home} – ${r.score.away}</strong> <span style="color:${TEAM_COLOR[AWAY]}">${TEAM_LABEL[AWAY].toUpperCase()}</span>`;
     const th = r.teams[HOME], ta = r.teams[AWAY];
     const rows = [["xG", th.xg.toFixed(2), ta.xg.toFixed(2), th.xg, ta.xg], ["Shots", th.shots, ta.shots], ["On target", th.on_target, ta.on_target],
         ["Possession", `${th.possession}%`, `${ta.possession}%`, th.possession, ta.possession], ["Pass accuracy", `${th.pass_pct}%`, `${ta.pass_pct}%`, th.pass_pct, ta.pass_pct],
         ["Big chances", th.big_chances, ta.big_chances], ["Ball wins in opp. half", th.press_wins, ta.press_wins],
+        ["Corners", th.corners, ta.corners], ["Fouls", th.fouls, ta.fouls], ["Offsides", th.offsides, ta.offsides],
+        ["Cards", `${th.yellow}🟨 ${th.red}🟥`, `${ta.yellow}🟨 ${ta.red}🟥`, th.yellow + 2 * th.red, ta.yellow + 2 * ta.red],
         ["Distance (km)", th.distance_km, ta.distance_km]];
     $("report-stats").innerHTML = rows.map(([label, h, a, hn = +h, an = +a]) => {
         const tot = hn + an, hp = tot ? 100 * hn / tot : 50;
@@ -685,7 +714,7 @@ function openReport(entry) {
     $("report-narrative").innerText = r.narrative;
     const b = r.best_player;
     $("report-best").innerHTML = b ? `<span class="rb-label">Best player</span> <strong>${esc(b.name)}</strong> <span style="color:${TEAM_COLOR[b.team]}">${TEAM_LABEL[b.team]}</span> <span class="rating r-high">${b.rating.toFixed(1)}</span>` : "";
-    const icon = m => m.outcome === "GOAL" ? "⚽" : m.card === "RED" ? "🟥" : m.card ? "🟨" : m.outcome === "SAVED" ? "🧤" : "🎯";
+    const icon = m => m.outcome === "GOAL" ? "⚽" : m.restart === "PENALTY" ? ICON.PENALTY : m.card === "RED" ? "🟥" : m.card ? "🟨" : m.outcome === "SAVED" ? "🧤" : "🎯";
     $("report-moments").innerHTML = r.key_moments.map(m => `<li>${icon(m)} ${m.clock} ${esc(m.player)} <span class="text-muted">${TEAM_LABEL[m.team]}</span></li>`).join("");
     $("report-source").innerText = `${entry.reportSource || "LOCAL ENGINE"} · ${r.kind === "HALF_TIME" ? "Second half kicks off shortly" : "New match starts shortly"}`;
     $("report-modal").hidden = false;
@@ -710,9 +739,16 @@ function show(i) {
     document.querySelectorAll(".event-item.active-replay").forEach(el => el.classList.remove("active-replay"));
     if (!live) {
         const el = document.querySelector(`.event-item[data-seq="${entry.event.seq}"]`);
-        if (el) { el.classList.add("active-replay"); el.scrollIntoView({ block: "nearest" }); }
+        if (el) { el.classList.add("active-replay"); scrollWithin($("event-log-container"), el); }
     }
     updateLiveButton();
+}
+
+/* Bring an item into view inside its list only: scrollIntoView would also scroll the page. */
+function scrollWithin(list, el) {
+    const l = list.getBoundingClientRect(), r = el.getBoundingClientRect();
+    if (r.top < l.top) list.scrollTop -= l.top - r.top;
+    else if (r.bottom > l.bottom) list.scrollTop += r.bottom - l.bottom;
 }
 
 function updateLiveButton() {
@@ -832,14 +868,24 @@ $("timeline-markers").addEventListener("click", e => {
 
 /* ---------- EVENT LOG ---------- */
 const ICON = { GOAL: "⚽", SAVED: "🧤", MISS: "🎯", BLOCKED: "🧱", COMPLETE: "➡️", INTERCEPTED: "✂️", SUCCESS: "💨",
-               WON: "🛡️", FOUL: "🚩", SUBSTITUTION: "🔁", HALF_TIME: "⏸", FULL_TIME: "🏁" };
+               WON: "🛡️", FOUL: "✋", OUT: "↗️", OFFSIDE: "🚩", SUBSTITUTION: "🔁", HALF_TIME: "⏸", FULL_TIME: "🏁",
+               CORNER: "⛳", FREE_KICK: "🦶", THROW_IN: "🙌", GOAL_KICK: "🥅", PENALTY: "❗" };
+
+/* What kind of shot: penalty, free kick, header or an ordinary shot. */
+const shotKind = ev => ev.set_piece === "PENALTY" ? "PENALTY" : ev.set_piece === "FREE_KICK" ? "FREE KICK" : ev.body_part === "HEAD" ? "HEADER" : "SHOT";
 
 function logLabel(ev) {
+    const sp = ev.set_piece ? SP_LABEL[ev.set_piece].toUpperCase() + " " : "";
     switch (ev.event_type) {
-        case "PASS": return ev.outcome === "COMPLETE" ? `PASS → ${ev.receiver}` : `PASS INTERCEPTED by ${ev.opponent}`;
+        case "PASS":
+            if (ev.outcome === "COMPLETE") return `${sp || "PASS "}→ ${ev.receiver}`;
+            if (ev.outcome === "OUT") return `${sp || "PASS "}OUT OF PLAY`;
+            if (ev.outcome === "OFFSIDE") return `OFFSIDE: ${ev.receiver}`;
+            return `${sp || "PASS "}${ev.restart === "CORNER" ? "TURNED BEHIND by" : sp ? "CLEARED by" : "INTERCEPTED by"} ${ev.opponent}`;
         case "DRIBBLE": return "DRIBBLE";
-        case "SHOT": return `SHOT · ${ev.outcome}`;
-        case "TACKLE": return ev.outcome === "WON" ? `TACKLE WON on ${ev.opponent}` : `FOUL on ${ev.opponent}${ev.card ? (ev.card === "RED" ? " 🟥" : " 🟨") : ""}`;
+        case "SHOT": return `${shotKind(ev)} · ${ev.outcome}`;
+        case "TACKLE": return ev.outcome === "WON" ? `TACKLE WON on ${ev.opponent}`
+            : `${ev.restart === "PENALTY" ? "PENALTY! FOUL" : "FOUL"} on ${ev.opponent}${ev.card ? (ev.card === "RED" ? " 🟥" : " 🟨") : ""}`;
         case "SUBSTITUTION": return `SUB ${ev.player} ⇄ ${ev.player_off}`;
         default: return ev.event_type.replace("_", " ");
     }
@@ -855,7 +901,10 @@ function addLogItem(entry) {
     item.tabIndex = 0;
     const who = ev.team && ev.event_type !== "SUBSTITUTION"
         ? `<span class="team-tag" style="--tc:${TEAM_COLOR[ev.team]}">${esc(ev.player)}</span> ` : "";
-    item.innerHTML = `<span class="event-time">${esc(ev.clock)}</span><span>${mine ? "★ " : ""}${ICON[ev.outcome || ev.event_type] || "•"} ${who}<strong>${esc(logLabel(ev))}</strong>${ev.possession_change ? ' <span class="poss-chg" title="Possession changed">⇄</span>' : ""}${ev.is_impact_moment ? ' <span class="zap">⚡</span>' : ""}</span>`;
+    const icon = ev.outcome === "GOAL" ? ICON.GOAL : ev.restart === "PENALTY" ? ICON.PENALTY
+        : ev.set_piece && ev.event_type === "PASS" ? ICON[ev.set_piece] : ICON[ev.outcome || ev.event_type];
+    const restart = ev.restart ? ` <span class="restart-tag" title="Play restarts with this set piece">→ ${SP_LABEL[ev.restart].toLowerCase()} ${TEAM_SHORT[ev.restart_team]}</span>` : "";
+    item.innerHTML = `<span class="event-time">${esc(ev.clock)}</span><span>${mine ? "★ " : ""}${icon || "•"} ${who}<strong>${esc(logLabel(ev))}</strong>${restart}${ev.possession_change ? ' <span class="poss-chg" title="Possession changed">⇄</span>' : ""}${ev.is_impact_moment ? ' <span class="zap">⚡</span>' : ""}</span>`;
     const list = $("event-log-container");
     list.prepend(item);
     while (list.children.length > 150) list.lastChild.remove();
@@ -874,19 +923,23 @@ $("impact-only").addEventListener("change", e => $("event-log-container").classL
 
 /* ---------- KEY EVENTS & STORIES ---------- */
 function isKeyEvent(ev) {
-    return ev.outcome === "GOAL" || ev.card || ev.event_type === "SUBSTITUTION" || ev.event_type === "HALF_TIME"
-        || ev.event_type === "FULL_TIME" || (ev.event_type === "SHOT" && (ev.metrics.xg >= 0.3 || ev.outcome === "SAVED"));
+    return ev.outcome === "GOAL" || ev.card || ev.restart === "PENALTY" || ev.event_type === "SUBSTITUTION" || ev.event_type === "HALF_TIME"
+        || ev.event_type === "FULL_TIME" || (ev.event_type === "SHOT" && (ev.metrics.xg >= 0.3 || ev.outcome === "SAVED"
+            || ev.set_piece === "PENALTY" || ev.set_piece === "FREE_KICK"));
 }
 
 function keyEventText(ev) {
-    const xg = ev.metrics.xg != null ? ` (${ev.metrics.xg.toFixed(2)} xG)` : "";
+    const how = ev.event_type === "SHOT" && shotKind(ev) !== "SHOT" ? `, ${shotKind(ev).toLowerCase()}` : "";
+    const xg = ev.metrics.xg != null ? ` (${ev.metrics.xg.toFixed(2)} xG${how})` : "";
     if (ev.outcome === "GOAL") return `⚽ <strong>GOAL</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}${xg} · ${ev.score.home}-${ev.score.away}`;
+    if (ev.restart === "PENALTY") return `${ICON.PENALTY} <strong>PENALTY</strong> to ${TEAM_LABEL[ev.restart_team]}: ${esc(ev.opponent)} fouled by ${esc(ev.player)}${ev.card ? (ev.card === "RED" ? " 🟥" : " 🟨") : ""}`;
     if (ev.card) return `${ev.card === "RED" ? "🟥 <strong>RED CARD</strong>" : "🟨 <strong>YELLOW CARD</strong>"} ${esc(ev.player)} (${TEAM_LABEL[ev.team]}) for a foul on ${esc(ev.opponent)}`;
     if (ev.event_type === "SUBSTITUTION") return `🔁 <strong>SUB</strong> ${TEAM_LABEL[ev.team]}: ${esc(ev.player)} on, ${esc(ev.player_off)} off`;
-    if (ev.event_type === "HALF_TIME") return `⏸ <strong>HALF-TIME REPORT</strong> Arsenal ${ev.score.home}-${ev.score.away} Man City`;
-    if (ev.event_type === "FULL_TIME") return `🏁 <strong>FULL-TIME REPORT</strong> Arsenal ${ev.score.home}-${ev.score.away} Man City`;
-    if (ev.outcome === "SAVED") return `🧤 <strong>SAVE</strong> ${esc(ev.opponent)} denies ${esc(ev.player)}${xg}`;
-    return `🎯 <strong>BIG CHANCE</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}${xg}: ${ev.outcome.toLowerCase()}`;
+    if (ev.event_type === "HALF_TIME") return `⏸ <strong>HALF-TIME REPORT</strong> ${TEAM_LABEL[HOME]} ${ev.score.home}-${ev.score.away} ${TEAM_LABEL[AWAY]}`;
+    if (ev.event_type === "FULL_TIME") return `🏁 <strong>FULL-TIME REPORT</strong> ${TEAM_LABEL[HOME]} ${ev.score.home}-${ev.score.away} ${TEAM_LABEL[AWAY]}`;
+    if (ev.outcome === "SAVED") return `🧤 <strong>${ev.set_piece === "PENALTY" ? "PENALTY SAVED" : "SAVE"}</strong> ${esc(ev.opponent)} denies ${esc(ev.player)}${xg}`;
+    const label = ev.set_piece === "PENALTY" ? "PENALTY MISSED" : ev.set_piece === "FREE_KICK" ? "FREE KICK" : "BIG CHANCE";
+    return `🎯 <strong>${label}</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}${xg}: ${ev.outcome.toLowerCase()}`;
 }
 
 function keyEventStory(entry) {
@@ -941,7 +994,9 @@ const H2H = [
     ["Ball wins in opp. half", s => s.press_wins],
     ["Distance covered (km)", s => s.distance_km, v => v.toFixed(1)],
     ["Top sprint (km/h)", s => s.top_speed, v => v.toFixed(1)],
-    ["Saves", s => s.saves], ["Fouls", s => s.fouls], ["Yellow cards", s => s.yellow], ["Red cards", s => s.red],
+    ["Saves", s => s.saves], ["Corners", s => s.corners], ["Free kicks", s => s.free_kicks],
+    ["Throw-ins", s => s.throw_ins], ["Goal kicks", s => s.goal_kicks], ["Penalties", s => s.penalties],
+    ["Offsides", s => s.offsides], ["Fouls", s => s.fouls], ["Yellow cards", s => s.yellow], ["Red cards", s => s.red],
 ];
 
 function renderStats() {
@@ -965,14 +1020,15 @@ const COLS = [
     ["num", "#"], ["name", "Player"], ["pos", "Pos"], ["minutes", "Min"], ["rating", "Rating"],
     ["goals", "G"], ["assists", "A"], ["shots", "Shots (OT)"], ["xg", "xG"], ["passes", "Passes"],
     ["key_passes", "Key P."], ["dribbles_won", "Dribbles"], ["tackles_won", "Tackles"],
-    ["interceptions", "Int."], ["saves", "Saves"], ["fouls", "Fouls"], ["cards", "Cards"],
+    ["interceptions", "Int."], ["saves", "Saves"], ["fouls", "Fouls"], ["fouls_won", "Fouled"], ["offsides", "Off."], ["cards", "Cards"],
     ["touches", "Touches"], ["sprints", "Sprints"], ["distance_km", "Dist. km"], ["top_speed", "Top km/h"],
 ];
 const COL_TITLE = {
     minutes: "Minutes played", rating: "Match rating (starts at 6.0)", goals: "Goals", assists: "Assists",
     shots: "Shots (on target)", passes: "Completed / attempted passes", key_passes: "Passes that led to a shot",
     dribbles_won: "Successful / attempted dribbles", tackles_won: "Tackles won / attempted",
-    interceptions: "Interceptions", touches: "Touches of the ball", sprints: "Sprints and runs in behind",
+    interceptions: "Interceptions", touches: "Touches of the ball", fouls: "Fouls committed",
+    fouls_won: "Times fouled (free kicks or penalties won)", offsides: "Caught offside", sprints: "Sprints and runs in behind",
     distance_km: "Estimated distance covered", top_speed: "Fastest sprint recorded",
 };
 
@@ -997,6 +1053,7 @@ function renderPlayerTable() {
             <td>${r.goals || "–"}</td><td>${r.assists || "–"}</td><td>${r.shots} (${r.on_target})</td><td>${r.xg.toFixed(2)}</td>
             <td>${r.passes_completed}/${r.passes}</td><td>${r.key_passes}</td><td>${r.dribbles_won}/${r.dribbles}</td>
             <td>${r.tackles_won}/${r.tackles}</td><td>${r.interceptions}</td><td>${r.saves}</td><td>${r.fouls}</td>
+            <td>${r.fouls_won}</td><td>${r.offsides}</td>
             <td>${cards}</td><td>${r.touches}</td><td>${r.sprints}</td><td>${r.distance_km.toFixed(1)}</td>
             <td>${r.top_speed ? r.top_speed.toFixed(1) : "–"}</td></tr>`;
     }).join("");
@@ -1117,8 +1174,8 @@ function renderXgChart() {
     svg.innerHTML = grid +
         `<path d="${step(1)}" class="xg-line" stroke="${TEAM_COLOR[HOME]}"/><path d="${step(2)}" class="xg-line" stroke="${TEAM_COLOR[AWAY]}"/>` +
         goals.map(([mn, t, v, p]) => `<circle cx="${sx(mn)}" cy="${sy(v)}" r="5" fill="${TEAM_COLOR[t]}" stroke="#111827" stroke-width="2" data-tip="⚽ ${mn.toFixed(0)}' ${esc(p)} (${TEAM_LABEL[t]})"/>`).join("") +
-        `<text x="${sx(last[0]) + 8}" y="${labelY[0] + 4}" class="direct-label">ARS ${last[1].toFixed(2)}</text>` +
-        `<text x="${sx(last[0]) + 8}" y="${labelY[1] + 4}" class="direct-label">MCI ${last[2].toFixed(2)}</text>` +
+        `<text x="${sx(last[0]) + 8}" y="${labelY[0] + 4}" class="direct-label">${TEAM_SHORT[HOME]} ${last[1].toFixed(2)}</text>` +
+        `<text x="${sx(last[0]) + 8}" y="${labelY[1] + 4}" class="direct-label">${TEAM_SHORT[AWAY]} ${last[2].toFixed(2)}</text>` +
         `<line class="crosshair" x1="0" x2="0" y1="${m.t}" y2="${h - m.b}" visibility="hidden"/>` +
         `<rect x="${m.l}" y="${m.t}" width="${w - m.l - m.r}" height="${h - m.t - m.b}" fill="transparent" class="hover-catch"/>`;
     svg._xg = { pts, sx, m, w };
@@ -1134,7 +1191,7 @@ $("xg-chart").addEventListener("mousemove", e => {
     for (const q of d.pts) { if (q[0] <= minute) p = q; else break; }
     const ch = svg.querySelector(".crosshair");
     ch.setAttribute("x1", d.sx(minute)); ch.setAttribute("x2", d.sx(minute)); ch.setAttribute("visibility", "visible");
-    tooltip(e, `<strong>${Math.floor(minute)}'</strong><br><span class="sw" style="background:${TEAM_COLOR[HOME]}"></span>Arsenal ${p[1].toFixed(2)} xG<br><span class="sw" style="background:${TEAM_COLOR[AWAY]}"></span>Man City ${p[2].toFixed(2)} xG`);
+    tooltip(e, `<strong>${Math.floor(minute)}'</strong><br><span class="sw" style="background:${TEAM_COLOR[HOME]}"></span>${TEAM_LABEL[HOME]} ${p[1].toFixed(2)} xG<br><span class="sw" style="background:${TEAM_COLOR[AWAY]}"></span>${TEAM_LABEL[AWAY]} ${p[2].toFixed(2)} xG`);
 });
 $("xg-chart").addEventListener("mouseleave", () => {
     const ch = $("xg-chart").querySelector(".crosshair");
@@ -1154,7 +1211,7 @@ function renderMomentum() {
     }
     const bw = (w - m.l - m.r) / 30, mid = m.t + (h - m.t - m.b) / 2, half = (h - m.t - m.b) / 2;
     let bars = `<line x1="${m.l}" x2="${w - m.r}" y1="${mid}" y2="${mid}" class="baseline"/>
-        <text x="${m.l - 6}" y="${m.t + 9}" class="axis" text-anchor="end">ARS</text><text x="${m.l - 6}" y="${h - m.b}" class="axis" text-anchor="end">MCI</text>`;
+        <text x="${m.l - 6}" y="${m.t + 9}" class="axis" text-anchor="end">${TEAM_SHORT[HOME]}</text><text x="${m.l - 6}" y="${h - m.b}" class="axis" text-anchor="end">${TEAM_SHORT[AWAY]}</text>`;
     for (const v of [0, 45, 90]) bars += `<text x="${m.l + (w - m.l - m.r) * v / 90}" y="${h - 4}" class="axis" text-anchor="middle">${v}'</text>`;
     for (const [b, vals] of buckets) {
         const v = vals.reduce((s, x) => s + x, 0) / vals.length;
@@ -1200,12 +1257,12 @@ function renderFlow() {
         const ly = [sy(lf[HOME]), sy(lf[AWAY])];
         if (Math.abs(ly[0] - ly[1]) < 13) { const mid = (ly[0] + ly[1]) / 2; ly[0] = mid + (lf[HOME] >= lf[AWAY] ? -7 : 7); ly[1] = mid + (lf[HOME] >= lf[AWAY] ? 7 : -7); }
         const lx = sx(entries[entries.length - 1].event.minute) + 8;
-        out += `<text x="${lx}" y="${ly[0] + 4}" class="direct-label">ARS ${lf[HOME]}</text><text x="${lx}" y="${ly[1] + 4}" class="direct-label">MCI ${lf[AWAY]}</text>`;
+        out += `<text x="${lx}" y="${ly[0] + 4}" class="direct-label">${TEAM_SHORT[HOME]} ${lf[HOME]}</text><text x="${lx}" y="${ly[1] + 4}" class="direct-label">${TEAM_SHORT[AWAY]} ${lf[AWAY]}</text>`;
     }
     svg.innerHTML = out;
     const cur = anim.entry ? anim.entry.summary.flow : null;
     $("flow-now").innerHTML = cur ? `<strong>Now:</strong> ${esc(moodText(cur))} Turnovers in recent play: ${cur.turnover_rate}%. Tempo: ${cur.tempo.toLowerCase()}.
-        <span class="flow-legend"><span style="background:${TEAM_COLOR[HOME]}"></span>Arsenal control <span style="background:${TEAM_COLOR[AWAY]}"></span>Man City control <span style="background:${FLOW_COLOR.BALANCED}"></span>Balanced <span style="background:${FLOW_COLOR.CHAOS}"></span>Chaos</span>` : "";
+        <span class="flow-legend"><span style="background:${TEAM_COLOR[HOME]}"></span>${TEAM_LABEL[HOME]} control <span style="background:${TEAM_COLOR[AWAY]}"></span>${TEAM_LABEL[AWAY]} control <span style="background:${FLOW_COLOR.BALANCED}"></span>Balanced <span style="background:${FLOW_COLOR.CHAOS}"></span>Chaos</span>` : "";
 }
 
 function renderShotMap() {
@@ -1238,7 +1295,7 @@ $("impact-list").addEventListener("click", e => { const li = e.target.closest("l
 function renderReports() {
     const reps = matchEntries().filter(e => e.report);
     $("reports-list").innerHTML = reps.map(e => `<div class="report-item" data-seq="${e.event.seq}">
-        <div class="ke-top"><strong>${e.report.kind === "HALF_TIME" ? "Half-time" : "Full-time"}</strong> · Arsenal ${e.report.score.home}-${e.report.score.away} Man City
+        <div class="ke-top"><strong>${e.report.kind === "HALF_TIME" ? "Half-time" : "Full-time"}</strong> · ${TEAM_LABEL[HOME]} ${e.report.score.home}-${e.report.score.away} ${TEAM_LABEL[AWAY]}
         <button class="chip open-report">Open</button></div><p>${esc(e.report.narrative)}</p></div>`).join("")
         || `<p class="text-muted">No reports yet: the half-time report appears at 45'.</p>`;
 }
@@ -1259,11 +1316,17 @@ function renderData() {
     const latest = cues.slice(-8).reverse();
     $("cue-feed").textContent = latest.length ? latest.map(c => JSON.stringify(c, null, 1)).join("\n") : "Start the match to see cues.";
     if (metadata) {
-        const rows = [["Competition", `${metadata.competition} · matchday ${metadata.matchday}`], ["Venue", metadata.venue],
-            ["Attendance", metadata.attendance.toLocaleString()], ["Referee", metadata.referee],
-            ["Weather", `${metadata.weather}, ${metadata.temperature_c}°C`], ["Coaches", `${metadata.coaches[HOME]} · ${metadata.coaches[AWAY]}`],
-            ["Formations", `${metadata.formations[HOME]} · ${metadata.formations[AWAY]}`], ["Kick-off (UTC)", metadata.kickoff_utc],
-            ["Data", "100% synthetic"]];
+        const m = metadata, pair = o => `${o[HOME]} · ${o[AWAY]}`, h2h = m.head_to_head;
+        const rows = [["Competition", `${m.competition} ${m.season || ""} · matchday ${m.matchday}`],
+            ["Clubs", `${m.club_names[HOME]} (${m.nicknames[HOME]}) · ${m.club_names[AWAY]} (${m.nicknames[AWAY]})`],
+            ["League position before", pair(m.league_positions)],
+            ["Venue", `${m.venue} · capacity ${m.capacity.toLocaleString()}`],
+            ["Attendance", m.attendance.toLocaleString()], ["Referee", m.referee],
+            ["Weather", `${m.weather}, ${m.temperature_c}°C, wind ${m.wind}`], ["Pitch", m.pitch],
+            ["Managers", pair(m.coaches)], ["Formations", pair(m.formations)],
+            ["Head-to-head", `${h2h.meetings} meetings: ${h2h.home_wins} ${TEAM_SHORT[HOME]} wins, ${h2h.away_wins} ${TEAM_SHORT[AWAY]} wins, ${h2h.draws} draws · last ${h2h.last_result}`],
+            ...m.storylines.map((s, i) => [i ? "" : "Storylines", s]),
+            ["Kick-off (UTC)", m.kickoff_utc], ["Data", "100% synthetic, fictional clubs and people"]];
         $("meta-table").innerHTML = rows.map(([k, v]) => `<div><span>${k}</span><span>${esc(v)}</span></div>`).join("");
     }
 }
@@ -1277,6 +1340,7 @@ function download(name, text, type) {
 }
 const fileStem = () => `secondtouch_match_${(metadata && metadata.kickoff_utc || "live").replace(/[:]/g, "-")}`;
 const EVENT_COLS = ["seq", "minute", "clock", "team", "player", "event_type", "outcome", "receiver", "opponent", "player_off", "card",
+    "set_piece", "restart", "restart_team", "body_part",
     "length_m", "start_x", "start_y", "end_x", "end_y", "xg", "pass_difficulty", "pressure", "pressure_index", "nearest_defender_m",
     "sprint_speed_kmh", "ball_speed_kmh", "forward_gain_m", "players_bypassed", "possession_change", "right_team",
     "is_impact_moment", "impact_reasons", "score_home", "score_away"];
@@ -1384,10 +1448,19 @@ function resetMatch(key) {
     clearTimeout(replayTimer);
 }
 
+const WEATHER_ICON = { "Clear": "sun", "Light rain": "cloud-rain", "Light drizzle": "cloud-rain", "Overcast": "cloud", "Cold and dry": "temperature-low", "Mild evening": "cloud-moon" };
+
 function onMatchStart(msg) {
     metadata = msg.metadata;
     const m = metadata;
-    $("match-info").innerText = `${m.competition} · Matchday ${m.matchday} · ${m.venue} · Ref ${m.referee} · ${m.weather}, ${m.temperature_c}°C · ${m.attendance.toLocaleString()} fans · synthetic data`;
+    const item = (icon, html, title, cls = "") => `<span class="mi-item ${cls}" title="${title}"><i class="fa-solid fa-${icon}"></i>${html}</span>`;
+    $("match-info").innerHTML = [
+        item("trophy", `${esc(m.competition)} <span class="mi-dim">· Matchday ${m.matchday}</span>`, "Competition", "mi-comp"),
+        item("location-dot", esc(m.venue), "Venue"),
+        item(WEATHER_ICON[m.weather] || "cloud-sun", `${esc(m.weather)} · ${m.temperature_c}°C · wind ${esc(m.wind)}`, "Weather at kick-off"),
+        item("flag", `Ref ${esc(m.referee)}`, "Referee"),
+        item("users", m.attendance.toLocaleString(), "Attendance"),
+    ].join("") + `<span class="mi-tag" title="All match data is generated">SYNTHETIC DATA</span>`;
     if (activeTab === "data") renderData();
 }
 
@@ -1516,6 +1589,9 @@ function loadPrefs() {
     try {
         const p = JSON.parse(localStorage.getItem("secondtouch-prefs") || "{}");
         for (const k of ["mode", "team", "player", "lang", "fav_team"]) if (p[k]) settings[k] = p[k];
+        // preferences saved for clubs that no longer exist fall back to the defaults
+        if (!TEAMS.includes(settings.team)) { settings.team = HOME; settings.player = "Thornquist"; }
+        if (settings.fav_team !== "NONE" && !TEAMS.includes(settings.fav_team)) settings.fav_team = "NONE";
         if (p.pinned) pinned = p.pinned;
     } catch (e) { /* ignore */ }
 }
@@ -1610,7 +1686,7 @@ $("pin-select").value = pinned;
 $("team-select").value = settings.team;
 fetch("/api/squads").then(r => r.json()).then(d => {
     squads = d.squads;
-    if (!squads[settings.team] || !squads[settings.team][settings.player]) { settings.team = HOME; settings.player = "Saka"; }
+    if (!squads[settings.team] || !squads[settings.team][settings.player]) { settings.team = HOME; settings.player = "Thornquist"; }
     buildPlayerDropdown(settings.team, settings.player);
 }).catch(() => {});
 setMode(settings.mode);

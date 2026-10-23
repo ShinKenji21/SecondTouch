@@ -12,7 +12,8 @@ Cue types
   distance_badge  distance milestone                 anchor = player position
   lower_third     commentary for an impact moment    layout = lower_third
   stat_card       milestone or game-flow note        layout = corner
-  banner          goal, card, substitution, HT, FT   layout = top_banner
+  set_piece       corner, free kick, throw-in, ...   anchor = where it is taken
+  banner          goal, card, penalty, sub, HT, FT   layout = top_banner
   report_card     half-time / full-time report       layout = fullscreen
 """
 
@@ -40,7 +41,11 @@ def build(ev, positions, commentary, alerts, story, report, interval_ms):
             anchor={"x": loc["start_x"], "y": loc["start_y"]})
         add("action", 0, interval_ms, 2, action=t, outcome=ev["outcome"], team=team,
             path=[{"x": loc["start_x"], "y": loc["start_y"]}, {"x": loc["end_x"], "y": loc["end_y"]}],
-            metrics={k: v for k, v in ev["metrics"].items() if v is not None})
+            metrics={k: v for k, v in ev["metrics"].items() if v is not None},
+            set_piece=ev.get("set_piece"), body_part=ev.get("body_part"), restart=ev.get("restart"))
+        if ev.get("set_piece"):
+            add("set_piece", 0, interval_ms, 2, kind=ev["set_piece"], team=team, player=ev["player"],
+                anchor={"x": loc["start_x"], "y": loc["start_y"]})
         if ev["receiver"]:
             add("player_tag", round(interval_ms * 0.5), round(interval_ms * 0.5), 3, team=team,
                 player=ev["receiver"], anchor=pos_of(team, ev["receiver"]))
@@ -60,8 +65,9 @@ def build(ev, positions, commentary, alerts, story, report, interval_ms):
         add("lower_third", 400, 5000, 1, layout="lower_third", reasons=ev["impact_reasons"],
             text=commentary)
 
-    if ev["outcome"] == "GOAL" or ev.get("card") or t in ("SUBSTITUTION", "HALF_TIME", "FULL_TIME"):
-        kind = "GOAL" if ev["outcome"] == "GOAL" else ev["card"] or t
+    penalty = ev.get("restart") == "PENALTY"
+    if ev["outcome"] == "GOAL" or ev.get("card") or penalty or t in ("SUBSTITUTION", "HALF_TIME", "FULL_TIME"):
+        kind = "GOAL" if ev["outcome"] == "GOAL" else "PENALTY" if penalty else ev["card"] or t
         add("banner", 0, 4000, 1, layout="top_banner", kind=kind, team=team, player=ev["player"],
             player_off=ev["player_off"], score=ev["score"], story=story)
 

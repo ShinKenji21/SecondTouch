@@ -1,0 +1,1708 @@
+{
+  "meta": {
+    "dataset": "Synthetic football reference data",
+    "version": "1.0.0",
+    "generator_seed": 2026,
+    "disclaimer": "All clubs, people, stadiums, towns and competitions are fictional. Any resemblance to real persons or organisations is coincidental."
+  },
+  "competition": {
+    "competition_id": "NCD",
+    "name": "Northern Crown Division",
+    "country": "England (fictional league)",
+    "season": "2026-27",
+    "tier": 1,
+    "teams_in_league": 20,
+    "match_length_minutes": 90,
+    "substitutions_allowed": 5,
+    "var_in_use": true
+  },
+  "stadiums": [
+    {
+      "stadium_id": "STD-MRL",
+      "name": "Millrace Lane",
+      "town": "Brackenford",
+      "region": "North West England (fictional town)",
+      "capacity": 32400,
+      "opened": 1924,
+      "pitch_length_m": 105,
+      "pitch_width_m": 68,
+      "surface": "hybrid grass",
+      "roof": "partial",
+      "stands": [
+        {
+          "name": "Weir Stand",
+          "side": "north",
+          "capacity": 9800
+        },
+        {
+          "name": "Tannery End",
+          "side": "west",
+          "capacity": 6200,
+          "home_ultras": true
+        },
+        {
+          "name": "Lockkeepers' Stand",
+          "side": "south",
+          "capacity": 10600
+        },
+        {
+          "name": "Ferry Road End",
+          "side": "east",
+          "capacity": 5800,
+          "away_section": true
+        }
+      ]
+    },
+    {
+      "stadium_id": "STD-SWG",
+      "name": "The Saltworks Ground",
+      "town": "Kestermouth",
+      "region": "Yorkshire coast (fictional town)",
+      "capacity": 27150,
+      "opened": 1931,
+      "pitch_length_m": 104,
+      "pitch_width_m": 67,
+      "surface": "natural grass",
+      "roof": "full",
+      "stands": [
+        {
+          "name": "Lighthouse Stand",
+          "side": "north",
+          "capacity": 8400
+        },
+        {
+          "name": "Quayside End",
+          "side": "west",
+          "capacity": 5900,
+          "home_ultras": true
+        },
+        {
+          "name": "Netmenders' Stand",
+          "side": "south",
+          "capacity": 8100
+        },
+        {
+          "name": "Breakwater End",
+          "side": "east",
+          "capacity": 4750,
+          "away_section": true
+        }
+      ]
+    }
+  ],
+  "clubs": [
+    {
+      "club_id": "BRA",
+      "name": "Brackenford Athletic FC",
+      "short_name": "Brackenford",
+      "abbreviation": "BRA",
+      "nickname": "The Ferrymen",
+      "founded": 1891,
+      "town": "Brackenford",
+      "home_stadium_id": "STD-MRL",
+      "colours": {
+        "primary": "#0F7C7A",
+        "secondary": "#F3EAD3",
+        "away": "#1C1C1C"
+      },
+      "manager": {
+        "staff_id": "MGR-BRA",
+        "name": "Corwen Ashdale",
+        "nationality": "WAL",
+        "preferred_formation": "4-3-3"
+      },
+      "playing_style": {
+        "possession_bias": 0.62,
+        "press_intensity": 0.71,
+        "directness": 0.38,
+        "width": 0.66
+      },
+      "league_position_before_match": 4
+    },
+    {
+      "club_id": "KHB",
+      "name": "Kestermouth Harbour FC",
+      "short_name": "Kestermouth",
+      "abbreviation": "KHB",
+      "nickname": "The Lamplighters",
+      "founded": 1903,
+      "town": "Kestermouth",
+      "home_stadium_id": "STD-SWG",
+      "colours": {
+        "primary": "#D2601A",
+        "secondary": "#14213D",
+        "away": "#FFFFFF"
+      },
+      "manager": {
+        "staff_id": "MGR-KHB",
+        "name": "Henrietta Vosloo-Marsh",
+        "nationality": "RSA",
+        "preferred_formation": "4-2-3-1"
+      },
+      "playing_style": {
+        "possession_bias": 0.47,
+        "press_intensity": 0.55,
+        "directness": 0.64,
+        "width": 0.52
+      },
+      "league_position_before_match": 7
+    }
+  ],
+  "players": [
+    {
+      "player_id": "BRA-01",
+      "club_id": "BRA",
+      "shirt_number": 1,
+      "name": "Tobiah Wrenfield",
+      "display_name": "Wrenfield",
+      "position": "GK",
+      "detailed_position": "GK",
+      "nationality": "ENG",
+      "date_of_birth": "1996-09-27",
+      "height_cm": 190,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 50,
+        "passing": 64,
+        "shooting": 10,
+        "dribbling": 29,
+        "defending": 33,
+        "physical": 73,
+        "goalkeeping": 73,
+        "stamina": 50
+      },
+      "physical": {
+        "top_speed_kmh": 28.0,
+        "avg_distance_per_90_km": 5.6,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 8,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "BRA-02",
+      "club_id": "BRA",
+      "shirt_number": 2,
+      "name": "Callum Brisendine",
+      "display_name": "Brisendine",
+      "position": "DF",
+      "detailed_position": "RB",
+      "nationality": "ENG",
+      "date_of_birth": "2001-05-12",
+      "height_cm": 172,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 70,
+        "passing": 69,
+        "shooting": 60,
+        "dribbling": 76,
+        "defending": 77,
+        "physical": 58,
+        "goalkeeping": 12,
+        "stamina": 70
+      },
+      "physical": {
+        "top_speed_kmh": 30.8,
+        "avg_distance_per_90_km": 12.2,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 6,
+        "goals": 0,
+        "assists": 3,
+        "yellow_cards": 2
+      }
+    },
+    {
+      "player_id": "BRA-04",
+      "club_id": "BRA",
+      "shirt_number": 4,
+      "name": "Kwabena Ostrander",
+      "display_name": "Ostrander",
+      "position": "DF",
+      "detailed_position": "CB",
+      "nationality": "GHA",
+      "date_of_birth": "1998-12-12",
+      "height_cm": 185,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 58,
+        "passing": 53,
+        "shooting": 45,
+        "dribbling": 57,
+        "defending": 78,
+        "physical": 81,
+        "goalkeeping": 7,
+        "stamina": 65
+      },
+      "physical": {
+        "top_speed_kmh": 28.8,
+        "avg_distance_per_90_km": 10.6,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 8,
+        "goals": 1,
+        "assists": 1,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "BRA-05",
+      "club_id": "BRA",
+      "shirt_number": 5,
+      "name": "Henrik Valstrøm",
+      "display_name": "Valstrøm",
+      "position": "DF",
+      "detailed_position": "CB",
+      "nationality": "NOR",
+      "date_of_birth": "1997-09-17",
+      "height_cm": 184,
+      "preferred_foot": "left",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 69,
+        "passing": 51,
+        "shooting": 44,
+        "dribbling": 62,
+        "defending": 71,
+        "physical": 73,
+        "goalkeeping": 12,
+        "stamina": 79
+      },
+      "physical": {
+        "top_speed_kmh": 31.5,
+        "avg_distance_per_90_km": 11.7,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 8,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "BRA-03",
+      "club_id": "BRA",
+      "shirt_number": 3,
+      "name": "Dario Felcetti",
+      "display_name": "Felcetti",
+      "position": "DF",
+      "detailed_position": "LB",
+      "nationality": "ITA",
+      "date_of_birth": "2000-12-15",
+      "height_cm": 174,
+      "preferred_foot": "left",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 84,
+        "passing": 66,
+        "shooting": 45,
+        "dribbling": 60,
+        "defending": 68,
+        "physical": 69,
+        "goalkeeping": 14,
+        "stamina": 65
+      },
+      "physical": {
+        "top_speed_kmh": 33.0,
+        "avg_distance_per_90_km": 12.2,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 8,
+        "goals": 0,
+        "assists": 2,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "BRA-06",
+      "club_id": "BRA",
+      "shirt_number": 6,
+      "name": "Ilias Corvaneau",
+      "display_name": "Corvaneau",
+      "position": "MF",
+      "detailed_position": "CDM",
+      "nationality": "FRA",
+      "date_of_birth": "1999-01-05",
+      "height_cm": 183,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 58,
+        "passing": 73,
+        "shooting": 53,
+        "dribbling": 70,
+        "defending": 68,
+        "physical": 66,
+        "goalkeeping": 11,
+        "stamina": 69
+      },
+      "physical": {
+        "top_speed_kmh": 28.8,
+        "avg_distance_per_90_km": 11.3,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 8,
+        "goals": 0,
+        "assists": 2,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "BRA-08",
+      "club_id": "BRA",
+      "shirt_number": 8,
+      "name": "Ruairí Tolland",
+      "display_name": "Tolland",
+      "position": "MF",
+      "detailed_position": "CM",
+      "nationality": "IRL",
+      "date_of_birth": "2002-05-11",
+      "height_cm": 170,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 67,
+        "passing": 80,
+        "shooting": 63,
+        "dribbling": 69,
+        "defending": 63,
+        "physical": 63,
+        "goalkeeping": 6,
+        "stamina": 78
+      },
+      "physical": {
+        "top_speed_kmh": 30.0,
+        "avg_distance_per_90_km": 10.7,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 8,
+        "goals": 0,
+        "assists": 1,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "BRA-10",
+      "club_id": "BRA",
+      "shirt_number": 10,
+      "name": "Mateus Quintarelo",
+      "display_name": "Quintarelo",
+      "position": "MF",
+      "detailed_position": "CAM",
+      "nationality": "POR",
+      "date_of_birth": "1998-08-01",
+      "height_cm": 180,
+      "preferred_foot": "left",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 76,
+        "passing": 89,
+        "shooting": 71,
+        "dribbling": 79,
+        "defending": 42,
+        "physical": 59,
+        "goalkeeping": 14,
+        "stamina": 84
+      },
+      "physical": {
+        "top_speed_kmh": 32.0,
+        "avg_distance_per_90_km": 9.7,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 7,
+        "goals": 5,
+        "assists": 0,
+        "yellow_cards": 2
+      }
+    },
+    {
+      "player_id": "BRA-07",
+      "club_id": "BRA",
+      "shirt_number": 7,
+      "name": "Jaden Thornquist",
+      "display_name": "Thornquist",
+      "position": "FW",
+      "detailed_position": "RW",
+      "nationality": "ENG",
+      "date_of_birth": "2003-10-19",
+      "height_cm": 175,
+      "preferred_foot": "left",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 87,
+        "passing": 68,
+        "shooting": 65,
+        "dribbling": 76,
+        "defending": 48,
+        "physical": 57,
+        "goalkeeping": 9,
+        "stamina": 71
+      },
+      "physical": {
+        "top_speed_kmh": 33.8,
+        "avg_distance_per_90_km": 10.8,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 5,
+        "goals": 5,
+        "assists": 0,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "BRA-09",
+      "club_id": "BRA",
+      "shirt_number": 9,
+      "name": "Femi Adewolu-Hart",
+      "display_name": "Adewolu-Hart",
+      "position": "FW",
+      "detailed_position": "ST",
+      "nationality": "ENG",
+      "date_of_birth": "1997-05-17",
+      "height_cm": 181,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 64,
+        "passing": 51,
+        "shooting": 74,
+        "dribbling": 79,
+        "defending": 30,
+        "physical": 84,
+        "goalkeeping": 12,
+        "stamina": 85
+      },
+      "physical": {
+        "top_speed_kmh": 30.6,
+        "avg_distance_per_90_km": 10.6,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 5,
+        "goals": 5,
+        "assists": 0,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "BRA-11",
+      "club_id": "BRA",
+      "shirt_number": 11,
+      "name": "Sebastián Ormaeche",
+      "display_name": "Ormaeche",
+      "position": "FW",
+      "detailed_position": "LW",
+      "nationality": "ARG",
+      "date_of_birth": "2000-06-22",
+      "height_cm": 174,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 88,
+        "passing": 72,
+        "shooting": 73,
+        "dribbling": 81,
+        "defending": 34,
+        "physical": 65,
+        "goalkeeping": 10,
+        "stamina": 72
+      },
+      "physical": {
+        "top_speed_kmh": 34.2,
+        "avg_distance_per_90_km": 9.8,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 7,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 2
+      }
+    },
+    {
+      "player_id": "BRA-13",
+      "club_id": "BRA",
+      "shirt_number": 13,
+      "name": "Aurek Novotár",
+      "display_name": "Novotár",
+      "position": "GK",
+      "detailed_position": "GK",
+      "nationality": "CZE",
+      "date_of_birth": "1994-01-21",
+      "height_cm": 193,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 50,
+        "passing": 50,
+        "shooting": 19,
+        "dribbling": 26,
+        "defending": 37,
+        "physical": 69,
+        "goalkeeping": 76,
+        "stamina": 51
+      },
+      "physical": {
+        "top_speed_kmh": 28.2,
+        "avg_distance_per_90_km": 5.3,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 6,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "BRA-14",
+      "club_id": "BRA",
+      "shirt_number": 14,
+      "name": "Lorcan Pettigrove",
+      "display_name": "Pettigrove",
+      "position": "DF",
+      "detailed_position": "CB",
+      "nationality": "SCO",
+      "date_of_birth": "2002-03-06",
+      "height_cm": 187,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 54,
+        "passing": 65,
+        "shooting": 42,
+        "dribbling": 62,
+        "defending": 81,
+        "physical": 76,
+        "goalkeeping": 5,
+        "stamina": 72
+      },
+      "physical": {
+        "top_speed_kmh": 28.4,
+        "avg_distance_per_90_km": 10.2,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 4,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "BRA-15",
+      "club_id": "BRA",
+      "shirt_number": 15,
+      "name": "Marlon Okereke-Vance",
+      "display_name": "Okereke-Vance",
+      "position": "DF",
+      "detailed_position": "RB",
+      "nationality": "ENG",
+      "date_of_birth": "2004-02-17",
+      "height_cm": 179,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 75,
+        "passing": 66,
+        "shooting": 56,
+        "dribbling": 67,
+        "defending": 77,
+        "physical": 69,
+        "goalkeeping": 7,
+        "stamina": 68
+      },
+      "physical": {
+        "top_speed_kmh": 31.9,
+        "avg_distance_per_90_km": 11.7,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 6,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "BRA-16",
+      "club_id": "BRA",
+      "shirt_number": 16,
+      "name": "Bastian Krüllner",
+      "display_name": "Krüllner",
+      "position": "MF",
+      "detailed_position": "CM",
+      "nationality": "GER",
+      "date_of_birth": "1996-06-28",
+      "height_cm": 183,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 72,
+        "passing": 89,
+        "shooting": 71,
+        "dribbling": 69,
+        "defending": 52,
+        "physical": 76,
+        "goalkeeping": 13,
+        "stamina": 66
+      },
+      "physical": {
+        "top_speed_kmh": 32.0,
+        "avg_distance_per_90_km": 11.1,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 4,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 2
+      }
+    },
+    {
+      "player_id": "BRA-17",
+      "club_id": "BRA",
+      "shirt_number": 17,
+      "name": "Yusuf Demirkanlı",
+      "display_name": "Demirkanlı",
+      "position": "MF",
+      "detailed_position": "CDM",
+      "nationality": "TUR",
+      "date_of_birth": "2001-07-06",
+      "height_cm": 181,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 72,
+        "passing": 74,
+        "shooting": 49,
+        "dribbling": 64,
+        "defending": 73,
+        "physical": 75,
+        "goalkeeping": 12,
+        "stamina": 71
+      },
+      "physical": {
+        "top_speed_kmh": 31.2,
+        "avg_distance_per_90_km": 9.7,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 0,
+        "goals": 0,
+        "assists": 3,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "BRA-18",
+      "club_id": "BRA",
+      "shirt_number": 18,
+      "name": "Kaito Morisaki",
+      "display_name": "Morisaki",
+      "position": "FW",
+      "detailed_position": "RW",
+      "nationality": "JPN",
+      "date_of_birth": "2002-05-14",
+      "height_cm": 176,
+      "preferred_foot": "left",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 85,
+        "passing": 70,
+        "shooting": 69,
+        "dribbling": 88,
+        "defending": 53,
+        "physical": 66,
+        "goalkeeping": 11,
+        "stamina": 79
+      },
+      "physical": {
+        "top_speed_kmh": 33.1,
+        "avg_distance_per_90_km": 10.1,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 2,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 2
+      }
+    },
+    {
+      "player_id": "BRA-19",
+      "club_id": "BRA",
+      "shirt_number": 19,
+      "name": "Gethin Pryddercombe",
+      "display_name": "Pryddercombe",
+      "position": "FW",
+      "detailed_position": "ST",
+      "nationality": "WAL",
+      "date_of_birth": "2005-04-20",
+      "height_cm": 176,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 79,
+        "passing": 51,
+        "shooting": 76,
+        "dribbling": 68,
+        "defending": 43,
+        "physical": 69,
+        "goalkeeping": 7,
+        "stamina": 62
+      },
+      "physical": {
+        "top_speed_kmh": 32.4,
+        "avg_distance_per_90_km": 10.7,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 5,
+        "goals": 0,
+        "assists": 3,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "BRA-20",
+      "club_id": "BRA",
+      "shirt_number": 20,
+      "name": "Sami Haddaoui-Lenz",
+      "display_name": "Haddaoui-Lenz",
+      "position": "DF",
+      "detailed_position": "LB",
+      "nationality": "MAR",
+      "date_of_birth": "1999-12-11",
+      "height_cm": 175,
+      "preferred_foot": "left",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 83,
+        "passing": 61,
+        "shooting": 56,
+        "dribbling": 65,
+        "defending": 75,
+        "physical": 66,
+        "goalkeeping": 10,
+        "stamina": 67
+      },
+      "physical": {
+        "top_speed_kmh": 32.7,
+        "avg_distance_per_90_km": 11.7,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 0,
+        "goals": 0,
+        "assists": 1,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "BRA-22",
+      "club_id": "BRA",
+      "shirt_number": 22,
+      "name": "Ollie Brackwater",
+      "display_name": "Brackwater",
+      "position": "MF",
+      "detailed_position": "CAM",
+      "nationality": "ENG",
+      "date_of_birth": "2006-09-12",
+      "height_cm": 177,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 88,
+        "passing": 79,
+        "shooting": 72,
+        "dribbling": 84,
+        "defending": 41,
+        "physical": 82,
+        "goalkeeping": 14,
+        "stamina": 76
+      },
+      "physical": {
+        "top_speed_kmh": 33.6,
+        "avg_distance_per_90_km": 11.1,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 5,
+        "goals": 1,
+        "assists": 0,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "KHB-01",
+      "club_id": "KHB",
+      "shirt_number": 1,
+      "name": "Hallam Crewdson",
+      "display_name": "Crewdson",
+      "position": "GK",
+      "detailed_position": "GK",
+      "nationality": "ENG",
+      "date_of_birth": "1995-09-22",
+      "height_cm": 183,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 40,
+        "passing": 54,
+        "shooting": 17,
+        "dribbling": 33,
+        "defending": 26,
+        "physical": 72,
+        "goalkeeping": 82,
+        "stamina": 61
+      },
+      "physical": {
+        "top_speed_kmh": 26.2,
+        "avg_distance_per_90_km": 5.6,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 5,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "KHB-02",
+      "club_id": "KHB",
+      "shirt_number": 2,
+      "name": "Theo Marchbanks",
+      "display_name": "Marchbanks",
+      "position": "DF",
+      "detailed_position": "RB",
+      "nationality": "ENG",
+      "date_of_birth": "2000-09-27",
+      "height_cm": 179,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 74,
+        "passing": 75,
+        "shooting": 51,
+        "dribbling": 55,
+        "defending": 77,
+        "physical": 73,
+        "goalkeeping": 13,
+        "stamina": 78
+      },
+      "physical": {
+        "top_speed_kmh": 31.2,
+        "avg_distance_per_90_km": 10.2,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 8,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "KHB-04",
+      "club_id": "KHB",
+      "shirt_number": 4,
+      "name": "Sverre Lindqvarn",
+      "display_name": "Lindqvarn",
+      "position": "DF",
+      "detailed_position": "CB",
+      "nationality": "SWE",
+      "date_of_birth": "1996-06-26",
+      "height_cm": 189,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 61,
+        "passing": 58,
+        "shooting": 43,
+        "dribbling": 54,
+        "defending": 76,
+        "physical": 78,
+        "goalkeeping": 10,
+        "stamina": 60
+      },
+      "physical": {
+        "top_speed_kmh": 29.8,
+        "avg_distance_per_90_km": 10.4,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 5,
+        "goals": 0,
+        "assists": 1,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "KHB-05",
+      "club_id": "KHB",
+      "shirt_number": 5,
+      "name": "Bram Dekeyzer",
+      "display_name": "Dekeyzer",
+      "position": "DF",
+      "detailed_position": "CB",
+      "nationality": "BEL",
+      "date_of_birth": "1999-06-27",
+      "height_cm": 186,
+      "preferred_foot": "left",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 75,
+        "passing": 56,
+        "shooting": 31,
+        "dribbling": 40,
+        "defending": 80,
+        "physical": 75,
+        "goalkeeping": 9,
+        "stamina": 71
+      },
+      "physical": {
+        "top_speed_kmh": 32.4,
+        "avg_distance_per_90_km": 12.2,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 8,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "KHB-03",
+      "club_id": "KHB",
+      "shirt_number": 3,
+      "name": "Nnamdi Ekwuruke",
+      "display_name": "Ekwuruke",
+      "position": "DF",
+      "detailed_position": "LB",
+      "nationality": "NGA",
+      "date_of_birth": "2001-10-10",
+      "height_cm": 168,
+      "preferred_foot": "left",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 82,
+        "passing": 71,
+        "shooting": 50,
+        "dribbling": 65,
+        "defending": 70,
+        "physical": 46,
+        "goalkeeping": 12,
+        "stamina": 75
+      },
+      "physical": {
+        "top_speed_kmh": 33.6,
+        "avg_distance_per_90_km": 10.5,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 8,
+        "goals": 0,
+        "assists": 2,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "KHB-06",
+      "club_id": "KHB",
+      "shirt_number": 6,
+      "name": "Jonah Whitlaker",
+      "display_name": "Whitlaker",
+      "position": "MF",
+      "detailed_position": "CDM",
+      "nationality": "ENG",
+      "date_of_birth": "1998-09-10",
+      "height_cm": 180,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 59,
+        "passing": 82,
+        "shooting": 64,
+        "dribbling": 66,
+        "defending": 77,
+        "physical": 82,
+        "goalkeeping": 11,
+        "stamina": 75
+      },
+      "physical": {
+        "top_speed_kmh": 29.0,
+        "avg_distance_per_90_km": 10.4,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 7,
+        "goals": 0,
+        "assists": 3,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "KHB-08",
+      "club_id": "KHB",
+      "shirt_number": 8,
+      "name": "Andrés Villaruela",
+      "display_name": "Villaruela",
+      "position": "MF",
+      "detailed_position": "CDM",
+      "nationality": "ESP",
+      "date_of_birth": "1997-01-06",
+      "height_cm": 181,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 71,
+        "passing": 69,
+        "shooting": 64,
+        "dribbling": 66,
+        "defending": 75,
+        "physical": 67,
+        "goalkeeping": 13,
+        "stamina": 68
+      },
+      "physical": {
+        "top_speed_kmh": 31.5,
+        "avg_distance_per_90_km": 9.5,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 4,
+        "goals": 1,
+        "assists": 3,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "KHB-10",
+      "club_id": "KHB",
+      "shirt_number": 10,
+      "name": "Luka Pervanović",
+      "display_name": "Pervanović",
+      "position": "MF",
+      "detailed_position": "CAM",
+      "nationality": "CRO",
+      "date_of_birth": "1999-12-03",
+      "height_cm": 178,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 76,
+        "passing": 81,
+        "shooting": 71,
+        "dribbling": 79,
+        "defending": 50,
+        "physical": 56,
+        "goalkeeping": 9,
+        "stamina": 79
+      },
+      "physical": {
+        "top_speed_kmh": 31.6,
+        "avg_distance_per_90_km": 10.5,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 8,
+        "goals": 1,
+        "assists": 3,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "KHB-07",
+      "club_id": "KHB",
+      "shirt_number": 7,
+      "name": "Kofi Amponsah-Brent",
+      "display_name": "Amponsah-Brent",
+      "position": "FW",
+      "detailed_position": "RW",
+      "nationality": "GHA",
+      "date_of_birth": "2002-02-26",
+      "height_cm": 170,
+      "preferred_foot": "left",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 81,
+        "passing": 83,
+        "shooting": 77,
+        "dribbling": 86,
+        "defending": 43,
+        "physical": 51,
+        "goalkeeping": 6,
+        "stamina": 77
+      },
+      "physical": {
+        "top_speed_kmh": 32.5,
+        "avg_distance_per_90_km": 11.6,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 5,
+        "goals": 0,
+        "assists": 1,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "KHB-11",
+      "club_id": "KHB",
+      "shirt_number": 11,
+      "name": "Rémi Fontagnac",
+      "display_name": "Fontagnac",
+      "position": "FW",
+      "detailed_position": "LW",
+      "nationality": "FRA",
+      "date_of_birth": "2001-12-12",
+      "height_cm": 183,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 86,
+        "passing": 67,
+        "shooting": 72,
+        "dribbling": 89,
+        "defending": 32,
+        "physical": 64,
+        "goalkeeping": 8,
+        "stamina": 80
+      },
+      "physical": {
+        "top_speed_kmh": 33.5,
+        "avg_distance_per_90_km": 11.6,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 6,
+        "goals": 3,
+        "assists": 2,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "KHB-09",
+      "club_id": "KHB",
+      "shirt_number": 9,
+      "name": "Ewan Strachley",
+      "display_name": "Strachley",
+      "position": "FW",
+      "detailed_position": "ST",
+      "nationality": "SCO",
+      "date_of_birth": "1996-05-05",
+      "height_cm": 180,
+      "preferred_foot": "right",
+      "squad_role": "starter",
+      "attributes": {
+        "pace": 80,
+        "passing": 73,
+        "shooting": 74,
+        "dribbling": 70,
+        "defending": 30,
+        "physical": 78,
+        "goalkeeping": 12,
+        "stamina": 78
+      },
+      "physical": {
+        "top_speed_kmh": 33.2,
+        "avg_distance_per_90_km": 10.4,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 5,
+        "goals": 5,
+        "assists": 0,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "KHB-12",
+      "club_id": "KHB",
+      "shirt_number": 12,
+      "name": "Piet van Oosterveld",
+      "display_name": "Oosterveld",
+      "position": "GK",
+      "detailed_position": "GK",
+      "nationality": "NED",
+      "date_of_birth": "1993-11-28",
+      "height_cm": 196,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 44,
+        "passing": 56,
+        "shooting": 25,
+        "dribbling": 29,
+        "defending": 31,
+        "physical": 68,
+        "goalkeeping": 71,
+        "stamina": 50
+      },
+      "physical": {
+        "top_speed_kmh": 27.2,
+        "avg_distance_per_90_km": 5.4,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 6,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 2
+      }
+    },
+    {
+      "player_id": "KHB-14",
+      "club_id": "KHB",
+      "shirt_number": 14,
+      "name": "Dominic Fairhurst-Lowe",
+      "display_name": "Fairhurst-Lowe",
+      "position": "DF",
+      "detailed_position": "CB",
+      "nationality": "ENG",
+      "date_of_birth": "2003-10-21",
+      "height_cm": 182,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 58,
+        "passing": 61,
+        "shooting": 37,
+        "dribbling": 50,
+        "defending": 77,
+        "physical": 80,
+        "goalkeeping": 10,
+        "stamina": 85
+      },
+      "physical": {
+        "top_speed_kmh": 28.6,
+        "avg_distance_per_90_km": 11.7,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 6,
+        "goals": 0,
+        "assists": 1,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "KHB-15",
+      "club_id": "KHB",
+      "shirt_number": 15,
+      "name": "Mikkel Ravnsholt",
+      "display_name": "Ravnsholt",
+      "position": "DF",
+      "detailed_position": "LB",
+      "nationality": "DEN",
+      "date_of_birth": "2000-11-12",
+      "height_cm": 181,
+      "preferred_foot": "left",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 72,
+        "passing": 72,
+        "shooting": 51,
+        "dribbling": 77,
+        "defending": 78,
+        "physical": 68,
+        "goalkeeping": 11,
+        "stamina": 76
+      },
+      "physical": {
+        "top_speed_kmh": 31.2,
+        "avg_distance_per_90_km": 9.6,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 5,
+        "goals": 0,
+        "assists": 2,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "KHB-16",
+      "club_id": "KHB",
+      "shirt_number": 16,
+      "name": "Ibrahima Tounkaré",
+      "display_name": "Tounkaré",
+      "position": "MF",
+      "detailed_position": "CM",
+      "nationality": "SEN",
+      "date_of_birth": "2002-09-22",
+      "height_cm": 177,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 73,
+        "passing": 77,
+        "shooting": 79,
+        "dribbling": 72,
+        "defending": 65,
+        "physical": 79,
+        "goalkeeping": 10,
+        "stamina": 71
+      },
+      "physical": {
+        "top_speed_kmh": 31.5,
+        "avg_distance_per_90_km": 9.5,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 3,
+        "goals": 0,
+        "assists": 0,
+        "yellow_cards": 2
+      }
+    },
+    {
+      "player_id": "KHB-17",
+      "club_id": "KHB",
+      "shirt_number": 17,
+      "name": "Ciaran Hollowell",
+      "display_name": "Hollowell",
+      "position": "MF",
+      "detailed_position": "CAM",
+      "nationality": "NIR",
+      "date_of_birth": "2004-06-27",
+      "height_cm": 181,
+      "preferred_foot": "left",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 71,
+        "passing": 79,
+        "shooting": 55,
+        "dribbling": 92,
+        "defending": 41,
+        "physical": 57,
+        "goalkeeping": 8,
+        "stamina": 69
+      },
+      "physical": {
+        "top_speed_kmh": 31.0,
+        "avg_distance_per_90_km": 10.1,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 5,
+        "goals": 4,
+        "assists": 0,
+        "yellow_cards": 0
+      }
+    },
+    {
+      "player_id": "KHB-18",
+      "club_id": "KHB",
+      "shirt_number": 18,
+      "name": "Diego Farelhas",
+      "display_name": "Farelhas",
+      "position": "FW",
+      "detailed_position": "RW",
+      "nationality": "POR",
+      "date_of_birth": "2003-07-28",
+      "height_cm": 181,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 82,
+        "passing": 73,
+        "shooting": 75,
+        "dribbling": 77,
+        "defending": 32,
+        "physical": 66,
+        "goalkeeping": 10,
+        "stamina": 68
+      },
+      "physical": {
+        "top_speed_kmh": 33.2,
+        "avg_distance_per_90_km": 11.3,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 5,
+        "goals": 5,
+        "assists": 1,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "KHB-19",
+      "club_id": "KHB",
+      "shirt_number": 19,
+      "name": "Tariq Benhalima",
+      "display_name": "Benhalima",
+      "position": "FW",
+      "detailed_position": "ST",
+      "nationality": "ALG",
+      "date_of_birth": "1998-03-25",
+      "height_cm": 186,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 83,
+        "passing": 56,
+        "shooting": 74,
+        "dribbling": 82,
+        "defending": 34,
+        "physical": 67,
+        "goalkeeping": 10,
+        "stamina": 72
+      },
+      "physical": {
+        "top_speed_kmh": 33.4,
+        "avg_distance_per_90_km": 10.1,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 6,
+        "goals": 5,
+        "assists": 2,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "KHB-20",
+      "club_id": "KHB",
+      "shirt_number": 20,
+      "name": "Oskar Wielgoszewski",
+      "display_name": "Wielgoszewski",
+      "position": "DF",
+      "detailed_position": "RB",
+      "nationality": "POL",
+      "date_of_birth": "2001-05-25",
+      "height_cm": 181,
+      "preferred_foot": "right",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 70,
+        "passing": 58,
+        "shooting": 52,
+        "dribbling": 68,
+        "defending": 71,
+        "physical": 74,
+        "goalkeeping": 11,
+        "stamina": 71
+      },
+      "physical": {
+        "top_speed_kmh": 30.8,
+        "avg_distance_per_90_km": 11.0,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 6,
+        "goals": 0,
+        "assists": 1,
+        "yellow_cards": 1
+      }
+    },
+    {
+      "player_id": "KHB-21",
+      "club_id": "KHB",
+      "shirt_number": 21,
+      "name": "Jarrah Quilliam",
+      "display_name": "Quilliam",
+      "position": "FW",
+      "detailed_position": "ST",
+      "nationality": "AUS",
+      "date_of_birth": "2005-10-02",
+      "height_cm": 191,
+      "preferred_foot": "left",
+      "squad_role": "substitute",
+      "attributes": {
+        "pace": 74,
+        "passing": 55,
+        "shooting": 79,
+        "dribbling": 77,
+        "defending": 43,
+        "physical": 75,
+        "goalkeeping": 8,
+        "stamina": 82
+      },
+      "physical": {
+        "top_speed_kmh": 32.1,
+        "avg_distance_per_90_km": 11.7,
+        "sprint_threshold_kmh": 25.2
+      },
+      "season_to_date": {
+        "appearances": 6,
+        "goals": 0,
+        "assists": 1,
+        "yellow_cards": 1
+      }
+    }
+  ],
+  "officials": [
+    {
+      "official_id": "REF-0412",
+      "name": "Malcolm Threlkeld",
+      "role": "referee",
+      "nationality": "ENG",
+      "years_experience": 14,
+      "avg_yellows_per_match": 4.1,
+      "avg_reds_per_match": 0.18,
+      "penalties_awarded_per_match": 0.29
+    },
+    {
+      "official_id": "REF-0588",
+      "name": "Priya Vansittart",
+      "role": "assistant_referee_1",
+      "nationality": "ENG",
+      "years_experience": 9
+    },
+    {
+      "official_id": "REF-0631",
+      "name": "Owain Gethryn",
+      "role": "assistant_referee_2",
+      "nationality": "WAL",
+      "years_experience": 7
+    },
+    {
+      "official_id": "REF-0702",
+      "name": "Declan Moorcroft",
+      "role": "fourth_official",
+      "nationality": "ENG",
+      "years_experience": 5
+    },
+    {
+      "official_id": "REF-0377",
+      "name": "Annabel Ruskwood",
+      "role": "var",
+      "nationality": "ENG",
+      "years_experience": 16
+    },
+    {
+      "official_id": "REF-0659",
+      "name": "Simeon Kettleby",
+      "role": "avar",
+      "nationality": "ENG",
+      "years_experience": 8
+    }
+  ],
+  "match": {
+    "match_id": "NCD-2627-MD09-BRAKHB",
+    "competition_id": "NCD",
+    "season": "2026-27",
+    "matchday": 9,
+    "kickoff_local": "2026-10-24T15:00:00+01:00",
+    "stadium_id": "STD-MRL",
+    "home_club_id": "BRA",
+    "away_club_id": "KHB",
+    "attendance": 29815,
+    "weather": {
+      "condition": "light drizzle",
+      "temperature_c": 11,
+      "wind_kmh": 18,
+      "wind_direction": "SW",
+      "humidity_pct": 86
+    },
+    "pitch_condition": "damp, quick",
+    "broadcast_languages": [
+      "en",
+      "es",
+      "fr",
+      "ar",
+      "ja",
+      "id"
+    ],
+    "officials": [
+      "REF-0412",
+      "REF-0588",
+      "REF-0631",
+      "REF-0702",
+      "REF-0377",
+      "REF-0659"
+    ],
+    "lineups": {
+      "home": {
+        "club_id": "BRA",
+        "formation": "4-3-3",
+        "starting_xi": [
+          "BRA-01",
+          "BRA-02",
+          "BRA-04",
+          "BRA-05",
+          "BRA-03",
+          "BRA-06",
+          "BRA-08",
+          "BRA-10",
+          "BRA-07",
+          "BRA-09",
+          "BRA-11"
+        ],
+        "substitutes": [
+          "BRA-13",
+          "BRA-14",
+          "BRA-15",
+          "BRA-16",
+          "BRA-17",
+          "BRA-18",
+          "BRA-19",
+          "BRA-20",
+          "BRA-22"
+        ],
+        "captain": "BRA-05"
+      },
+      "away": {
+        "club_id": "KHB",
+        "formation": "4-2-3-1",
+        "starting_xi": [
+          "KHB-01",
+          "KHB-02",
+          "KHB-04",
+          "KHB-05",
+          "KHB-03",
+          "KHB-06",
+          "KHB-08",
+          "KHB-10",
+          "KHB-07",
+          "KHB-11",
+          "KHB-09"
+        ],
+        "substitutes": [
+          "KHB-12",
+          "KHB-14",
+          "KHB-15",
+          "KHB-16",
+          "KHB-17",
+          "KHB-18",
+          "KHB-19",
+          "KHB-20",
+          "KHB-21"
+        ],
+        "captain": "KHB-06"
+      }
+    },
+    "head_to_head": {
+      "meetings": 12,
+      "home_wins": 5,
+      "away_wins": 4,
+      "draws": 3,
+      "last_result": "KHB 2-1 BRA (2026-03-14)"
+    },
+    "storylines": [
+      "Brackenford unbeaten in 6 at Millrace Lane",
+      "Kestermouth's Ewan Strachley needs 1 goal for 50 for the club",
+      "Ruairí Tolland's first start after a hamstring injury",
+      "Managers Ashdale and Vosloo-Marsh were teammates at a (fictional) academy"
+    ]
+  }
+}

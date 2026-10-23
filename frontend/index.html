@@ -44,8 +44,8 @@
                     <i class="fa-solid fa-star select-icon"></i>
                     <select id="fav-select" class="custom-select" aria-label="Favourite club">
                         <option value="NONE">No favourite</option>
-                        <option value="Arsenal">Arsenal fan</option>
-                        <option value="ManCity">Man City fan</option>
+                        <option value="Brackenford">Brackenford fan</option>
+                        <option value="Kestermouth">Kestermouth fan</option>
                     </select>
                 </div>
                 <div class="select-wrapper" title="Pin one metric to keep it on screen">
@@ -55,6 +55,8 @@
                         <option value="xg">Pin: xG</option>
                         <option value="possession">Pin: Possession</option>
                         <option value="on_target">Pin: Shots on target</option>
+                        <option value="corners">Pin: Corners</option>
+                        <option value="cards">Pin: Cards</option>
                         <option value="pass_pct">Pin: Pass accuracy</option>
                         <option value="press">Pin: Pressure applied</option>
                         <option value="distance">Pin: Distance covered</option>
@@ -66,8 +68,8 @@
                     <div class="select-wrapper">
                         <i class="fa-solid fa-shield-halved select-icon"></i>
                         <select id="team-select" class="custom-select" aria-label="Player Cam team">
-                            <option value="Arsenal">Arsenal FC</option>
-                            <option value="ManCity">Manchester City</option>
+                            <option value="Brackenford">Brackenford Athletic</option>
+                            <option value="Kestermouth">Kestermouth Harbour</option>
                         </select>
                     </div>
                     <div class="select-wrapper">
@@ -83,10 +85,10 @@
             <section class="pitch-section">
                 <!-- SCOREBOARD BANNER -->
                 <div class="scoreboard-banner">
-                    <div class="team-col home" id="team-col-Arsenal">
+                    <div class="team-col home" id="team-col-Brackenford">
                         <span class="team-color-indicator home-red"></span>
-                        <img src="/static/images/arsenal.png" alt="Arsenal" class="team-logo-img">
-                        <span class="team-name">ARSENAL</span>
+                        <img src="/static/images/brackenford.svg" alt="Brackenford Athletic crest" class="team-logo-img">
+                        <span class="team-name" title="Brackenford Athletic FC · The Ferrymen">BRACKENFORD</span>
                         <span class="score" id="score-home">0</span>
                     </div>
                     <div class="match-meta">
@@ -96,18 +98,19 @@
                             <i class="fa-solid fa-play"></i> START MATCH
                         </button>
                     </div>
-                    <div class="team-col away" id="team-col-ManCity">
+                    <div class="team-col away" id="team-col-Kestermouth">
                         <span class="score" id="score-away">0</span>
-                        <span class="team-name">MAN CITY</span>
-                        <img src="/static/images/mancity.png" alt="Man City" class="team-logo-img">
+                        <span class="team-name" title="Kestermouth Harbour FC · The Lamplighters">KESTERMOUTH</span>
+                        <img src="/static/images/kestermouth.svg" alt="Kestermouth Harbour crest" class="team-logo-img">
                         <span class="team-color-indicator away-blue"></span>
                     </div>
                 </div>
-                <div class="match-info" id="match-info">Synthetic match · press START MATCH</div>
-                <div class="possession-strip" aria-label="Possession">
-                    <span id="poss-home-label">50%</span>
+                <div class="match-info" id="match-info"><span class="mi-item"><i class="fa-solid fa-circle-info"></i>Match details appear at kick-off</span></div>
+                <div class="possession-strip" aria-label="Possession" title="Share of the ball so far: Brackenford teal, Kestermouth orange">
+                    <span class="poss-title">POSSESSION</span>
+                    <span class="poss-pct home" id="poss-home-label">50%</span>
                     <div class="possession-bar"><div id="poss-home-bar" style="width:50%"></div></div>
-                    <span id="poss-away-label">50%</span>
+                    <span class="poss-pct away" id="poss-away-label">50%</span>
                     <span class="pinned-metric" id="pinned-metric" hidden></span>
                 </div>
 
@@ -169,9 +172,10 @@
 
                 <!-- PITCH LEGEND -->
                 <div class="pitch-legend">
-                    <div class="legend-item"><span class="legend-dot home-red"></span> <span id="dir-Arsenal">Arsenal attack →</span></div>
-                    <div class="legend-item"><span class="legend-dot away-blue"></span> <span id="dir-ManCity">Man City attack ←</span></div>
+                    <div class="legend-item"><span class="legend-dot home-red"></span> <span id="dir-Brackenford">Brackenford attack →</span></div>
+                    <div class="legend-item"><span class="legend-dot away-blue"></span> <span id="dir-Kestermouth">Kestermouth attack ←</span></div>
                     <div class="legend-item"><span class="legend-gradient"></span> Pass difficulty easy → hard</div>
+                    <div class="legend-item" title="Set pieces in the event log and on the pitch">⛳ corner · 🦶 free kick · 🙌 throw-in · 🥅 goal kick · ❗ penalty · 🚩 offside</div>
                     <div class="legend-item text-muted">Click a player to follow them · Space pause · ← → step · L live</div>
                 </div>
             </section>
@@ -199,7 +203,7 @@
                         <p class="glance-mood" id="glance-mood">Waiting for kick-off</p>
                         <div id="glance-bars"></div>
                         <div class="glance-momentum">
-                            <div class="glance-label"><span>Arsenal</span><span>Who's on top</span><span>Man City</span></div>
+                            <div class="glance-label"><span>Brackenford</span><span>Who's on top</span><span>Kestermouth</span></div>
                             <div class="momentum-meter"><div class="momentum-needle" id="momentum-needle"></div></div>
                         </div>
                         <ul class="glance-goals" id="glance-goals"></ul>
@@ -212,8 +216,8 @@
                         <div class="pc-head">
                             <span class="pc-num" id="pc-num">7</span>
                             <div class="pc-name-wrap">
-                                <div class="pc-name" id="pc-name">Bukayo Saka</div>
-                                <div class="pc-sub" id="pc-sub">RW · Arsenal</div>
+                                <div class="pc-name" id="pc-name">Jaden Thornquist</div>
+                                <div class="pc-sub" id="pc-sub">RW · Brackenford</div>
                             </div>
                             <span class="pc-rating" id="pc-rating">6.0</span>
                         </div>
@@ -249,16 +253,16 @@
                 <!-- TAB 1: MATCH STATS -->
                 <div class="tab-panel active" id="panel-stats">
                     <div class="h2h-header">
-                        <div class="h2h-team home"><span class="legend-dot home-red"></span> ARSENAL <span class="rating-badge red" id="rating-home">6.0</span></div>
-                        <div class="h2h-team away"><span class="rating-badge blue" id="rating-away">6.0</span> MAN CITY <span class="legend-dot away-blue"></span></div>
+                        <div class="h2h-team home"><span class="legend-dot home-red"></span> BRACKENFORD <span class="rating-badge red" id="rating-home">6.0</span></div>
+                        <div class="h2h-team away"><span class="rating-badge blue" id="rating-away">6.0</span> KESTERMOUTH <span class="legend-dot away-blue"></span></div>
                     </div>
                     <div class="h2h-list" id="h2h-list"></div>
 
                     <div class="player-stats-head">
                         <h4>Player statistics</h4>
                         <div class="seg" role="group" aria-label="Team">
-                            <button class="seg-btn active" data-team="Arsenal">Arsenal</button>
-                            <button class="seg-btn" data-team="ManCity">Man City</button>
+                            <button class="seg-btn active" data-team="Brackenford">Brackenford</button>
+                            <button class="seg-btn" data-team="Kestermouth">Kestermouth</button>
                         </div>
                     </div>
                     <div class="table-scroll">
@@ -274,7 +278,7 @@
                         <div class="avg-pitch-wrap">
                             <h5>Average positions</h5>
                             <svg id="avg-pitch" viewBox="-2 -2 109 72" role="img" aria-label="Average player positions"></svg>
-                            <p class="card-note">Where each player has stood on average this match, shown with Arsenal attacking → for both halves.</p>
+                            <p class="card-note">Where each player has stood on average this match, shown with Brackenford attacking → for both halves.</p>
                         </div>
                     </div>
                 </div>
@@ -282,7 +286,7 @@
                 <!-- TAB 3: KEY EVENTS & STORIES -->
                 <div class="tab-panel" id="panel-events">
                     <div class="ke-head">
-                        <p class="card-note">Goals, cards, substitutions, big chances, saves and the half-time and full-time reports, each with the story behind it. Click a moment to replay its build-up.</p>
+                        <p class="card-note">Goals, cards, penalties, direct free kicks, substitutions, big chances, saves and the half-time and full-time reports, each with the story behind it. Click a moment to replay its build-up.</p>
                         <label class="toggle-label"><input type="checkbox" id="ke-fav-only"> My club only</label>
                     </div>
                     <ul class="event-timeline-list" id="key-events-list"></ul>
@@ -298,7 +302,7 @@
                         </div>
                         <div class="analysis-card">
                             <h5>Momentum</h5>
-                            <p class="card-note">Bars above the line: Arsenal on top. Below: Man City. Built from final-third actions, shots, line breaks and ball wins.</p>
+                            <p class="card-note">Bars above the line: Brackenford on top. Below: Kestermouth. Built from final-third actions, shots, line breaks and ball wins.</p>
                             <div class="chart-box short"><svg id="momentum-chart" role="img" aria-label="Momentum over time"></svg></div>
                         </div>
                         <div class="analysis-card">
@@ -309,7 +313,7 @@
                         </div>
                         <div class="analysis-card">
                             <h5>Shot map</h5>
-                            <p class="card-note">Size = xG. Filled = goal, ring = no goal. Arsenal shown attacking → all match.</p>
+                            <p class="card-note">Size = xG. Filled = goal, ring = no goal. Brackenford shown attacking → all match.</p>
                             <svg id="shot-map" viewBox="-2 -2 109 72" role="img" aria-label="Shot map"></svg>
                         </div>
                         <div class="analysis-card">
@@ -328,14 +332,15 @@
                 <!-- TAB 5: TALK TO AI -->
                 <div class="tab-panel" id="panel-ask-ai">
                     <div class="ai-query-box">
-                        <input type="text" id="ai-query-input" placeholder="Ask about the match, e.g. 'Who is pressing better?' or 'How is Saka playing?'" />
+                        <input type="text" id="ai-query-input" placeholder="Ask about the match, e.g. 'Who is pressing better?' or 'How is Thornquist playing?'" />
                         <button id="ai-query-send-btn"><i class="fa-solid fa-paper-plane"></i> Ask AI</button>
                     </div>
                     <div class="suggestions" id="ai-suggestions">
                         <button class="chip">Who has the momentum?</button>
                         <button class="chip">Is the game in control or chaos?</button>
                         <button class="chip">How are the teams pressing?</button>
-                        <button class="chip">How is Haaland playing?</button>
+                        <button class="chip">How many corners and fouls?</button>
+                        <button class="chip">How is Strachley playing?</button>
                         <button class="chip">Give me the half-time report</button>
                     </div>
                     <div class="ai-query-response" id="ai-query-response">

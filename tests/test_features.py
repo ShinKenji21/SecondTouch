@@ -35,10 +35,10 @@ def test_teams_change_ends_at_half_time(seed):
     _, _, rows = run_match(seed)
     for r in rows:
         assert r["ev"]["right_team"] == (AWAY if r["second_half"] else HOME)
-    # Arsenal's keeper starts on the left and finishes on the right
+    # the home keeper starts on the left and finishes on the right
     first = next(r for r in rows if not r["second_half"])
     last = rows[-1]
-    assert first["positions"][HOME]["Raya"][0] < 50 < last["positions"][HOME]["Raya"][0]
+    assert first["positions"][HOME]["Wrenfield"][0] < 50 < last["positions"][HOME]["Wrenfield"][0]
 
 
 @pytest.mark.parametrize("seed", range(4))
@@ -96,7 +96,7 @@ def test_distance_and_speed_are_realistic():
 def test_key_events_get_a_story_and_reports_a_narrative():
     sim, stats, rows = run_match(1)
     lines = {(t, p): stats.player_line(t, p) for t in (HOME, AWAY) for p in SQUADS[t]}
-    ctx = Context(HOME, AWAY, stats.summary(), sim.positions, HOME, "Saka", lines[(HOME, "Saka")],
+    ctx = Context(HOME, AWAY, stats.summary(), sim.positions, HOME, "Thornquist", lines[(HOME, "Thornquist")],
                   {t: (0.0, 0) for t in (HOME, AWAY)})
     stories = 0
     for r in rows:

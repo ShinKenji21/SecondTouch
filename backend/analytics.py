@@ -15,6 +15,8 @@ GOAL_W = 7.32
 BACK_LINE = {"CB", "RB", "LB"}
 ON_BALL = {"PASS", "DRIBBLE", "SHOT"}
 STATUS = {"SUBSTITUTION", "HALF_TIME", "FULL_TIME"}
+SET_PIECE_STAT = {"CORNER": "corners", "FREE_KICK": "free_kicks", "THROW_IN": "throw_ins",
+                  "PENALTY": "penalties", "GOAL_KICK": "goal_kicks"}
 
 SPEED_ALERT_KMH = 32.0          # sprint that triggers an on-screen speed badge
 DISTANCE_ALERTS_KM = (5, 10)    # distance covered that triggers a badge
@@ -59,13 +61,17 @@ def pass_difficulty(length_m, angle_rad, pressure_index, receiver_space_m):
 
 def impact_moment(ev):
     """Return (is_impact_moment, reasons). Shots, high-pressure turnovers,
-    line-breaking passes, cards and goals are worth the AI's attention."""
+    line-breaking passes, cards, penalties and goals are worth the AI's attention."""
     t, o, m = ev["event_type"], ev["outcome"], ev["metrics"]
     reasons = []
     if t == "SHOT":
         reasons.append("goal" if o == "GOAL" else "shot")
         if (m["xg"] or 0) >= 0.3:
             reasons.append("big_chance")
+        if ev.get("set_piece") == "PENALTY":
+            reasons.append("penalty")
+        elif ev.get("set_piece") == "FREE_KICK":
+            reasons.append("direct_free_kick")
     if t == "PASS" and o == "COMPLETE":
         gain, diff, byp = m["forward_gain_m"] or 0, m["pass_difficulty"] or 0, m["players_bypassed"] or 0
         if (gain >= 25 and diff >= 70) or byp >= 6:
@@ -76,14 +82,17 @@ def impact_moment(ev):
         reasons.append("high_press_turnover")
     if ev.get("card"):
         reasons.append("red_card" if ev["card"] == "RED" else "yellow_card")
+    if ev.get("restart") == "PENALTY":
+        reasons.append("penalty_awarded")
     return bool(reasons), reasons
 
 
 def is_key_event(ev):
     """Moments that belong in the match summary and get a story."""
     t, o = ev["event_type"], ev["outcome"]
-    return (o == "GOAL" or bool(ev.get("card")) or t == "SUBSTITUTION"
-            or (t == "SHOT" and (o == "SAVED" or (ev["metrics"]["xg"] or 0) >= 0.3)))
+    return (o == "GOAL" or bool(ev.get("card")) or t == "SUBSTITUTION" or ev.get("restart") == "PENALTY"
+            or (t == "SHOT" and (o == "SAVED" or ev.get("set_piece") in ("PENALTY", "FREE_KICK")
+                                 or (ev["metrics"]["xg"] or 0) >= 0.3)))
 
 
 def attack_frame(team, right_team, x, y):
@@ -123,7 +132,8 @@ class MatchStats:
                     "goals": 0, "assists": 0, "shots": 0, "on_target": 0, "xg": 0.0,
                     "passes": 0, "passes_completed": 0, "key_passes": 0, "line_breaks": 0,
                     "dribbles": 0, "dribbles_won": 0, "tackles": 0, "tackles_won": 0,
-                    "interceptions": 0, "fouls": 0, "yellow": 0, "red": 0, "saves": 0,
+                    "interceptions": 0, "fouls": 0, "fouls_won": 0, "offsides": 0,
+                    "yellow": 0, "red": 0, "saves": 0,
                     "touches": 0, "sprints": 0, "distance_m": 0.0, "top_speed": 0.0,
                 }
         z = lambda: {t: 0 for t in self.teams}
@@ -131,6 +141,8 @@ class MatchStats:
         self.t_passes, self.t_passes_ok, self.t_big_chances = z(), z(), z()
         self.t_def_actions_high, self.t_opp_passes_deep = z(), z()
         self.t_press_wins = z()
+        self.t_set = {t: {k: 0 for k in SET_PIECE_STAT.values()} for t in self.teams}
+        self.t_offsides = z()
         self.t_diff_sum, self.t_diff_n, self.t_top_ball = z(), z(), {t: 0.0 for t in self.teams}
         self.channels = {t: {"left": 0, "central": 0, "right": 0} for t in self.teams}
         self.final_third = z()
@@ -209,6 +221,8 @@ class MatchStats:
         holder = ball_team(ev, self.other)
         self.buildup = [e for e in self.spell if self.spell_team == holder][-4:]
 
+        if ev.get("set_piece"):
+            self.t_set[team][SET_PIECE_STAT[ev["set_piece"]]] += 1
         if t in ON_BALL:
             me["touches"] += 1
             self.t_on_ball[team] += 1
@@ -241,8 +255,14 @@ class MatchStats:
                     me["line_breaks"] += 1
                     weight_for[team] += 2
                 self._milestone_count(team, ev["receiver"], "touches", (25, 50))
-            else:
+            elif o == "INTERCEPTED":
                 self._turnover(team, ev, weight_for)
+            elif o == "OFFSIDE":
+                self.p(team, ev["receiver"])["offsides"] += 1
+                self.t_offsides[team] += 1
+                self.last_pass_to[team] = None
+            else:  # OUT of play
+                self.last_pass_to[team] = None
             self._milestone_count(team, pid, "passes_completed", (20, 40))
             for n in (50, 100, 150):
                 if self.t_passes_ok[team] >= n and self._once(f"tp{team}{n}"):
@@ -257,12 +277,12 @@ class MatchStats:
             if u >= 66.6:
                 weight_for[team] += 0.5
         elif t == "TACKLE":
-            # actor is the defender; opponent is the player who was dribbling
-            me["tackles"] += 1
+            # actor is the defender; opponent is the player on the ball
             victim = self.p(opp_team, ev["opponent"])
-            victim["dribbles"] += 1
             victim["touches"] += 1
             if o == "WON":
+                me["tackles"] += 1
+                victim["dribbles"] += 1
                 me["tackles_won"] += 1
                 me["touches"] += 1
                 self.last_pass_to[opp_team] = None
@@ -270,6 +290,7 @@ class MatchStats:
                 self._milestone_count(team, pid, "tackles_won", (3, 5))
             else:
                 me["fouls"] += 1
+                victim["fouls_won"] += 1
                 if u < 40:
                     self.t_def_actions_high[team] += 1
                 if ev["card"] == "YELLOW":
@@ -324,7 +345,8 @@ class MatchStats:
     def _moment(self, ev):
         return {"seq": ev["seq"], "clock": ev["clock"], "team": ev["team"], "player": ev["player"],
                 "type": ev["event_type"], "outcome": ev["outcome"], "card": ev["card"],
-                "xg": ev["metrics"]["xg"], "player_off": ev["player_off"], "opponent": ev["opponent"]}
+                "xg": ev["metrics"]["xg"], "player_off": ev["player_off"], "opponent": ev["opponent"],
+                "set_piece": ev.get("set_piece"), "restart": ev.get("restart")}
 
     def _milestone_count(self, team, pid, stat, thresholds):
         p = self.p(team, pid)
@@ -381,7 +403,7 @@ class MatchStats:
             pts = []
             for pid, (x, y) in positions.get(team, {}).items():
                 key = (team, pid)
-                # average positions are stored as if Arsenal always attacked right
+                # average positions are stored as if the home side always attacked right
                 hx, hy = attack_frame(self.home, self.right_team, x, y)
                 acc = self.avg_pos.setdefault(key, [0.0, 0.0, 0])
                 acc[0] += hx; acc[1] += hy; acc[2] += 1
@@ -457,8 +479,8 @@ class MatchStats:
 
     def _spells(self, ev, holder):
         """Track the current possession spell, the raw material of key-event stories."""
-        compact = {k: ev[k] for k in ("seq", "clock", "team", "player", "event_type", "outcome",
-                                      "receiver", "opponent", "impact_reasons")}
+        compact = {k: ev.get(k) for k in ("seq", "clock", "team", "player", "event_type", "outcome",
+                                          "receiver", "opponent", "impact_reasons", "set_piece", "body_part")}
         if not ev.get("possession_change"):
             if self.spell_team != holder:
                 self.spell, self.spell_team, self.spell_alerted = [], holder, False
@@ -532,6 +554,7 @@ class MatchStats:
             "tackles_won": sum(p["tackles_won"] for p in ps),
             "interceptions": sum(p["interceptions"] for p in ps),
             "fouls": sum(p["fouls"] for p in ps),
+            **self.t_set[team], "offsides": self.t_offsides[team],
             "yellow": sum(p["yellow"] for p in ps), "red": sum(p["red"] for p in ps),
             "saves": sum(p["saves"] for p in ps),
             "distance_km": round(sum(p["distance_m"] for p in ps) / 1000, 1),
@@ -547,7 +570,8 @@ class MatchStats:
             row = {k: p[k] for k in ("id", "name", "num", "pos", "starter", "goals", "assists",
                                      "shots", "on_target", "xg", "passes", "passes_completed",
                                      "key_passes", "line_breaks", "dribbles", "dribbles_won",
-                                     "tackles", "tackles_won", "interceptions", "fouls", "yellow",
+                                     "tackles", "tackles_won", "interceptions", "fouls", "fouls_won",
+                                     "offsides", "yellow",
                                      "red", "saves", "touches", "sprints", "top_speed")}
             row["distance_km"] = round(p["distance_m"] / 1000, 1)
             row["minutes"] = self.minutes(p)
@@ -630,7 +654,8 @@ class MatchStats:
             "kind": ev["event_type"], "clock": ev["clock"], "score": ev["score"],
             "home": self.home, "away": self.away,
             "teams": {t: {k: teams[t][k] for k in ("xg", "shots", "on_target", "possession", "pass_pct",
-                                                    "big_chances", "tackles_won", "press_wins", "distance_km")}
+                                                    "big_chances", "tackles_won", "press_wins", "distance_km",
+                                                    "corners", "free_kicks", "fouls", "offsides", "yellow", "red")}
                       for t in self.teams},
             "best_player": best, "top_performers": top,
             "control": control, "chaos_pct": chaos,
