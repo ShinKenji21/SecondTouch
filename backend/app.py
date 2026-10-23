@@ -277,7 +277,9 @@ class Session:
             "score": self.last[0]["score"] if self.last else {"home": 0, "away": 0},
             "summary": self.stats.summary(), "teams": snap["teams"], "tactics": tactics,
             "players": players, "favourite_club": self.fav(),
-            "fitness_on_pitch": fitness, "stance": self.sim.stance, "subs_used": self.sim.subs_used,
+            "estimated_fitness_on_pitch": fitness, "subs_used": self.sim.subs_used,
+            "team_shape_now": {t: {"BALANCED": "balanced", "CHASING": "pushing forward",
+                                   "PROTECTING": "sitting deep"}[st] for t, st in self.sim.stance.items()},
             "added_time": {f"half_{k}": v for k, v in self.sim.added.items() if v is not None},
             "reports": {k: v["narrative"] for k, v in self.reports.items()},
             "recent_events": [{k: e.get(k) for k in ("clock", "team", "player", "event_type", "outcome", "set_piece",
@@ -335,16 +337,17 @@ class Session:
             parts = []
             for team in (HOME, AWAY):
                 worst = sorted(fit[team].items(), key=lambda kv: kv[1])[:3]
-                parts.append(f"{names[team]}: most tired " + ", ".join(f"{p} {v}%" for p, v in worst)
+                parts.append(f"{names[team]}: lowest estimated fitness " + ", ".join(f"{p} {v}%" for p, v in worst)
                              + f" ({self.sim.subs_used[team]} of {self.sim.metadata['max_subs']} subs used).")
             return " ".join(parts)
         if "var" in q.split() or "disallow" in q or "woodwork" in q or "post" in q.split():
             return (f"Goals ruled out by VAR: {names[HOME]} {t[HOME]['goals_disallowed']}, {names[AWAY]} {t[AWAY]['goals_disallowed']}. "
                     f"Woodwork: {names[HOME]} {t[HOME]['woodwork']}, {names[AWAY]} {t[AWAY]['woodwork']}.")
+        shape = {"BALANCED": "balanced", "CHASING": "pushing forward", "PROTECTING": "sitting deep"}
         if any(w in q for w in ("sub", "change", "bench")):
             return (f"Substitutions: {names[HOME]} {self.sim.subs_used[HOME]}, {names[AWAY]} {self.sim.subs_used[AWAY]} "
-                    f"(of {self.sim.metadata['max_subs']}). Approach now: {names[HOME]} {self.sim.stance[HOME].lower()}, "
-                    f"{names[AWAY]} {self.sim.stance[AWAY].lower()}.")
+                    f"(of {self.sim.metadata['max_subs']}). Shape now: {names[HOME]} {shape[self.sim.stance[HOME]]}, "
+                    f"{names[AWAY]} {shape[self.sim.stance[AWAY]]}.")
         if any(w in q for w in ("corner", "set piece", "set-piece", "free kick", "throw", "penalt", "offside",
                                 "foul", "card", "goal kick")):
             def n(count, word):

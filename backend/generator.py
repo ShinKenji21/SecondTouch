@@ -1069,5 +1069,7 @@ class MatchSim:
         self.subs_used[team] += 1
         self._stop("sub")
         e = self._status_event("SUBSTITUTION")
-        e.update(team=team, player=on_id, player_off=off_id, location=self._ball_loc(), tags=[reason])
+        # only an injury is something a viewer can see; why else a manager made a change stays unknown
+        e.update(team=team, player=on_id, player_off=off_id, location=self._ball_loc(),
+                 tags=["injury"] if reason == "injury" else [])
         return self._stamp(e)

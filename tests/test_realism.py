@@ -130,7 +130,7 @@ def test_substitution_rules(matches):
             assert len(subs) <= MAX_SUBS
             off = {e["player_off"] for e in subs}
             assert not off & {e["player"] for e in subs}, "a player who came off came back on"
-            assert all(e["tags"] and e["tags"][0] in ("fatigue", "tactical", "injury", "booked") for e in subs)
+            assert all(e["tags"] in ([], ["injury"]) for e in subs)  # only an injury is shown as a reason
             assert all(e["player"] in SQUADS[team] and not SQUADS[team][e["player"]]["starter"] for e in subs)
 
 

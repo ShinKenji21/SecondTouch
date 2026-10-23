@@ -1,4 +1,4 @@
 match_id,competition,season,matchday,venue,capacity,attendance,referee,weather,temperature_c,wind,pitch,kickoff_utc,home,away,var,max_subs,seed,synthetic,score_home,score_away,xg_home,xg_away,shots_home,shots_away,possession_home,possession_away
-1,Northern Crown Division,2026-27,9,"Millrace Lane, Brackenford",32400,29815,Malcolm Threlkeld,Light drizzle,11,18 km/h SW,"damp, quick",2026-10-23T08:34:48Z,Brackenford,Kestermouth,True,5,1,True,0,0,1.15,1.57,9,9,51,49
-2,Northern Crown Division,2026-27,9,"Millrace Lane, Brackenford",32400,29815,Malcolm Threlkeld,Light drizzle,11,18 km/h SW,"damp, quick",2026-10-23T08:34:48Z,Brackenford,Kestermouth,True,5,2,True,1,1,0.94,1.84,7,12,47,53
-3,Northern Crown Division,2026-27,9,"Millrace Lane, Brackenford",32400,29815,Malcolm Threlkeld,Light drizzle,11,18 km/h SW,"damp, quick",2026-10-23T08:34:48Z,Brackenford,Kestermouth,True,5,3,True,2,1,1.57,0.44,10,6,58,42
+1,Northern Crown Division,2026-27,9,"Millrace Lane, Brackenford",32400,29815,Malcolm Threlkeld,Light drizzle,11,18 km/h SW,"damp, quick",2026-10-23T09:38:31Z,Brackenford,Kestermouth,True,5,1,True,0,0,1.15,1.57,9,9,51,49
+2,Northern Crown Division,2026-27,9,"Millrace Lane, Brackenford",32400,29815,Malcolm Threlkeld,Light drizzle,11,18 km/h SW,"damp, quick",2026-10-23T09:38:31Z,Brackenford,Kestermouth,True,5,2,True,1,1,0.94,1.84,7,12,47,53
+3,Northern Crown Division,2026-27,9,"Millrace Lane, Brackenford",32400,29815,Malcolm Threlkeld,Light drizzle,11,18 km/h SW,"damp, quick",2026-10-23T09:38:31Z,Brackenford,Kestermouth,True,5,3,True,2,1,1.57,0.44,10,6,58,42

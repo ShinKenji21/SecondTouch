@@ -231,8 +231,8 @@
                             </div>
                             <span class="pc-rating" id="pc-rating">6.0</span>
                         </div>
-                        <div class="pc-row" id="pc-fitness" hidden title="Fitness drains with running, faster for players with low stamina">
-                            <div class="pc-row-label"><span>Fitness</span><strong id="pc-fitness-val">100%</strong></div>
+                        <div class="pc-row" id="pc-fitness" hidden>
+                            <div class="pc-row-label"><span>Est. fitness <span class="info" data-tip="Our estimate, not a measurement: it starts at 100 and drops with minutes played and sprints, faster for players with a low stamina rating.">ⓘ</span></span><strong id="pc-fitness-val">100%</strong></div>
                             <div class="pc-bar"><div class="pc-fill" id="pc-fitness-fill" style="width:100%"></div></div>
                         </div>
                         <div id="pc-bars"></div>
@@ -355,7 +355,7 @@
                         <button class="chip">Is the game in control or chaos?</button>
                         <button class="chip">How are the teams pressing?</button>
                         <button class="chip">How many corners and fouls?</button>
-                        <button class="chip">Who is the most tired?</button>
+                        <button class="chip">Who looks the most tired?</button>
                         <button class="chip">How is Strachley playing?</button>
                         <button class="chip">Give me the half-time report</button>
                     </div>
@@ -422,14 +422,14 @@
                     <ul class="guide-modes">
                         <li><span class="guide-tag"><i class="fa-solid fa-chart-line"></i> Analyst</span> Numbers first: both teams side by side, the last action's pressure, pass difficulty and ball speed.</li>
                         <li><span class="guide-tag"><i class="fa-solid fa-bolt"></i> Casual</span> The story at a glance: who's on top, simple bars and the goals. Pick a club and the commentary cheers for it.</li>
-                        <li><span class="guide-tag"><i class="fa-solid fa-crosshairs"></i> Player Cam</span> Follow one player: their card, fitness, stats against the team and a heat map. Click any player on the pitch.</li>
+                        <li><span class="guide-tag"><i class="fa-solid fa-crosshairs"></i> Player Cam</span> Follow one player: their card, estimated fitness, stats against the team and a heat map. Click any player on the pitch.</li>
                     </ul>
                     <h4>Try this</h4>
                     <ul class="guide-try">
                         <li>Press <kbd>START MATCH</kbd>, then click a player on the pitch.</li>
                         <li>Press <kbd>Space</kbd> to pause, <kbd>←</kbd> <kbd>→</kbd> to step, <kbd>L</kbd> to go live.</li>
                         <li>Switch the language to 日本語 or Español: everything is rewritten at once.</li>
-                        <li>In <em>Talk to AI</em>, ask “Who is the most tired?”</li>
+                        <li>In <em>Talk to AI</em>, ask “Who looks the most tired?”</li>
                     </ul>
                 </section>
             </div>
@@ -445,8 +445,8 @@
                 <div><dt>Control vs chaos</dt><dd>Control: one team keeps the ball with few turnovers. Chaos: possession keeps changing hands.</dd></div>
                 <div><dt>Field tilt</dt><dd>Each team's share of the play in the final third: who is pinning the other back.</dd></div>
                 <div><dt>PPDA</dt><dd>Opponent passes allowed per defensive action. Lower means a more aggressive press.</dd></div>
-                <div><dt>Fitness</dt><dd>Starts at 100 and drains with running, faster for players with low stamina. Tired players are slower and make more mistakes.</dd></div>
-                <div><dt>📣 Chasing / 🧱 Protecting</dt><dd>The manager's reaction to the score: a team behind late on pushes up and goes direct, a team ahead drops deeper.</dd></div>
+                <div><dt>Est. fitness</dt><dd>Our estimate, not a measurement: starts at 100 and drops with minutes played and sprints, faster for players with a low stamina rating.</dd></div>
+                <div><dt>📣 Pushing forward / 🧱 Sitting deep</dt><dd>What a team's shape shows late on: a higher line, harder pressing and more direct play, or a team dropping off and slowing the game.</dd></div>
                 <div><dt>Set pieces</dt><dd>⛳ corner · 🦶 free kick · 🙌 throw-in · 🥅 goal kick · ❗ penalty · 🚩 offside · 🚫 VAR · 🪵 woodwork · 🚑 injury</dd></div>
                 <div><dt>Overlay cues</dt><dd>Every graphic is also sent as a timed, machine-readable instruction a TV graphics engine could draw (Data &amp; Overlays tab).</dd></div>
                 <div><dt>Synthetic data</dt><dd>Every match is generated. Clubs, players, referee and stadium come from a fictional reference dataset.</dd></div>

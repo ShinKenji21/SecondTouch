@@ -85,7 +85,7 @@ class Event(BaseModel):
     body_part: Optional[Literal["FOOT", "HEAD"]] = None  # shots only
     period: Literal[1, 2] = 1
     # cross, delivery, claimed, through_ball, long_ball, rebound; for substitutions the reason:
-    # fatigue, tactical, injury, booked
+    # injury (a forced change after an injury; other reasons for a change are not observable)
     tags: list[str] = []
     var: Optional[VarCheck] = None
     added_time: Optional[int] = None              # minutes of added time announced with this event

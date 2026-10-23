@@ -17,7 +17,7 @@ Coordinates are percentages of a 105 x 68 m pitch, x left to right, y top to bot
 | set_piece | this action restarts play: FREE_KICK, CORNER, THROW_IN, PENALTY or GOAL_KICK (a corner is a PASS, a penalty a SHOT) |
 | restart, restart_team | play stopped after this action and restarts with this set piece, taken by this team |
 | body_part | shots: FOOT or HEAD (headers mostly come from corners and crosses) |
-| tags | pipe-separated: cross, delivery, claimed, through_ball, long_ball, rebound; substitutions: fatigue, tactical, injury, booked |
+| tags | pipe-separated: cross, delivery, claimed, through_ball, long_ball, rebound; substitutions: injury (a forced change) |
 | var_decision, var_reason | VAR check on a goal: GOAL_STANDS, or NO_GOAL for OFFSIDE/FOUL/HANDBALL |
 | added_time | minutes of added time announced with this event |
 | start_x..end_y | where the action started and ended |

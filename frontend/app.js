@@ -18,8 +18,9 @@ const REASON_LABEL = {
 };
 const SP_LABEL = { FREE_KICK: "Free kick", CORNER: "Corner", THROW_IN: "Throw-in", PENALTY: "Penalty", GOAL_KICK: "Goal kick" };
 const VAR_REASON = { OFFSIDE: "offside", FOUL: "foul in the build-up", HANDBALL: "handball" };
-const SUB_REASON = { fatigue: "tired legs", tactical: "tactical", injury: "injury", booked: "on a yellow" };
-const STANCE_LABEL = { CHASING: "📣 Chasing the game", PROTECTING: "🧱 Protecting the lead" };
+const SUB_REASON = { injury: "injury" };  // the only reason for a change a viewer can actually see
+// what the team's shape shows on the pitch; the manager's intent behind it is not something we can see
+const STANCE_LABEL = { CHASING: "📣 Pushing forward", PROTECTING: "🧱 Sitting deep" };
 /* A goal for ev.team: scored, or put into their own net by the opponent. */
 const isGoal = ev => ev.outcome === "GOAL" || ev.outcome === "OWN_GOAL";
 /* Minute on the 0-90 chart axis: first-half added time stays at 45, not over the second half. */
@@ -592,7 +593,7 @@ function renderTeamTelemetry() {
     const e = anim.entry, s = e.summary, ev = e.event, m = ev.metrics || {};
     const T = liveStats ? liveStats.teams : null;
     const stance = TEAMS.filter(t => liveStance && STANCE_LABEL[liveStance[t]])
-        .map(t => `<span class="stance-chip" style="border-color:${TEAM_COLOR[t]}" title="How the manager has set the team up for the score">${TEAM_SHORT[t]} ${STANCE_LABEL[liveStance[t]]}</span>`).join("");
+        .map(t => `<span class="stance-chip" style="border-color:${TEAM_COLOR[t]}" title="What the team's shape shows: a higher line and more direct play, or dropping deeper">${TEAM_SHORT[t]} ${STANCE_LABEL[liveStance[t]]}</span>`).join("");
     const last = TEAMS.map(team => {
         const a = lastActionOf(team);
         const what = a ? `#${player(team, a.player).num} <strong>${esc(a.player)}</strong> · ${a.set_piece ? SP_LABEL[a.set_piece].toLowerCase()
@@ -1097,7 +1098,7 @@ function renderStats() {
 }
 
 const COLS = [
-    ["num", "#"], ["name", "Player"], ["pos", "Pos"], ["minutes", "Min"], ["fitness", "Fit."], ["rating", "Rating"],
+    ["num", "#"], ["name", "Player"], ["pos", "Pos"], ["minutes", "Min"], ["fitness", "Est. fit."], ["rating", "Rating"],
     ["goals", "G"], ["assists", "A"], ["shots", "Shots (OT)"], ["xg", "xG"], ["xa", "xA"], ["passes", "Passes"],
     ["key_passes", "Key P."], ["dribbles_won", "Dribbles"], ["tackles_won", "Tackles"],
     ["interceptions", "Int."], ["aerials_won", "Aerials"], ["clearances", "Clr."], ["blocks", "Blk."],
@@ -1109,7 +1110,7 @@ const COL_TITLE = {
     shots: "Shots (on target)", passes: "Completed / attempted passes", key_passes: "Passes that led to a shot",
     dribbles_won: "Successful / attempted dribbles", tackles_won: "Tackles won / attempted",
     interceptions: "Interceptions", touches: "Touches of the ball", fouls: "Fouls committed",
-    fitness: "Fitness now (100 = fresh); drains with running, faster for low-stamina players",
+    fitness: "Estimated fitness (100 = fresh). Our estimate, not a measurement: it starts at 100 and drops with minutes played and sprints, faster for players with a low stamina rating.",
     xa: "Expected assists: xG of the shots this player set up", aerials_won: "Aerial duels won",
     clearances: "Clearances", blocks: "Shots blocked",
     fouls_won: "Times fouled (free kicks or penalties won)", offsides: "Caught offside", sprints: "Sprints and runs in behind",
