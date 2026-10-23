@@ -37,12 +37,12 @@ def test_each_goal_increments_score_exactly_once(seed):
     _, stats, events = play(seed)
     home = away = 0
     for ev, _ in events:
-        if ev["event_type"] == "SHOT" and ev["outcome"] == "GOAL":
+        if ev["outcome"] in ("GOAL", "OWN_GOAL"):  # an own goal counts for ev["team"], the side that attacked
             home += ev["team"] == HOME
             away += ev["team"] == AWAY
         assert ev["score"] == {"home": home, "away": away}
     teams = stats.snapshot()["teams"]
-    goals = {t: sum(p["goals"] for p in stats.player_rows(t)) for t in (HOME, AWAY)}
+    goals = {t: sum(p["goals"] for p in stats.player_rows(t)) + teams[t]["own_goals_for"] for t in (HOME, AWAY)}
     assert goals == {HOME: home, AWAY: away}
     assert teams[HOME]["possession"] + teams[AWAY]["possession"] == 100
 
@@ -58,11 +58,12 @@ def test_receiver_is_where_the_ball_ends():
 def test_substitutes_get_minutes_and_starters_who_left_stop():
     _, stats, events = play(5)
     subs = [e for e, _ in events if e["event_type"] == "SUBSTITUTION"]
+    final = events[-1][0]["minute"]  # full time, including added time
     assert subs
     for ev in subs:
         rows = {r["id"]: r for r in stats.player_rows(ev["team"])}
         on, off = rows[ev["player"]], rows[ev["player_off"]]
-        assert on["sub_on"] == int(ev["minute"]) and abs(on["minutes"] - (90 - ev["minute"])) <= 1
+        assert on["sub_on"] == int(ev["minute"]) and abs(on["minutes"] - (final - ev["minute"])) <= 1
         assert off["sub_off"] == int(ev["minute"])
 
 

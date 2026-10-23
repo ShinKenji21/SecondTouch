@@ -10,11 +10,16 @@
 </head>
 <body>
     <div class="app-container">
+        <!-- TOP: header, pitch and sidebar fill one screen on desktop -->
+        <div class="viewport">
         <!-- HEADER -->
         <header class="header">
-            <div class="logo-badge">
-                <i class="fa-solid fa-futbol"></i>
-                <span>SecondTouch</span>
+            <div class="brand">
+                <div class="logo-badge">
+                    <i class="fa-solid fa-futbol"></i>
+                    <span>SecondTouch</span>
+                </div>
+                <button class="guide-btn" id="guide-btn" title="What am I looking at?"><i class="fa-solid fa-circle-question"></i> Guide</button>
             </div>
 
             <div class="header-controls">
@@ -114,7 +119,8 @@
                     <span class="pinned-metric" id="pinned-metric" hidden></span>
                 </div>
 
-                <!-- CANVAS + OVERLAYS -->
+                <!-- CANVAS + OVERLAYS (pitch-fit sizes the pitch to the space left, keeping its shape) -->
+                <div class="pitch-fit">
                 <div class="canvas-container">
                     <canvas id="pitchCanvas" aria-label="Live 2D pitch"></canvas>
                     <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
@@ -136,6 +142,7 @@
                             <span class="ai-source" id="report-source"></span>
                         </div>
                     </div>
+                </div>
                 </div>
 
                 <!-- REPLAY CONTROLS -->
@@ -184,22 +191,25 @@
             <aside class="sidebar">
                 <div class="card ai-card" id="ai-card">
                     <div class="card-header-flex">
-                        <h3><i class="fa-solid fa-brain"></i> Live AI Match Intelligence</h3>
+                        <h3><i class="fa-solid fa-brain"></i> Live AI Match Intelligence <span class="info" data-tip="The current moment, explained for your viewing mode and language. The label below says who wrote it: LOCAL ENGINE (instant templates) or AZURE OPENAI (the model, a moment later). ⚡ marks an impact moment.">ⓘ</span></h3>
                         <span class="impact-badge" id="impact-badge" hidden>IMPACT</span>
                     </div>
                     <p class="commentary-text" id="ai-commentary">Press START MATCH to begin the live stream and tactical analysis.</p>
                     <span class="ai-source" id="ai-source">—</span>
                 </div>
 
-                <!-- ANALYST: one telemetry card per team -->
+                <!-- ANALYST: both teams compared in one telemetry card -->
                 <div class="mode-panel" id="panel-mode-ANALYST" hidden>
-                    <div id="team-telemetry"></div>
+                    <div class="card telemetry-card" id="team-telemetry">
+                        <h3>Team telemetry</h3>
+                        <p class="glance-mood">Waiting for kick-off</p>
+                    </div>
                 </div>
 
                 <!-- CASUAL: the match at a glance -->
                 <div class="mode-panel" id="panel-mode-CASUAL" hidden>
                     <div class="card glance-card">
-                        <h3>Match at a glance</h3>
+                        <h3>Match at a glance <span class="info" data-tip="The match in simple terms: the mood of the game, the main numbers for each side, who is on top right now, and the goals. Pick a club in the header and the commentary cheers for it.">ⓘ</span></h3>
                         <p class="glance-mood" id="glance-mood">Waiting for kick-off</p>
                         <div id="glance-bars"></div>
                         <div class="glance-momentum">
@@ -221,15 +231,19 @@
                             </div>
                             <span class="pc-rating" id="pc-rating">6.0</span>
                         </div>
+                        <div class="pc-row" id="pc-fitness" hidden title="Fitness drains with running, faster for players with low stamina">
+                            <div class="pc-row-label"><span>Fitness</span><strong id="pc-fitness-val">100%</strong></div>
+                            <div class="pc-bar"><div class="pc-fill" id="pc-fitness-fill" style="width:100%"></div></div>
+                        </div>
                         <div id="pc-bars"></div>
-                        <div class="pc-heat-head"><span>Heat map</span><span class="text-muted" id="pc-heat-note">attacking →</span></div>
+                        <div class="pc-heat-head"><span>Heat map <span class="info" data-tip="Where this player has been. Bars above compare them with their team-mates in the same role; the white tick is the team average. Click any player on the pitch to follow them.">ⓘ</span></span><span class="text-muted" id="pc-heat-note">attacking →</span></div>
                         <canvas id="pc-heat" width="420" height="272" aria-label="Player heat map"></canvas>
                     </div>
                 </div>
 
                 <div class="card event-log-card">
                     <div class="card-header-flex">
-                        <h3>Live Event Log</h3>
+                        <h3>Live Event Log <span class="info" data-tip="Every action as it happens. ⇄ the ball changed teams · ⚡ impact moment · → what play restarts with (corner, throw-in...). Click a line to replay it.">ⓘ</span></h3>
                         <label class="toggle-label"><input type="checkbox" id="impact-only"> Impact only</label>
                         <span class="badge" id="event-count">0 events</span>
                     </div>
@@ -237,6 +251,7 @@
                 </div>
             </aside>
         </main>
+        </div>
 
         <!-- BOTTOM DRAWER -->
         <footer class="bottom-drawer">
@@ -340,6 +355,7 @@
                         <button class="chip">Is the game in control or chaos?</button>
                         <button class="chip">How are the teams pressing?</button>
                         <button class="chip">How many corners and fouls?</button>
+                        <button class="chip">Who is the most tired?</button>
                         <button class="chip">How is Strachley playing?</button>
                         <button class="chip">Give me the half-time report</button>
                     </div>
@@ -374,6 +390,73 @@
                 </div>
             </div>
         </footer>
+    </div>
+
+    <!-- GUIDE: what am I looking at? Opens on the first visit and from the Guide button -->
+    <div class="guide-overlay" id="guide" hidden role="dialog" aria-modal="true" aria-labelledby="guide-title">
+        <div class="guide-card">
+            <div class="guide-head">
+                <div>
+                    <h2 id="guide-title"><i class="fa-solid fa-futbol"></i> What am I looking at?</h2>
+                    <p class="guide-lead">SecondTouch watches a live football match, turns every action into numbers, picks out the moments that matter and explains <em>why</em> they matter, for three kinds of viewer and in three languages. The match is simulated and the clubs are fictional.</p>
+                </div>
+                <button class="report-close" id="guide-close" aria-label="Close guide">✕</button>
+            </div>
+
+            <div class="guide-grid">
+                <section>
+                    <h4>The screen</h4>
+                    <ol class="guide-steps">
+                        <li><strong>Header</strong> picks how you watch: viewing mode, language, your club and one metric to pin on screen.</li>
+                        <li><strong>Pitch</strong> shows all 22 players live. Pass lines run green (easy) to red (hard), dribbles are dotted, shots carry an xG bubble, and set pieces, VAR and goals get a label.</li>
+                        <li><strong>Replay bar</strong>: pause, step, scrub, jump to a goal, change speed, then <em>GO LIVE</em>.</li>
+                        <li><strong>Live AI card</strong> explains the current moment. Its label says who wrote it: the instant <em>local engine</em> or <em>Azure OpenAI</em>.</li>
+                        <li><strong>Mode panel</strong> changes with the viewing mode (below).</li>
+                        <li><strong>Live Event Log</strong>: every action as it happens. Click one to replay it.</li>
+                        <li><strong>Tabs</strong> below the pitch: full stats, tactics, key events with their stories, charts, Talk to AI, and the data and overlay feed.</li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h4>Three ways to watch</h4>
+                    <ul class="guide-modes">
+                        <li><span class="guide-tag"><i class="fa-solid fa-chart-line"></i> Analyst</span> Numbers first: both teams side by side, the last action's pressure, pass difficulty and ball speed.</li>
+                        <li><span class="guide-tag"><i class="fa-solid fa-bolt"></i> Casual</span> The story at a glance: who's on top, simple bars and the goals. Pick a club and the commentary cheers for it.</li>
+                        <li><span class="guide-tag"><i class="fa-solid fa-crosshairs"></i> Player Cam</span> Follow one player: their card, fitness, stats against the team and a heat map. Click any player on the pitch.</li>
+                    </ul>
+                    <h4>Try this</h4>
+                    <ul class="guide-try">
+                        <li>Press <kbd>START MATCH</kbd>, then click a player on the pitch.</li>
+                        <li>Press <kbd>Space</kbd> to pause, <kbd>←</kbd> <kbd>→</kbd> to step, <kbd>L</kbd> to go live.</li>
+                        <li>Switch the language to 日本語 or Español: everything is rewritten at once.</li>
+                        <li>In <em>Talk to AI</em>, ask “Who is the most tired?”</li>
+                    </ul>
+                </section>
+            </div>
+
+            <h4>Key terms</h4>
+            <dl class="guide-terms">
+                <div><dt>xG (expected goals)</dt><dd>How likely a shot was to go in, 0 to 1, from distance, angle and pressure. 0.30+ is a big chance.</dd></div>
+                <div><dt>xA (expected assists)</dt><dd>The xG of the shots a player set up with their pass.</dd></div>
+                <div><dt>⚡ Impact moment</dt><dd>A moment the engine flags as worth explaining: goals, big chances, line-breaking passes, high-press turnovers, cards, penalties, VAR.</dd></div>
+                <div><dt>Pressure index</dt><dd>0-100, how tightly the player on the ball is closed down, from the nearest defender's distance.</dd></div>
+                <div><dt>Pass difficulty</dt><dd>0-100 from the pass length, direction, pressure and how tightly the receiver is marked.</dd></div>
+                <div><dt>Momentum</dt><dd>Who is on top right now, from recent final-third actions, shots, line breaks and ball wins.</dd></div>
+                <div><dt>Control vs chaos</dt><dd>Control: one team keeps the ball with few turnovers. Chaos: possession keeps changing hands.</dd></div>
+                <div><dt>Field tilt</dt><dd>Each team's share of the play in the final third: who is pinning the other back.</dd></div>
+                <div><dt>PPDA</dt><dd>Opponent passes allowed per defensive action. Lower means a more aggressive press.</dd></div>
+                <div><dt>Fitness</dt><dd>Starts at 100 and drains with running, faster for players with low stamina. Tired players are slower and make more mistakes.</dd></div>
+                <div><dt>📣 Chasing / 🧱 Protecting</dt><dd>The manager's reaction to the score: a team behind late on pushes up and goes direct, a team ahead drops deeper.</dd></div>
+                <div><dt>Set pieces</dt><dd>⛳ corner · 🦶 free kick · 🙌 throw-in · 🥅 goal kick · ❗ penalty · 🚩 offside · 🚫 VAR · 🪵 woodwork · 🚑 injury</dd></div>
+                <div><dt>Overlay cues</dt><dd>Every graphic is also sent as a timed, machine-readable instruction a TV graphics engine could draw (Data &amp; Overlays tab).</dd></div>
+                <div><dt>Synthetic data</dt><dd>Every match is generated. Clubs, players, referee and stadium come from a fictional reference dataset.</dd></div>
+            </dl>
+
+            <div class="guide-foot">
+                <span class="text-muted">Hover the <i class="fa-solid fa-circle-info"></i> icons for help on each panel. Reopen this guide any time with <strong>Guide</strong> in the header.</span>
+                <button class="kickoff-btn guide-ok" id="guide-ok">Got it</button>
+            </div>
+        </div>
     </div>
     <div class="chart-tooltip" id="chart-tooltip" hidden></div>
 

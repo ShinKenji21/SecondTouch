@@ -17,6 +17,13 @@ const REASON_LABEL = {
     penalty: "Penalty", penalty_awarded: "Penalty awarded", direct_free_kick: "Direct free kick",
 };
 const SP_LABEL = { FREE_KICK: "Free kick", CORNER: "Corner", THROW_IN: "Throw-in", PENALTY: "Penalty", GOAL_KICK: "Goal kick" };
+const VAR_REASON = { OFFSIDE: "offside", FOUL: "foul in the build-up", HANDBALL: "handball" };
+const SUB_REASON = { fatigue: "tired legs", tactical: "tactical", injury: "injury", booked: "on a yellow" };
+const STANCE_LABEL = { CHASING: "📣 Chasing the game", PROTECTING: "🧱 Protecting the lead" };
+/* A goal for ev.team: scored, or put into their own net by the opponent. */
+const isGoal = ev => ev.outcome === "GOAL" || ev.outcome === "OWN_GOAL";
+/* Minute on the 0-90 chart axis: first-half added time stays at 45, not over the second half. */
+const chartMin = ev => Math.min(ev.minute, (ev.period || 1) === 1 ? 45 : 90);
 const ON_BALL = new Set(["PASS", "DRIBBLE", "SHOT"]);
 const MAX_HISTORY = 2000;
 const TRAIL = 4;
@@ -33,7 +40,7 @@ let interval = 1.5;           // seconds between events at 1x (from the server)
 let ws = null, started = false, connId = 0;
 let history = [];             // [{key, event, positions, possession, commentary, summary, alerts, story, report, overlays}]
 let matchKey = null, metadata = null;
-let liveStats = null;
+let liveStats = null, liveFitness = null, liveStance = null, liveSubs = null;
 let idx = -1;                 // index of the event on screen
 let live = true, replayPlaying = false, replayTimer = null, stopAt = null;
 let anim = { start: 0, dur: 800, ballDur: 500, from: null, entry: null };
@@ -143,7 +150,7 @@ function animDuration() {
 /* The ball travels at its own pace: real flight time from length and ball speed,
  * stretched a little so it can be followed, and done well before the next event. */
 function ballDuration(ev, dur) {
-    if (!ev.team || ev.event_type === "SUBSTITUTION") return dur * 0.3;
+    if (!ev.team || ev.event_type === "SUBSTITUTION" || ev.event_type === "INJURY") return dur * 0.3;
     if (ev.event_type === "DRIBBLE") return dur * 0.9;
     if (ev.event_type === "TACKLE") return dur * 0.35;
     const kmh = ev.metrics.ball_speed_kmh || 60;
@@ -169,7 +176,7 @@ function arrowHead(x0, y0, x1, y1, size) {
 
 /* The action line (pass, dribble, shot, tackle) drawn up to `t` (0-1). */
 function drawAction(ev, t, alpha) {
-    if (!ev.team || ev.event_type === "SUBSTITUTION") return;
+    if (!ev.team || ev.event_type === "SUBSTITUTION" || ev.event_type === "INJURY") return;
     const l = ev.location, m = ev.metrics;
     const [x0, y0] = pctPx(l.start_x, l.start_y);
     const [x1, y1] = pctPx(l.end_x, l.end_y);
@@ -371,15 +378,24 @@ function chip(text, x, y, bg, fg, align = "left") {
 
 function drawOverlays(ev, t, now) {
     const done = t >= 1;
-    if (ev.event_type === "SHOT" && ev.outcome === "GOAL" && done) {
+    if (isGoal(ev) && done) {
         const k = Math.min(1, (now - anim.start - anim.ballDur) / 700);
         if (k > 0) {
             const [gx, gy] = pctPx(ev.location.end_x, ev.location.end_y);
             ctx.strokeStyle = `rgba(234,179,8,${1 - k})`; ctx.lineWidth = 4;
             ctx.beginPath(); ctx.arc(gx, gy, 10 + k * 50, 0, Math.PI * 2); ctx.stroke();
         }
-        const cheer = fav() ? (ev.team === fav() ? "GOAL! ★" : "GOAL") : "GOAL!";
-        banner(cheer, "#EAB308", `${ev.player} · ${TEAM_LABEL[ev.team]} ${ev.score.home}-${ev.score.away}`);
+        const word = ev.outcome === "OWN_GOAL" ? "OWN GOAL" : "GOAL";
+        const cheer = fav() ? (ev.team === fav() ? `${word}! ★` : word) : `${word}!`;
+        const scorer = ev.outcome === "OWN_GOAL" ? `${ev.opponent} (o.g.)` : ev.player;
+        const checked = ev.var && ev.var.decision === "GOAL_STANDS" ? " · VAR: goal stands" : "";
+        banner(cheer, "#EAB308", `${scorer} · ${TEAM_LABEL[ev.team]} ${ev.score.home}-${ev.score.away}${checked}`);
+    } else if (ev.outcome === "DISALLOWED" && done) {
+        banner("VAR: NO GOAL", "#EF4444", `${ev.player}'s goal ruled out for ${VAR_REASON[ev.var.reason]}`);
+    } else if (ev.outcome === "WOODWORK" && done) {
+        banner("OFF THE WOODWORK!", "#F97316", `${ev.player} · ${TEAM_LABEL[ev.team]}`);
+    } else if (ev.event_type === "INJURY") {
+        banner("🚑 INJURY", "#E5E7EB", `${ev.player} (${TEAM_LABEL[ev.team]}) is down and needs treatment`);
     } else if (ev.restart === "PENALTY" && done) {
         const card = ev.card ? ` · ${ev.card === "RED" ? "🟥" : "🟨"} ${ev.player}` : "";
         banner("PENALTY!", "#EF4444", `${TEAM_LABEL[ev.restart_team]} · ${ev.opponent} fouled by ${ev.player}${card}`);
@@ -387,7 +403,8 @@ function drawOverlays(ev, t, now) {
         banner(ev.card === "RED" ? "RED CARD" : "YELLOW CARD", ev.card === "RED" ? "#EF4444" : "#EAB308",
             `${ev.player} (${TEAM_LABEL[ev.team]}) on ${ev.opponent}`);
     } else if (ev.event_type === "SUBSTITUTION") {
-        banner("SUBSTITUTION", "#E5E7EB", `${TEAM_LABEL[ev.team]}: ${ev.player} on, ${ev.player_off} off`);
+        const why = (ev.tags || []).map(t => SUB_REASON[t]).filter(Boolean)[0];
+        banner("SUBSTITUTION", "#E5E7EB", `${TEAM_LABEL[ev.team]}: ${ev.player} on, ${ev.player_off} off${why ? ` · ${why}` : ""}`);
     } else if (ev.event_type === "HALF_TIME" || ev.event_type === "FULL_TIME") {
         banner(ev.event_type === "HALF_TIME" ? "HALF-TIME · TEAMS CHANGE ENDS" : "FULL-TIME", "#FFFFFF",
             `${TEAM_LABEL[HOME]} ${ev.score.home}-${ev.score.away} ${TEAM_LABEL[AWAY]}`);
@@ -405,6 +422,7 @@ function drawOverlays(ev, t, now) {
     } else if (ev.restart && ev.restart !== "PENALTY" && done) {
         chip(`${ICON[ev.restart]} ${SP_LABEL[ev.restart].toUpperCase()} · ${TEAM_SHORT[ev.restart_team]}`, 8, chipY, "rgba(8,12,20,0.85)", TEAM_COLOR[ev.restart_team]);
     }
+    if (ev.added_time) chip(`⏱ +${ev.added_time} MIN ADDED`, W - 8, live ? 8 : 32, "rgba(8,12,20,0.85)", "#E5E7EB", "right");
     if (!live) chip(`REPLAY ${ev.clock}`, W - 8, 8, "rgba(8,12,20,0.85)", "#EAB308", "right");
 }
 
@@ -464,7 +482,8 @@ function showCommentary(entry, flash = false) {
     }
 }
 
-const TOAST_ICON = { first_goal: "⚽", brace: "⚽⚽", hat_trick: "🎩", touches: "👟", passes_completed: "🎯", team_passes: "🔗",
+const TOAST_ICON = { added_time: "⏱", chasing: "📣", protecting: "🧱",
+    first_goal: "⚽", brace: "⚽⚽", hat_trick: "🎩", touches: "👟", passes_completed: "🎯", team_passes: "🔗",
     tackles_won: "🛡️", saves: "🧤", spell: "🔄", top_speed: "⚡", chaos: "🌪️", control: "🎛️", press_up: "📈" };
 
 function showToasts(entry) {
@@ -557,36 +576,55 @@ function metricRow(label, value, pct, cls = "blue") {
         <div class="progress-bar-bg"><div class="progress-bar-fill ${cls}" style="width:${Math.max(0, Math.min(100, pct || 0))}%"></div></div>`;
 }
 
+/* One row comparing the two teams: values at the ends, bars growing out from the label. */
+function compareRow(label, h, a, fmt = v => v) {
+    const max = Math.max(h || 0, a || 0, 1e-9);
+    return `<div class="glance-row">
+        <span class="g-val">${fmt(h, 0)}</span>
+        <div class="g-bar left"><div style="width:${100 * (h || 0) / max}%; background:${TEAM_COLOR[HOME]}"></div></div>
+        <span class="g-label">${label}</span>
+        <div class="g-bar"><div style="width:${100 * (a || 0) / max}%; background:${TEAM_COLOR[AWAY]}"></div></div>
+        <span class="g-val">${fmt(a, 1)}</span></div>`;
+}
+
+/* Analyst: both teams side by side in one card, plus the numbers behind the action on screen. */
 function renderTeamTelemetry() {
-    const s = anim.entry.summary;
+    const e = anim.entry, s = e.summary, ev = e.event, m = ev.metrics || {};
     const T = liveStats ? liveStats.teams : null;
-    $("team-telemetry").innerHTML = TEAMS.map(team => {
-        const ev = lastActionOf(team);
-        const m = ev ? ev.metrics : {};
-        const kind = ev ? (ev.set_piece ? SP_LABEL[ev.set_piece].toUpperCase() : ev.body_part === "HEAD" ? "HEADER" : ev.event_type) : "";
-        const what = ev ? `#${player(team, ev.player).num} ${esc(ev.player)} · ${kind}${ev.outcome ? " " + ev.outcome.toLowerCase() : ""} · ${ev.clock}` : "no action yet";
-        const ts = T ? T[team] : null;
-        const i = team === HOME ? 0 : 1;
-        return `<div class="card telemetry-card team-tele" style="--tc:${TEAM_COLOR[team]}">
-            <div class="card-header-flex"><h3><span class="legend-dot" style="background:${TEAM_COLOR[team]}"></span> ${TEAM_LABEL[team]} telemetry</h3></div>
-            <div class="tele-last">Last action: <strong>${what}</strong></div>
-            ${metricRow("xG (shot)", m.xg != null ? m.xg.toFixed(2) : "—", (m.xg || 0) * 100)}
-            ${metricRow("Pass difficulty", m.pass_difficulty != null ? `${m.pass_difficulty}/100` : "—", m.pass_difficulty)}
-            ${metricRow(`Pressure on the ball${m.nearest_defender_m != null ? ` · defender ${m.nearest_defender_m}m` : ""}`, m.pressure ? `${m.pressure} · ${m.pressure_index}` : "—", m.pressure_index, "yellow")}
-            <div class="telemetry-grid">
-                <div><span class="tg-label">Ball speed</span><span>${m.ball_speed_kmh != null ? `${m.ball_speed_kmh} km/h` : "—"}</span></div>
-                <div><span class="tg-label">Forward gain</span><span>${m.forward_gain_m != null ? `${m.forward_gain_m} m` : "—"}</span></div>
-                <div><span class="tg-label">Bypassed</span><span>${m.players_bypassed ?? "—"}</span></div>
-            </div>
-            <div class="tele-totals">
-                <span title="Total expected goals">xG <strong>${s.xg[i].toFixed(2)}</strong></span>
-                <span title="Average difficulty of attempted passes">Avg pass diff. <strong>${ts ? ts.avg_pass_difficulty : "—"}</strong></span>
-                <span title="Average pressure index this team puts on the opponent's player on the ball">Pressure applied <strong>${s.flow.press[team]}</strong></span>
-                <span title="Fastest pass or shot">Top ball speed <strong>${ts && ts.top_ball_speed ? ts.top_ball_speed + " km/h" : "—"}</strong></span>
-                <span title="Estimated total distance covered">Distance <strong>${ts ? ts.distance_km + " km" : "—"}</strong></span>
-            </div>
-        </div>`;
+    const stance = TEAMS.filter(t => liveStance && STANCE_LABEL[liveStance[t]])
+        .map(t => `<span class="stance-chip" style="border-color:${TEAM_COLOR[t]}" title="How the manager has set the team up for the score">${TEAM_SHORT[t]} ${STANCE_LABEL[liveStance[t]]}</span>`).join("");
+    const last = TEAMS.map(team => {
+        const a = lastActionOf(team);
+        const what = a ? `#${player(team, a.player).num} <strong>${esc(a.player)}</strong> · ${a.set_piece ? SP_LABEL[a.set_piece].toLowerCase()
+            : a.event_type === "SHOT" ? shotKind(a).toLowerCase() : a.event_type === "PASS" ? passKind(a).toLowerCase() : a.event_type.toLowerCase()}${a.outcome ? " " + a.outcome.toLowerCase() : ""} · ${a.clock}` : "no action yet";
+        return `<div class="tt-last" style="--tc:${TEAM_COLOR[team]}"><span class="tt-team">${TEAM_SHORT[team]}</span>${what}</div>`;
     }).join("");
+    const now = ev.team && ev.event_type !== "SUBSTITUTION" && ev.event_type !== "INJURY" ? `
+        <div class="tt-now-head">On screen now: <strong>${esc(ev.player)}</strong>, ${TEAM_LABEL[ev.team]}</div>
+        <div class="telemetry-grid">
+            <div><span class="tg-label">Pass difficulty</span><span>${m.pass_difficulty != null ? `${m.pass_difficulty}/100` : "—"}</span></div>
+            <div><span class="tg-label">Pressure</span><span>${m.pressure ? `${m.pressure.toLowerCase()} · ${m.pressure_index}` : "—"}</span></div>
+            <div><span class="tg-label">Defender</span><span>${m.nearest_defender_m != null ? `${m.nearest_defender_m} m` : "—"}</span></div>
+            <div><span class="tg-label">Ball speed</span><span>${m.ball_speed_kmh != null ? `${m.ball_speed_kmh} km/h` : "—"}</span></div>
+            <div><span class="tg-label">${m.xg != null ? "Shot xG" : "Forward gain"}</span><span>${m.xg != null ? m.xg.toFixed(2) : m.forward_gain_m != null ? `${m.forward_gain_m} m` : "—"}</span></div>
+            <div><span class="tg-label">Bypassed</span><span>${m.players_bypassed ?? "—"}</span></div>
+        </div>` : "";
+    const maxSubs = metadata ? metadata.max_subs : 5;
+    const rows = T ? [
+        compareRow("xG", s.xg[0], s.xg[1], v => v.toFixed(2)),
+        compareRow("Shots (on target)", s.shots[0], s.shots[1], (v, i) => `${v} (${s.on_target[i]})`),
+        compareRow("Possession", s.possession[0], s.possession[1], v => `${v}%`),
+        compareRow("Field tilt", T[HOME].field_tilt, T[AWAY].field_tilt, v => `${v}%`),
+        compareRow("Pressure applied", s.flow.press[HOME], s.flow.press[AWAY]),
+        compareRow("Pass accuracy", T[HOME].pass_pct, T[AWAY].pass_pct, v => `${v}%`),
+        compareRow("Avg pass difficulty", T[HOME].avg_pass_difficulty, T[AWAY].avg_pass_difficulty),
+        compareRow("Top ball speed", T[HOME].top_ball_speed, T[AWAY].top_ball_speed, v => v ? Math.round(v) : "—"),
+        compareRow("Distance (km)", T[HOME].distance_km, T[AWAY].distance_km, v => v.toFixed(1)),
+        compareRow("Subs used", liveSubs ? liveSubs[HOME] : 0, liveSubs ? liveSubs[AWAY] : 0, v => `${v}/${maxSubs}`),
+    ].join("") : "";
+    $("team-telemetry").innerHTML = `
+        <div class="card-header-flex"><h3>Team telemetry <span class="info" data-tip="Both teams compared live. Bars grow towards the team that leads each number. 'On screen now' breaks down the action being shown: how hard the pass was, how much pressure was on the ball, and how fast it travelled.">ⓘ</span></h3>${stance}</div>
+        ${last}${now}<div class="tt-rows">${rows}</div>`;
 }
 
 function moodText(flow) {
@@ -620,8 +658,9 @@ function renderGlance() {
             <span class="g-val">${fmt(a)}</span></div>`;
     }).join("");
     $("momentum-needle").style.left = `${50 - s.momentum / 2}%`;
-    const goals = history.filter(h => h.key === matchKey && h.event.outcome === "GOAL" && history.indexOf(h) <= idx);
-    $("glance-goals").innerHTML = goals.map(h => `<li style="--tc:${TEAM_COLOR[h.event.team]}">⚽ ${h.event.clock} ${esc(h.event.player)} <span class="text-muted">${TEAM_LABEL[h.event.team]}</span></li>`).join("")
+    const goals = history.filter(h => h.key === matchKey && isGoal(h.event) && history.indexOf(h) <= idx);
+    const scorer = ev => ev.outcome === "OWN_GOAL" ? `${esc(ev.opponent)} (o.g.)` : esc(ev.player);
+    $("glance-goals").innerHTML = goals.map(h => `<li style="--tc:${TEAM_COLOR[h.event.team]}">⚽ ${h.event.clock} ${scorer(h.event)} <span class="text-muted">${TEAM_LABEL[h.event.team]}</span></li>`).join("")
         || `<li class="text-muted">No goals yet</li>`;
 }
 
@@ -643,6 +682,13 @@ function renderPlayerCard() {
     const status = p.sub_off != null ? ` · off ${p.sub_off}'` : p.minutes === 0 ? " · not played yet" : ` · ${p.minutes}'`;
     $("pc-sub").innerText = `${p.pos} · ${TEAM_LABEL[team]}${status}`;
     $("pc-rating").innerText = p.rating != null ? p.rating.toFixed(1) : "–";
+    const fitNow = liveFitness && liveFitness[team] ? liveFitness[team][p.id] : null;
+    $("pc-fitness").hidden = fitNow == null;
+    if (fitNow != null) {
+        $("pc-fitness-val").innerText = `${fitNow}%`;
+        $("pc-fitness-fill").style.width = `${fitNow}%`;
+        $("pc-fitness-fill").style.background = fitNow >= 70 ? "var(--accent-green)" : fitNow >= 55 ? "var(--accent-yellow)" : "var(--accent-red)";
+    }
     const keeper = p.pos === "GK";
     const peers = rows.filter(r => r.minutes > 0 && (r.pos === "GK") === keeper);
     $("pc-bars").innerHTML = PC_STATS[keeper ? "keeper" : "outfield"].map(([k, label]) => {
@@ -650,7 +696,7 @@ function renderPlayerCard() {
         const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
         const max = Math.max(...vals, p[k] || 0, 1);
         const v = p[k] || 0;
-        const fmt = x => (k === "distance_km" || k === "top_speed") ? x.toFixed(1) : Math.round(x * 10) / 10;
+        const fmt = x => k === "top_speed" && !x ? "–" : (k === "distance_km" || k === "top_speed") ? x.toFixed(1) : Math.round(x * 10) / 10;
         return `<div class="pc-row"><div class="pc-row-label"><span>${label}</span><span><strong>${fmt(v)}</strong> <span class="text-muted">team avg ${fmt(avg)}</span></span></div>
             <div class="pc-bar"><div class="pc-fill" style="width:${100 * v / max}%; background:${TEAM_COLOR[team]}"></div><div class="pc-avg" style="left:${100 * avg / max}%"></div></div></div>`;
     }).join("");
@@ -704,6 +750,7 @@ function openReport(entry) {
         ["Possession", `${th.possession}%`, `${ta.possession}%`, th.possession, ta.possession], ["Pass accuracy", `${th.pass_pct}%`, `${ta.pass_pct}%`, th.pass_pct, ta.pass_pct],
         ["Big chances", th.big_chances, ta.big_chances], ["Ball wins in opp. half", th.press_wins, ta.press_wins],
         ["Corners", th.corners, ta.corners], ["Fouls", th.fouls, ta.fouls], ["Offsides", th.offsides, ta.offsides],
+        ["Woodwork", th.woodwork, ta.woodwork], ["Field tilt", `${th.field_tilt}%`, `${ta.field_tilt}%`, th.field_tilt, ta.field_tilt],
         ["Cards", `${th.yellow}🟨 ${th.red}🟥`, `${ta.yellow}🟨 ${ta.red}🟥`, th.yellow + 2 * th.red, ta.yellow + 2 * ta.red],
         ["Distance (km)", th.distance_km, ta.distance_km]];
     $("report-stats").innerHTML = rows.map(([label, h, a, hn = +h, an = +a]) => {
@@ -714,7 +761,7 @@ function openReport(entry) {
     $("report-narrative").innerText = r.narrative;
     const b = r.best_player;
     $("report-best").innerHTML = b ? `<span class="rb-label">Best player</span> <strong>${esc(b.name)}</strong> <span style="color:${TEAM_COLOR[b.team]}">${TEAM_LABEL[b.team]}</span> <span class="rating r-high">${b.rating.toFixed(1)}</span>` : "";
-    const icon = m => m.outcome === "GOAL" ? "⚽" : m.restart === "PENALTY" ? ICON.PENALTY : m.card === "RED" ? "🟥" : m.card ? "🟨" : m.outcome === "SAVED" ? "🧤" : "🎯";
+    const icon = m => isGoal(m) ? "⚽" : m.outcome === "DISALLOWED" ? ICON.DISALLOWED : m.restart === "PENALTY" ? ICON.PENALTY : m.card === "RED" ? "🟥" : m.card ? "🟨" : m.outcome === "SAVED" ? "🧤" : "🎯";
     $("report-moments").innerHTML = r.key_moments.map(m => `<li>${icon(m)} ${m.clock} ${esc(m.player)} <span class="text-muted">${TEAM_LABEL[m.team]}</span></li>`).join("");
     $("report-source").innerText = `${entry.reportSource || "LOCAL ENGINE"} · ${r.kind === "HALF_TIME" ? "Second half kicks off shortly" : "New match starts shortly"}`;
     $("report-modal").hidden = false;
@@ -838,6 +885,7 @@ $("timeline-slider").addEventListener("input", e => {
 $("return-live-btn").addEventListener("click", goLive);
 
 document.addEventListener("keydown", e => {
+    if (!$("guide").hidden) { if (e.key === "Escape") closeGuide(); return; }
     if (e.target.closest && e.target.closest("input, select, textarea")) return;
     if (e.key === " ") { e.preventDefault(); togglePlay(); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); $("step-back-btn").click(); }
@@ -854,7 +902,8 @@ function renderMarkers() {
     history.forEach((h, i) => {
         const ev = h.event;
         let cls = null, label = "";
-        if (ev.outcome === "GOAL") { cls = "goal"; label = `⚽ ${ev.clock} ${ev.player}`; }
+        if (isGoal(ev)) { cls = "goal"; label = `⚽ ${ev.clock} ${ev.outcome === "OWN_GOAL" ? `${ev.opponent} (o.g.)` : ev.player}`; }
+        else if (ev.outcome === "DISALLOWED") { cls = "var"; label = `🚫 ${ev.clock} ${ev.player}: VAR, no goal`; }
         else if (ev.card) { cls = ev.card === "RED" ? "red" : "yellow"; label = `${ev.card === "RED" ? "🟥" : "🟨"} ${ev.clock} ${ev.player}`; }
         else if (ev.event_type === "HALF_TIME") { cls = "ht"; label = "Half-time"; }
         if (cls) marks.push(`<button class="tl-mark ${cls}" style="left:${(100 * i / (n - 1)).toFixed(2)}%" data-seq="${ev.seq}" title="${esc(label)}" aria-label="${esc(label)}"></button>`);
@@ -869,24 +918,41 @@ $("timeline-markers").addEventListener("click", e => {
 /* ---------- EVENT LOG ---------- */
 const ICON = { GOAL: "⚽", SAVED: "🧤", MISS: "🎯", BLOCKED: "🧱", COMPLETE: "➡️", INTERCEPTED: "✂️", SUCCESS: "💨",
                WON: "🛡️", FOUL: "✋", OUT: "↗️", OFFSIDE: "🚩", SUBSTITUTION: "🔁", HALF_TIME: "⏸", FULL_TIME: "🏁",
-               CORNER: "⛳", FREE_KICK: "🦶", THROW_IN: "🙌", GOAL_KICK: "🥅", PENALTY: "❗" };
+               CORNER: "⛳", FREE_KICK: "🦶", THROW_IN: "🙌", GOAL_KICK: "🥅", PENALTY: "❗",
+               OWN_GOAL: "⚽", WOODWORK: "🪵", DISALLOWED: "🚫", INJURY: "🚑" };
 
-/* What kind of shot: penalty, free kick, header or an ordinary shot. */
-const shotKind = ev => ev.set_piece === "PENALTY" ? "PENALTY" : ev.set_piece === "FREE_KICK" ? "FREE KICK" : ev.body_part === "HEAD" ? "HEADER" : "SHOT";
+/* What kind of shot: penalty, free kick, header, rebound or an ordinary shot. */
+const shotKind = ev => ev.set_piece === "PENALTY" ? "PENALTY" : ev.set_piece === "FREE_KICK" ? "FREE KICK"
+    : ev.body_part === "HEAD" ? "HEADER" : (ev.tags || []).includes("rebound") ? "REBOUND" : "SHOT";
+/* What kind of pass: a set piece, a cross, a through ball, a long ball or an ordinary pass. */
+const passKind = ev => {
+    const tags = ev.tags || [];
+    if (ev.set_piece) return SP_LABEL[ev.set_piece].toUpperCase();
+    return tags.includes("cross") ? "CROSS" : tags.includes("through_ball") ? "THROUGH BALL" : tags.includes("long_ball") ? "LONG BALL" : "PASS";
+};
 
 function logLabel(ev) {
-    const sp = ev.set_piece ? SP_LABEL[ev.set_piece].toUpperCase() + " " : "";
+    const kind = passKind(ev) + " ";
+    const tags = ev.tags || [];
     switch (ev.event_type) {
         case "PASS":
-            if (ev.outcome === "COMPLETE") return `${sp || "PASS "}→ ${ev.receiver}`;
-            if (ev.outcome === "OUT") return `${sp || "PASS "}OUT OF PLAY`;
+            if (ev.outcome === "COMPLETE") return `${kind}→ ${ev.receiver}`;
+            if (ev.outcome === "OWN_GOAL") return `${kind}· OWN GOAL by ${ev.opponent}`;
+            if (ev.outcome === "OUT") return `${kind}OUT OF PLAY`;
             if (ev.outcome === "OFFSIDE") return `OFFSIDE: ${ev.receiver}`;
-            return `${sp || "PASS "}${ev.restart === "CORNER" ? "TURNED BEHIND by" : sp ? "CLEARED by" : "INTERCEPTED by"} ${ev.opponent}`;
+            if (tags.includes("claimed")) return `${kind}CLAIMED by ${ev.opponent}`;
+            return `${kind}${ev.restart === "CORNER" ? "TURNED BEHIND by" : tags.includes("delivery") ? "CLEARED by" : "INTERCEPTED by"} ${ev.opponent}`;
         case "DRIBBLE": return "DRIBBLE";
-        case "SHOT": return `${shotKind(ev)} · ${ev.outcome}`;
+        case "SHOT":
+            if (ev.outcome === "DISALLOWED") return `${shotKind(ev)} · GOAL DISALLOWED (VAR: ${VAR_REASON[ev.var.reason]})`;
+            return `${shotKind(ev)} · ${ev.outcome}${ev.var && ev.var.decision === "GOAL_STANDS" ? " (VAR ✓)" : ""}`;
+        case "INJURY": return "INJURY, treatment on the pitch";
         case "TACKLE": return ev.outcome === "WON" ? `TACKLE WON on ${ev.opponent}`
             : `${ev.restart === "PENALTY" ? "PENALTY! FOUL" : "FOUL"} on ${ev.opponent}${ev.card ? (ev.card === "RED" ? " 🟥" : " 🟨") : ""}`;
-        case "SUBSTITUTION": return `SUB ${ev.player} ⇄ ${ev.player_off}`;
+        case "SUBSTITUTION": {
+            const why = tags.map(t => SUB_REASON[t]).filter(Boolean)[0];
+            return `SUB ${ev.player} ⇄ ${ev.player_off}${why ? ` (${why})` : ""}`;
+        }
         default: return ev.event_type.replace("_", " ");
     }
 }
@@ -901,10 +967,11 @@ function addLogItem(entry) {
     item.tabIndex = 0;
     const who = ev.team && ev.event_type !== "SUBSTITUTION"
         ? `<span class="team-tag" style="--tc:${TEAM_COLOR[ev.team]}">${esc(ev.player)}</span> ` : "";
-    const icon = ev.outcome === "GOAL" ? ICON.GOAL : ev.restart === "PENALTY" ? ICON.PENALTY
+    const icon = isGoal(ev) ? ICON.GOAL : ev.restart === "PENALTY" ? ICON.PENALTY
         : ev.set_piece && ev.event_type === "PASS" ? ICON[ev.set_piece] : ICON[ev.outcome || ev.event_type];
     const restart = ev.restart ? ` <span class="restart-tag" title="Play restarts with this set piece">→ ${SP_LABEL[ev.restart].toLowerCase()} ${TEAM_SHORT[ev.restart_team]}</span>` : "";
-    item.innerHTML = `<span class="event-time">${esc(ev.clock)}</span><span>${mine ? "★ " : ""}${icon || "•"} ${who}<strong>${esc(logLabel(ev))}</strong>${restart}${ev.possession_change ? ' <span class="poss-chg" title="Possession changed">⇄</span>' : ""}${ev.is_impact_moment ? ' <span class="zap">⚡</span>' : ""}</span>`;
+    const added = ev.added_time ? ` <span class="restart-tag">⏱ +${ev.added_time}</span>` : "";
+    item.innerHTML = `<span class="event-time">${esc(ev.clock)}</span><span>${mine ? "★ " : ""}${icon || "•"} ${who}<strong>${esc(logLabel(ev))}</strong>${restart}${added}${ev.possession_change ? ' <span class="poss-chg" title="Possession changed">⇄</span>' : ""}${ev.is_impact_moment ? ' <span class="zap">⚡</span>' : ""}</span>`;
     const list = $("event-log-container");
     list.prepend(item);
     while (list.children.length > 150) list.lastChild.remove();
@@ -923,7 +990,8 @@ $("impact-only").addEventListener("change", e => $("event-log-container").classL
 
 /* ---------- KEY EVENTS & STORIES ---------- */
 function isKeyEvent(ev) {
-    return ev.outcome === "GOAL" || ev.card || ev.restart === "PENALTY" || ev.event_type === "SUBSTITUTION" || ev.event_type === "HALF_TIME"
+    return isGoal(ev) || ev.outcome === "DISALLOWED" || ev.outcome === "WOODWORK" || ev.event_type === "INJURY"
+        || ev.card || ev.restart === "PENALTY" || ev.event_type === "SUBSTITUTION" || ev.event_type === "HALF_TIME"
         || ev.event_type === "FULL_TIME" || (ev.event_type === "SHOT" && (ev.metrics.xg >= 0.3 || ev.outcome === "SAVED"
             || ev.set_piece === "PENALTY" || ev.set_piece === "FREE_KICK"));
 }
@@ -931,10 +999,17 @@ function isKeyEvent(ev) {
 function keyEventText(ev) {
     const how = ev.event_type === "SHOT" && shotKind(ev) !== "SHOT" ? `, ${shotKind(ev).toLowerCase()}` : "";
     const xg = ev.metrics.xg != null ? ` (${ev.metrics.xg.toFixed(2)} xG${how})` : "";
-    if (ev.outcome === "GOAL") return `⚽ <strong>GOAL</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}${xg} · ${ev.score.home}-${ev.score.away}`;
+    if (ev.outcome === "GOAL") return `⚽ <strong>GOAL</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}${xg} · ${ev.score.home}-${ev.score.away}${ev.var && ev.var.decision === "GOAL_STANDS" ? " · VAR ✓" : ""}`;
+    if (ev.outcome === "OWN_GOAL") return `⚽ <strong>OWN GOAL</strong> ${esc(ev.opponent)} for ${TEAM_LABEL[ev.team]} · ${ev.score.home}-${ev.score.away}`;
+    if (ev.outcome === "DISALLOWED") return `🚫 <strong>VAR: NO GOAL</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}: ${VAR_REASON[ev.var.reason]}`;
+    if (ev.outcome === "WOODWORK") return `🪵 <strong>WOODWORK</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}${xg}`;
+    if (ev.event_type === "INJURY") return `🚑 <strong>INJURY</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}`;
     if (ev.restart === "PENALTY") return `${ICON.PENALTY} <strong>PENALTY</strong> to ${TEAM_LABEL[ev.restart_team]}: ${esc(ev.opponent)} fouled by ${esc(ev.player)}${ev.card ? (ev.card === "RED" ? " 🟥" : " 🟨") : ""}`;
     if (ev.card) return `${ev.card === "RED" ? "🟥 <strong>RED CARD</strong>" : "🟨 <strong>YELLOW CARD</strong>"} ${esc(ev.player)} (${TEAM_LABEL[ev.team]}) for a foul on ${esc(ev.opponent)}`;
-    if (ev.event_type === "SUBSTITUTION") return `🔁 <strong>SUB</strong> ${TEAM_LABEL[ev.team]}: ${esc(ev.player)} on, ${esc(ev.player_off)} off`;
+    if (ev.event_type === "SUBSTITUTION") {
+        const why = (ev.tags || []).map(t => SUB_REASON[t]).filter(Boolean)[0];
+        return `🔁 <strong>SUB</strong> ${TEAM_LABEL[ev.team]}: ${esc(ev.player)} on, ${esc(ev.player_off)} off${why ? ` (${why})` : ""}`;
+    }
     if (ev.event_type === "HALF_TIME") return `⏸ <strong>HALF-TIME REPORT</strong> ${TEAM_LABEL[HOME]} ${ev.score.home}-${ev.score.away} ${TEAM_LABEL[AWAY]}`;
     if (ev.event_type === "FULL_TIME") return `🏁 <strong>FULL-TIME REPORT</strong> ${TEAM_LABEL[HOME]} ${ev.score.home}-${ev.score.away} ${TEAM_LABEL[AWAY]}`;
     if (ev.outcome === "SAVED") return `🧤 <strong>${ev.set_piece === "PENALTY" ? "PENALTY SAVED" : "SAVE"}</strong> ${esc(ev.opponent)} denies ${esc(ev.player)}${xg}`;
@@ -994,6 +1069,11 @@ const H2H = [
     ["Ball wins in opp. half", s => s.press_wins],
     ["Distance covered (km)", s => s.distance_km, v => v.toFixed(1)],
     ["Top sprint (km/h)", s => s.top_speed, v => v.toFixed(1)],
+    ["Expected assists (xA)", s => s.xa, v => v.toFixed(2)], ["Big chances missed", s => s.big_chances_missed],
+    ["Woodwork", s => s.woodwork], ["Field tilt", s => s.field_tilt, v => `${v}%`],
+    ["Crosses (completed)", s => s.crosses_completed], ["Long balls (completed)", s => s.long_balls_completed],
+    ["Progressive passes", s => s.progressive_passes], ["Aerial duels won", s => s.aerials_won],
+    ["Clearances", s => s.clearances], ["Blocks", s => s.blocks],
     ["Saves", s => s.saves], ["Corners", s => s.corners], ["Free kicks", s => s.free_kicks],
     ["Throw-ins", s => s.throw_ins], ["Goal kicks", s => s.goal_kicks], ["Penalties", s => s.penalties],
     ["Offsides", s => s.offsides], ["Fouls", s => s.fouls], ["Yellow cards", s => s.yellow], ["Red cards", s => s.red],
@@ -1017,10 +1097,11 @@ function renderStats() {
 }
 
 const COLS = [
-    ["num", "#"], ["name", "Player"], ["pos", "Pos"], ["minutes", "Min"], ["rating", "Rating"],
-    ["goals", "G"], ["assists", "A"], ["shots", "Shots (OT)"], ["xg", "xG"], ["passes", "Passes"],
+    ["num", "#"], ["name", "Player"], ["pos", "Pos"], ["minutes", "Min"], ["fitness", "Fit."], ["rating", "Rating"],
+    ["goals", "G"], ["assists", "A"], ["shots", "Shots (OT)"], ["xg", "xG"], ["xa", "xA"], ["passes", "Passes"],
     ["key_passes", "Key P."], ["dribbles_won", "Dribbles"], ["tackles_won", "Tackles"],
-    ["interceptions", "Int."], ["saves", "Saves"], ["fouls", "Fouls"], ["fouls_won", "Fouled"], ["offsides", "Off."], ["cards", "Cards"],
+    ["interceptions", "Int."], ["aerials_won", "Aerials"], ["clearances", "Clr."], ["blocks", "Blk."],
+    ["saves", "Saves"], ["fouls", "Fouls"], ["fouls_won", "Fouled"], ["offsides", "Off."], ["cards", "Cards"],
     ["touches", "Touches"], ["sprints", "Sprints"], ["distance_km", "Dist. km"], ["top_speed", "Top km/h"],
 ];
 const COL_TITLE = {
@@ -1028,13 +1109,17 @@ const COL_TITLE = {
     shots: "Shots (on target)", passes: "Completed / attempted passes", key_passes: "Passes that led to a shot",
     dribbles_won: "Successful / attempted dribbles", tackles_won: "Tackles won / attempted",
     interceptions: "Interceptions", touches: "Touches of the ball", fouls: "Fouls committed",
+    fitness: "Fitness now (100 = fresh); drains with running, faster for low-stamina players",
+    xa: "Expected assists: xG of the shots this player set up", aerials_won: "Aerial duels won",
+    clearances: "Clearances", blocks: "Shots blocked",
     fouls_won: "Times fouled (free kicks or penalties won)", offsides: "Caught offside", sprints: "Sprints and runs in behind",
     distance_km: "Estimated distance covered", top_speed: "Fastest sprint recorded",
 };
 
 function renderPlayerTable() {
     if (!liveStats) return;
-    let rows = liveStats.players[statsTeam].slice();
+    const fit = liveFitness && liveFitness[statsTeam] || {};
+    let rows = liveStats.players[statsTeam].map(r => ({ ...r, fitness: fit[r.id] ?? null }));
     if (sortKey) {
         const v = r => sortKey === "cards" ? r.red * 2 + r.yellow : sortKey === "name" || sortKey === "pos" ? r[sortKey] : (r[sortKey] ?? -1);
         rows.sort((a, b) => (v(a) > v(b) ? 1 : v(a) < v(b) ? -1 : 0) * sortDir);
@@ -1048,11 +1133,12 @@ function renderPlayerTable() {
         const offTxt = r.sub_off != null ? ` <span class="sub-off">${r.red ? "🟥" : "↓"}${r.sub_off}'</span>` : "";
         const cards = "🟨".repeat(r.yellow) + "🟥".repeat(r.red) || "–";
         return `<tr class="${r.minutes === 0 && r.sub_on == null && !r.starter ? "bench" : ""}${focus ? " focus" : ""}" data-pid="${esc(r.id)}">
-            <td class="num">${r.num}</td><td class="pname">${esc(r.name)}${subTxt}${offTxt}</td><td>${r.pos}</td>
-            <td>${r.minutes}</td><td><span class="rating ${ratingCls(r.rating)}">${r.rating != null ? r.rating.toFixed(1) : "–"}</span></td>
-            <td>${r.goals || "–"}</td><td>${r.assists || "–"}</td><td>${r.shots} (${r.on_target})</td><td>${r.xg.toFixed(2)}</td>
+            <td class="num">${r.num}</td><td class="pname">${esc(r.name)}${squads && squads[statsTeam][r.id]?.captain ? ' <span class="capt" title="Captain">C</span>' : ""}${subTxt}${offTxt}</td><td>${r.pos}</td>
+            <td>${r.minutes}</td><td>${r.fitness != null ? `${r.fitness}%` : "–"}</td><td><span class="rating ${ratingCls(r.rating)}">${r.rating != null ? r.rating.toFixed(1) : "–"}</span></td>
+            <td>${r.goals || "–"}</td><td>${r.assists || "–"}</td><td>${r.shots} (${r.on_target})</td><td>${r.xg.toFixed(2)}</td><td>${r.xa.toFixed(2)}</td>
             <td>${r.passes_completed}/${r.passes}</td><td>${r.key_passes}</td><td>${r.dribbles_won}/${r.dribbles}</td>
-            <td>${r.tackles_won}/${r.tackles}</td><td>${r.interceptions}</td><td>${r.saves}</td><td>${r.fouls}</td>
+            <td>${r.tackles_won}/${r.tackles}</td><td>${r.interceptions}</td><td>${r.aerials_won}/${r.aerials}</td>
+            <td>${r.clearances}</td><td>${r.blocks}</td><td>${r.saves}</td><td>${r.fouls}</td>
             <td>${r.fouls_won}</td><td>${r.offsides}</td>
             <td>${cards}</td><td>${r.touches}</td><td>${r.sprints}</td><td>${r.distance_km.toFixed(1)}</td>
             <td>${r.top_speed ? r.top_speed.toFixed(1) : "–"}</td></tr>`;
@@ -1159,8 +1245,9 @@ function renderXgChart() {
     const pts = [[0, 0, 0]];
     const goals = [];
     entries.forEach(e => {
-        pts.push([e.event.minute, e.summary.xg[0], e.summary.xg[1]]);
-        if (e.event.outcome === "GOAL") goals.push([e.event.minute, e.event.team, e.summary.xg[e.event.team === HOME ? 0 : 1], e.event.player]);
+        pts.push([chartMin(e.event), e.summary.xg[0], e.summary.xg[1]]);
+        if (isGoal(e.event)) goals.push([chartMin(e.event), e.event.team, e.summary.xg[e.event.team === HOME ? 0 : 1],
+            e.event.outcome === "OWN_GOAL" ? `${e.event.opponent} (o.g.)` : e.event.player]);
     });
     const maxY = Math.max(1, ...pts.map(p => Math.max(p[1], p[2]))) * 1.1;
     const sx = v => m.l + (w - m.l - m.r) * v / 90, sy = v => h - m.b - (h - m.t - m.b) * v / maxY;
@@ -1206,7 +1293,7 @@ function renderMomentum() {
     const buckets = new Map();
     for (const e of matchEntries()) {
         if (!e.event.team) continue;
-        const b = Math.min(29, Math.floor(e.event.minute / 3));
+        const b = Math.min(29, Math.floor(chartMin(e.event) / 3));
         const arr = buckets.get(b) || []; arr.push(e.summary.momentum); buckets.set(b, arr);
     }
     const bw = (w - m.l - m.r) / 30, mid = m.t + (h - m.t - m.b) / 2, half = (h - m.t - m.b) / 2;
@@ -1238,7 +1325,7 @@ function renderFlow() {
     // state band in 2-minute buckets: majority state wins
     const buckets = new Map();
     for (const e of entries) {
-        const b = Math.min(44, Math.floor(e.event.minute / 2));
+        const b = Math.min(44, Math.floor(chartMin(e.event) / 2));
         const f = e.summary.flow, key = f.state === "CONTROL" ? `CONTROL|${f.state_team}` : f.state;
         const counts = buckets.get(b) || {}; counts[key] = (counts[key] || 0) + 1; buckets.set(b, counts);
     }
@@ -1250,13 +1337,13 @@ function renderFlow() {
         const label = state === "CONTROL" ? `${TEAM_LABEL[team]} in control` : state === "CHAOS" ? "Chaotic: frequent turnovers" : "Balanced";
         out += `<rect x="${(m.l + b * bw + 1).toFixed(1)}" y="${m.t}" width="${Math.max(1, bw - 2).toFixed(1)}" height="${bandH}" rx="2" fill="${color}" opacity="${state === "BALANCED" ? 0.7 : 0.9}" data-tip="${b * 2}'-${b * 2 + 2}': ${label}"/>`;
     }
-    const line = team => entries.map((e, i) => `${i ? "L" : "M"}${sx(e.event.minute).toFixed(1)},${sy(e.summary.flow.press[team]).toFixed(1)}`).join(" ");
+    const line = team => entries.map((e, i) => `${i ? "L" : "M"}${sx(chartMin(e.event)).toFixed(1)},${sy(e.summary.flow.press[team]).toFixed(1)}`).join(" ");
     if (entries.length > 1) {
         out += `<path d="${line(HOME)}" class="xg-line" stroke="${TEAM_COLOR[HOME]}"/><path d="${line(AWAY)}" class="xg-line" stroke="${TEAM_COLOR[AWAY]}"/>`;
         const lf = entries[entries.length - 1].summary.flow.press;
         const ly = [sy(lf[HOME]), sy(lf[AWAY])];
         if (Math.abs(ly[0] - ly[1]) < 13) { const mid = (ly[0] + ly[1]) / 2; ly[0] = mid + (lf[HOME] >= lf[AWAY] ? -7 : 7); ly[1] = mid + (lf[HOME] >= lf[AWAY] ? 7 : -7); }
-        const lx = sx(entries[entries.length - 1].event.minute) + 8;
+        const lx = sx(chartMin(entries[entries.length - 1].event)) + 8;
         out += `<text x="${lx}" y="${ly[0] + 4}" class="direct-label">${TEAM_SHORT[HOME]} ${lf[HOME]}</text><text x="${lx}" y="${ly[1] + 4}" class="direct-label">${TEAM_SHORT[AWAY]} ${lf[AWAY]}</text>`;
     }
     svg.innerHTML = out;
@@ -1340,7 +1427,7 @@ function download(name, text, type) {
 }
 const fileStem = () => `secondtouch_match_${(metadata && metadata.kickoff_utc || "live").replace(/[:]/g, "-")}`;
 const EVENT_COLS = ["seq", "minute", "clock", "team", "player", "event_type", "outcome", "receiver", "opponent", "player_off", "card",
-    "set_piece", "restart", "restart_team", "body_part",
+    "set_piece", "restart", "restart_team", "body_part", "period", "tags", "var_decision", "var_reason", "added_time",
     "length_m", "start_x", "start_y", "end_x", "end_y", "xg", "pass_difficulty", "pressure", "pressure_index", "nearest_defender_m",
     "sprint_speed_kmh", "ball_speed_kmh", "forward_gain_m", "players_bypassed", "possession_change", "right_team",
     "is_impact_moment", "impact_reasons", "score_home", "score_away"];
@@ -1352,7 +1439,8 @@ $("dl-cues").addEventListener("click", () => download(`${fileStem()}_overlay_cue
     matchEntries().flatMap(e => e.overlays || []).map(c => JSON.stringify(c)).join("\n"), "application/x-ndjson"));
 $("dl-csv").addEventListener("click", () => {
     const rows = matchEntries().map(({ event: ev }) => {
-        const flat = { ...ev, ...ev.metrics, ...ev.location, impact_reasons: ev.impact_reasons.join("|"), score_home: ev.score.home, score_away: ev.score.away };
+        const flat = { ...ev, ...ev.metrics, ...ev.location, impact_reasons: ev.impact_reasons.join("|"), score_home: ev.score.home, score_away: ev.score.away,
+            tags: (ev.tags || []).join("|"), var_decision: ev.var ? ev.var.decision : null, var_reason: ev.var ? ev.var.reason : null };
         return EVENT_COLS.map(k => csvCell(flat[k])).join(",");
     });
     download(`${fileStem()}_events.csv`, [EVENT_COLS.join(","), ...rows].join("\n"), "text/csv");
@@ -1376,14 +1464,12 @@ function tooltip(e, html) {
     tip.style.left = `${x}px`; tip.style.top = `${y}px`;
 }
 function hideTooltip() { $("chart-tooltip").hidden = true; }
-document.addEventListener("mouseover", e => {
+const tipTarget = e => {
     const el = e.target.closest && e.target.closest("[data-tip]");
-    if (el && el.closest("svg")) tooltip(e, esc(el.dataset.tip));
-});
-document.addEventListener("mousemove", e => {
-    const el = e.target.closest && e.target.closest("[data-tip]");
-    if (el && el.closest("svg")) tooltip(e, esc(el.dataset.tip));
-});
+    return el && (el.closest("svg") || el.classList.contains("info")) ? el : null;
+};
+document.addEventListener("mouseover", e => { const el = tipTarget(e); if (el) tooltip(e, esc(el.dataset.tip)); });
+document.addEventListener("mousemove", e => { const el = tipTarget(e); if (el) tooltip(e, esc(el.dataset.tip)); });
 document.addEventListener("mouseout", e => { if (e.target.closest && e.target.closest("[data-tip]")) hideTooltip(); });
 
 /* ---------- TABS ---------- */
@@ -1473,6 +1559,9 @@ function onEvent(msg) {
     history.push(entry);
     if (history.length > MAX_HISTORY) { history.shift(); idx = Math.max(0, idx - 1); }
     liveStats = msg.stats;
+    liveFitness = msg.fitness || null;
+    liveStance = msg.stance || null;
+    liveSubs = msg.subs_used || null;
     $("timeline-slider").max = history.length - 1;
     $("replay-duration").innerText = msg.event.clock;
     addLogItem(entry);
@@ -1639,7 +1728,7 @@ function buildPlayerDropdown(team, selected) {
     for (const [pid, p] of Object.entries(squads[team])) {
         const opt = document.createElement("option");
         opt.value = pid;
-        opt.innerText = `${p.num}. ${p.name} (${p.pos})${p.starter ? "" : " · bench"}`;
+        opt.innerText = `${p.num}. ${p.name} (${p.pos})${p.captain ? " · captain" : ""}${p.starter ? "" : " · bench"}`;
         sel.appendChild(opt);
     }
     sel.value = selected;
@@ -1678,6 +1767,24 @@ function setMode(mode) {
 }
 document.querySelectorAll(".mode-btn").forEach(btn => btn.addEventListener("click", () => setMode(btn.dataset.mode)));
 
+/* ---------- GUIDE ---------- */
+function openGuide() {
+    $("guide").hidden = false;
+    $("guide").querySelector(".guide-card").scrollTop = 0;
+    $("guide-ok").focus({ preventScroll: true });
+}
+function closeGuide() {
+    $("guide").hidden = true;
+    try { localStorage.setItem("secondtouch-guide-seen", "1"); } catch (e) { /* storage blocked: it just shows again next time */ }
+}
+$("guide-btn").addEventListener("click", openGuide);
+$("guide-close").addEventListener("click", closeGuide);
+$("guide-ok").addEventListener("click", closeGuide);
+$("guide").addEventListener("click", e => { if (e.target === $("guide")) closeGuide(); });
+function guideSeen() {
+    try { return localStorage.getItem("secondtouch-guide-seen") === "1"; } catch (e) { return false; }
+}
+
 /* ---------- BOOT ---------- */
 loadPrefs();
 $("lang-select").value = settings.lang;
@@ -1691,6 +1798,18 @@ fetch("/api/squads").then(r => r.json()).then(d => {
 }).catch(() => {});
 setMode(settings.mode);
 applyFav();
+if (!guideSeen()) openGuide();
 window.addEventListener("resize", resize);
+/* Scrollbars stay hidden until used: mark whatever is scrolling for a moment so its thumb shows. */
+const scrollTimers = new WeakMap();
+document.addEventListener("scroll", e => {
+    const el = e.target === document ? document.documentElement : e.target;
+    if (!el.classList) return;
+    el.classList.add("is-scrolling");
+    clearTimeout(scrollTimers.get(el));
+    scrollTimers.set(el, setTimeout(() => el.classList.remove("is-scrolling"), 900));
+}, true);
+// the pitch also changes size when the layout around it does (sidebar, header wrapping), not only the window
+if (window.ResizeObserver) new window.ResizeObserver(resize).observe(canvas.parentElement);
 resize();
 requestAnimationFrame(frame);

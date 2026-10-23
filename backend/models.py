@@ -7,11 +7,11 @@ from pydantic import BaseModel, Field, field_validator
 
 Mode = Literal["ANALYST", "CASUAL", "PLAYER_CAM"]
 Lang = Literal["en", "es", "ja"]
-EventType = Literal["PASS", "DRIBBLE", "SHOT", "TACKLE", "SUBSTITUTION", "HALF_TIME", "FULL_TIME"]
+EventType = Literal["PASS", "DRIBBLE", "SHOT", "TACKLE", "SUBSTITUTION", "INJURY", "HALF_TIME", "FULL_TIME"]
 SetPiece = Literal["FREE_KICK", "CORNER", "THROW_IN", "PENALTY", "GOAL_KICK"]
 OUTCOMES = {
-    "PASS": {"COMPLETE", "INTERCEPTED", "OUT", "OFFSIDE"}, "DRIBBLE": {"SUCCESS"}, "TACKLE": {"WON", "FOUL"},
-    "SHOT": {"GOAL", "SAVED", "MISS", "BLOCKED"},
+    "PASS": {"COMPLETE", "INTERCEPTED", "OUT", "OFFSIDE", "OWN_GOAL"}, "DRIBBLE": {"SUCCESS"}, "TACKLE": {"WON", "FOUL"},
+    "SHOT": {"GOAL", "SAVED", "MISS", "BLOCKED", "WOODWORK", "DISALLOWED"},
 }
 
 
@@ -62,6 +62,11 @@ class Metrics(BaseModel):
     players_bypassed: Optional[int] = None
 
 
+class VarCheck(BaseModel):
+    decision: Literal["NO_GOAL", "GOAL_STANDS"]
+    reason: Optional[Literal["OFFSIDE", "FOUL", "HANDBALL"]] = None
+
+
 class Event(BaseModel):
     seq: int
     minute: float
@@ -78,6 +83,14 @@ class Event(BaseModel):
     restart: Optional[SetPiece] = None            # play stopped after this action; this restart follows
     restart_team: Optional[str] = None            # who takes that restart
     body_part: Optional[Literal["FOOT", "HEAD"]] = None  # shots only
+    period: Literal[1, 2] = 1
+    # cross, delivery, claimed, through_ball, long_ball, rebound; for substitutions the reason:
+    # fatigue, tactical, injury, booked
+    tags: list[str] = []
+    var: Optional[VarCheck] = None
+    added_time: Optional[int] = None              # minutes of added time announced with this event
+    stance_change: Optional[dict[str, Literal["BALANCED", "CHASING", "PROTECTING"]]] = None
+    reshuffle: Optional[dict] = None              # after a red card: who drops into the gap, and as what
     length_m: Optional[float] = None
     location: Location
     metrics: Metrics

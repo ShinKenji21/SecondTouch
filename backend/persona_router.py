@@ -90,6 +90,7 @@ T = {
         "r_mom": {"HALF_TIME": "{t} finished the half on top.", "FULL_TIME": "{t} were the stronger side after the break."},
         "r_best": "Best player: {name} ({t}), rating {r}: {items}.",
         "items": {"goals": "{n} goals", "assists": "{n} assists", "shots": "{n} shots", "tackles_won": "{n} tackles won", "interceptions": "{n} interceptions", "passes_completed": "{n} completed passes", "touches": "{n} touches"},
+        "items1": {"goals": "1 goal", "assists": "1 assist", "shots": "1 shot", "tackles_won": "1 tackle won", "interceptions": "1 interception", "passes_completed": "1 completed pass", "touches": "1 touch"},
     },
     "es": {
         "pressure": {"LOW": "baja", "MEDIUM": "media", "HIGH": "alta"},
@@ -162,6 +163,7 @@ T = {
         "r_mom": {"HALF_TIME": "{t} terminó la primera parte por encima.", "FULL_TIME": "{t} fue mejor tras el descanso."},
         "r_best": "Mejor jugador: {name} ({t}), nota {r}: {items}.",
         "items": {"goals": "{n} goles", "assists": "{n} asistencias", "shots": "{n} disparos", "tackles_won": "{n} entradas ganadas", "interceptions": "{n} intercepciones", "passes_completed": "{n} pases completados", "touches": "{n} toques"},
+        "items1": {"goals": "1 gol", "assists": "1 asistencia", "shots": "1 disparo", "tackles_won": "1 entrada ganada", "interceptions": "1 intercepción", "passes_completed": "1 pase completado", "touches": "1 toque"},
     },
     "ja": {
         "pressure": {"LOW": "低", "MEDIUM": "中", "HIGH": "高"},
@@ -331,6 +333,95 @@ SET_PIECE_T = {
 for _lang, _extra in SET_PIECE_T.items():
     T[_lang].update(_extra)
 
+# Match-day realism: woodwork, VAR, own goals, crosses, rebounds, injuries, why a change was made,
+# added time and how a team changes its approach with the score.
+MATCH_T = {
+    "en": {
+        "res": {"WOODWORK": "Off the woodwork!", "DISALLOWED": "In the net, but VAR rules it out for {why}."},
+        "c_res": {"WOODWORK": "{p} hits the woodwork!", "DISALLOWED": "It's in... but VAR says NO!"},
+        "var_reason": {"OFFSIDE": "offside", "FOUL": "a foul in the build-up", "HANDBALL": "handball"},
+        "var_stands": " VAR checked it: the goal stands.", "c_var_stands": " (VAR checked it: the goal stands!)",
+        "own_goal": "{o} turns {p}'s ball into their own net. {score}.",
+        "c_own_goal": "OWN GOAL! {o} puts it past their own keeper! {score}",
+        "cross_ok": "{p} crosses from {zone} and {r} attacks it in the box (delivery difficulty {diff}/100).",
+        "cross_cleared": "{p}'s cross from {zone} is cleared by {o}.",
+        "claimed": "{o} comes off the line and claims {p}'s ball into the box.",
+        "c_cross_ok": "{p} whips in a cross... {r} is there!", "c_claimed": "{o} plucks it out of the air.",
+        "rebound": "{p} reacts first to the loose ball, {len}m out: {xg} xG. {res}", "c_rebound": "Rebound! {p} pounces... ",
+        "injury": "{p} is down injured and needs treatment.", "c_injury": "{p} is down and needs the physio.",
+        "sub_why": {"fatigue": " Fresh legs: {o} was tiring.", "tactical": " A tactical switch.",
+                    "injury": " A forced change: {o} could not continue.", "booked": " {o} was on a yellow card."},
+        "a_added_time": "The fourth official shows {v} minutes of added time.",
+        "a_chasing": "{t} are chasing the game: pushing up, pressing higher and going more direct.",
+        "a_protecting": "{t} are protecting the lead: dropping deeper and slowing it down.",
+        "s_own_goal": "{o} turned the ball into their own net from {p}'s delivery.",
+        "s_var_no": "{p} had the ball in the net from {len}m, but VAR ruled it out for {why}.",
+        "s_var_ok": "VAR checked it and the goal stood.",
+        "s_woodwork": "{p} hit the woodwork from {len}m ({xg} xG).",
+        "s_injury": "{p} went down injured and needed treatment.",
+        "s_reshuffle": "{m} drops into the back line to cover.",
+        "s_rebound": "It was a rebound.",
+    },
+    "es": {
+        "res": {"WOODWORK": "¡Al palo!", "DISALLOWED": "Entra, pero el VAR lo anula por {why}."},
+        "c_res": {"WOODWORK": "¡{p} estrella el balón en el palo!", "DISALLOWED": "¡Entra... pero el VAR dice NO!"},
+        "var_reason": {"OFFSIDE": "fuera de juego", "FOUL": "falta en la jugada previa", "HANDBALL": "mano"},
+        "var_stands": " El VAR lo revisa: el gol sube al marcador.", "c_var_stands": " (revisión del VAR: ¡gol válido!)",
+        "own_goal": "{o} mete en su propia portería el balón de {p}. {score}.",
+        "c_own_goal": "¡GOL EN PROPIA PUERTA! {o} bate a su propio portero. {score}",
+        "cross_ok": "{p} centra desde {zone} y {r} lo ataca en el área (dificultad {diff}/100).",
+        "cross_cleared": "{o} despeja el centro de {p} desde {zone}.",
+        "claimed": "{o} sale y atrapa el balón de {p} al área.",
+        "c_cross_ok": "{p} pone el centro... ¡ahí está {r}!", "c_claimed": "{o} la atrapa por alto.",
+        "rebound": "{p} reacciona primero al rechace, a {len} m: {xg} xG. {res}", "c_rebound": "¡Rechace! {p} llega... ",
+        "injury": "{p} está en el suelo lesionado y necesita asistencia.", "c_injury": "{p} está en el suelo, entran las asistencias.",
+        "sub_why": {"fatigue": " Piernas frescas: {o} estaba cansado.", "tactical": " Un cambio táctico.",
+                    "injury": " Cambio obligado: {o} no puede seguir.", "booked": " {o} tenía tarjeta amarilla."},
+        "a_added_time": "El cuarto árbitro indica {v} minutos de añadido.",
+        "a_chasing": "{t} va a por el partido: adelanta líneas, presiona más arriba y juega más directo.",
+        "a_protecting": "{t} protege la ventaja: se repliega y baja el ritmo.",
+        "s_own_goal": "{o} metió el balón en su propia portería tras el envío de {p}.",
+        "s_var_no": "{p} marcó desde {len} m, pero el VAR lo anuló por {why}.",
+        "s_var_ok": "El VAR lo revisó y el gol fue válido.",
+        "s_woodwork": "{p} estrelló el balón en el palo desde {len} m ({xg} xG).",
+        "s_injury": "{p} cayó lesionado y necesitó asistencia.",
+        "s_reshuffle": "{m} retrocede a la línea defensiva para cubrir el hueco.",
+        "s_rebound": "Fue a la segunda.",
+    },
+    "ja": {
+        "res": {"WOODWORK": "ポストに当たった！", "DISALLOWED": "ネットを揺らすも、VARで{why}のため取り消し。"},
+        "c_res": {"WOODWORK": "{p}のシュートはポストに！", "DISALLOWED": "入った…しかしVARでノーゴール！"},
+        "var_reason": {"OFFSIDE": "オフサイド", "FOUL": "攻撃中のファウル", "HANDBALL": "ハンド"},
+        "var_stands": "VARチェックの結果、ゴールは認められた。", "c_var_stands": "（VAR確認：ゴールは有効！）",
+        "own_goal": "{p}のボールを{o}が自陣ゴールに入れてしまう。{score}。",
+        "c_own_goal": "オウンゴール！{o}が自らのゴールに…{score}",
+        "cross_ok": "{p}が{zone}からクロス、{r}がエリア内で合わせにいく（難易度{diff}/100）。",
+        "cross_cleared": "{p}の{zone}からのクロスは{o}がクリア。",
+        "claimed": "{o}が飛び出して{p}のボールをキャッチ。",
+        "c_cross_ok": "{p}がクロス…{r}が待っている！", "c_claimed": "{o}が空中でがっちりキャッチ。",
+        "rebound": "{p}がこぼれ球にいち早く反応、{len}mから：xG {xg}。{res}", "c_rebound": "こぼれ球！{p}が詰める…",
+        "injury": "{p}が負傷で倒れ、治療を受ける。", "c_injury": "{p}が倒れている、メディカルスタッフが入る。",
+        "sub_why": {"fatigue": "疲れの見えた{o}に代えてフレッシュな選手を。", "tactical": "戦術的な交代。",
+                    "injury": "{o}はプレー続行不可能、やむを得ない交代。", "booked": "{o}はイエローカードを受けていた。"},
+        "a_added_time": "第4審判が{v}分のアディショナルタイムを表示。",
+        "a_chasing": "{t}が反撃に出る：ラインを上げ、高い位置からプレスし、より直線的に攻める。",
+        "a_protecting": "{t}がリードを守りにいく：ラインを下げてペースを落とす。",
+        "s_own_goal": "{p}のボールを{o}が自陣ゴールへ入れてしまった。",
+        "s_var_no": "{p}が{len}mから決めたが、VARで{why}のため取り消された。",
+        "s_var_ok": "VARのチェックを経てゴールが認められた。",
+        "s_woodwork": "{p}の{len}mからのシュート（xG {xg}）はポストを叩いた。",
+        "s_injury": "{p}が負傷し、治療を受けた。",
+        "s_reshuffle": "{m}が最終ラインに下がって穴を埋める。",
+        "s_rebound": "こぼれ球からの一撃。",
+    },
+}
+for _lang, _extra in MATCH_T.items():
+    for _k, _v in _extra.items():
+        if isinstance(_v, dict) and isinstance(T[_lang].get(_k), dict):
+            T[_lang][_k].update(_v)
+        else:
+            T[_lang][_k] = _v
+
 
 class Context:
     """Everything beyond the event itself that the personas may mention."""
@@ -391,17 +482,31 @@ def render(ev, ctx, lang="en"):
         "ezone": _zone(L, team, ctx.right_team, loc["end_x"], loc["end_y"]),
         "score": score, "min": int(ev["minute"]),
         "sp": L["sp"].get(ev.get("set_piece"), ""),
+        "why": L["var_reason"].get((ev.get("var") or {}).get("reason"), ""),
     }
     reasons = ev["impact_reasons"]
     sp, restart = ev.get("set_piece"), ev.get("restart")
+    tags = ev.get("tags") or []
+    delivery = "delivery" in tags
 
     if t == "SUBSTITUTION":
         line = L["sub"].format(**f)
+        why = next((L["sub_why"][x] for x in tags if x in L["sub_why"]), "")
+        line += why.format(o=ev["player_off"])
         return {"analyst": line, "casual": line, "player_cam": _player_cam(L, ev, ctx, line)}
+    if t == "INJURY":
+        return {"analyst": L["injury"].format(**f), "casual": L["c_injury"].format(**f),
+                "player_cam": _player_cam(L, ev, ctx, L["injury"].format(**f))}
 
-    if t == "PASS" and o == "COMPLETE" and _is_delivery(ev, ctx):
-        analyst = L["sp_cross"].format(**f)
-        casual = L["c_cross"].format(**f)
+    if t == "PASS" and o == "OWN_GOAL":
+        analyst, casual = L["own_goal"].format(**f), L["c_own_goal"].format(**f)
+    elif t == "PASS" and o == "COMPLETE" and delivery:
+        analyst = L["sp_cross" if sp else "cross_ok"].format(**f)
+        casual = L["c_cross" if sp else "c_cross_ok"].format(**f)
+    elif t == "PASS" and delivery and "claimed" in tags:
+        analyst, casual = L["claimed"].format(**f), L["c_claimed"].format(**f)
+    elif t == "PASS" and delivery:
+        analyst, casual = L["sp_cleared" if sp else "cross_cleared"].format(**f), L["c_cleared"].format(**f)
     elif t == "PASS" and o == "COMPLETE" and sp:
         analyst = L["sp_pass"].format(**f)
         casual = L["c_sp_pass"][sp].format(**f)
@@ -409,8 +514,6 @@ def render(ev, ctx, lang="en"):
         analyst, casual = L["out"].format(**f), L["c_out"].format(**f)
     elif t == "PASS" and o == "OFFSIDE":
         analyst, casual = L["offside"].format(**f), L["c_offside"].format(**f)
-    elif t == "PASS" and _is_delivery(ev, ctx):
-        analyst, casual = L["sp_cleared"].format(**f), L["c_cleared"].format(**f)
     elif t == "PASS" and o == "COMPLETE":
         forward = (m["forward_gain_m"] or 0) >= 5 and (m["players_bypassed"] or 0) > 0
         analyst = L["pass_ok" if forward else "pass_short"].format(**f)
@@ -450,11 +553,17 @@ def render(ev, ctx, lang="en"):
                 analyst += L["card_r"].format(**f); casual += L["c_card_r"]
     else:  # SHOT
         f["res"] = L["res"][o].format(**f)
-        kind = "pen_shot" if sp == "PENALTY" else "fk_shot" if sp == "FREE_KICK" else             "header" if ev.get("body_part") == "HEAD" else "shot"
+        kind = ("pen_shot" if sp == "PENALTY" else "fk_shot" if sp == "FREE_KICK" else
+                "header" if ev.get("body_part") == "HEAD" else "rebound" if "rebound" in tags else "shot")
         analyst = L[kind].format(**f)
-        lead = {"pen_shot": "c_pen_shot", "fk_shot": "c_fk_shot", "header": "c_header"}.get(kind)
+        lead = {"pen_shot": "c_pen_shot", "fk_shot": "c_fk_shot", "header": "c_header", "rebound": "c_rebound"}.get(kind)
         casual = (L[lead].format(**f) if lead else "") + L["c_res"][o].format(**f)
-        if "big_chance" in reasons:
+        if (ev.get("var") or {}).get("decision") == "GOAL_STANDS":
+            analyst += L["var_stands"]
+            casual += L["c_var_stands"]
+        if o == "DISALLOWED":
+            pass
+        elif "big_chance" in reasons:
             analyst += L["why_big"].format(**f)
         else:
             txg, ts = ctx.team_xg_shots[team]
@@ -473,15 +582,6 @@ def render(ev, ctx, lang="en"):
     return {"analyst": analyst, "casual": casual, "player_cam": _player_cam(L, ev, ctx, analyst)}
 
 
-def _is_delivery(ev, ctx):
-    """A corner, or a free kick in the attacking third, swung into the box (not a short pass)."""
-    sp = ev.get("set_piece")
-    if sp == "CORNER":
-        return True
-    u, _ = attack_frame(ev["team"], ctx.right_team, ev["location"]["start_x"], ev["location"]["start_y"])
-    return sp == "FREE_KICK" and u >= 70
-
-
 def _fan_voice(L, ev, ctx, casual, names):
     """Casual commentary from the favourite club's side of the stands."""
     fav = ctx.fav_team
@@ -491,6 +591,8 @@ def _fan_voice(L, ev, ctx, casual, names):
     if ev.get("restart") == "PENALTY":
         return casual + (L["fan_pen_for"] if ev["restart_team"] == fav else L["fan_pen_against"])
     if t == "SHOT" and o == "GOAL":
+        return (L["fan_goal_for"] if ours else L["fan_goal_against"]) + casual
+    if o == "OWN_GOAL":
         return (L["fan_goal_for"] if ours else L["fan_goal_against"]) + casual
     if t == "SHOT" and o in ("SAVED", "BLOCKED", "MISS"):
         if ours:
@@ -582,6 +684,18 @@ def story(ev, buildup, ctx, lines, lang="en"):
         nth = L["nth"][n - 1] if 1 <= n <= len(L["nth"]) else str(n)
         parts.append(L["s_ctx_goal"].format(p=ev["player"], nth=nth, shots=me.get("shots", 1),
                                             touches=me.get("touches", 1)))
+    elif o == "OWN_GOAL":
+        parts.append(L["s_own_goal"].format(**f))
+        own = ev["score"]["home" if team == ctx.home else "away"]
+        their = ev["score"]["away" if team == ctx.home else "home"]
+        key = "s_level" if own == their else "s_lead" if own - their == 1 else "s_extend" if own > their else "s_back"
+        parts.append(L[key].format(**f))
+    elif t == "SHOT" and o == "DISALLOWED":
+        parts.append(L["s_var_no"].format(**f, why=L["var_reason"][ev["var"]["reason"]]))
+    elif t == "SHOT" and o == "WOODWORK":
+        parts.append(L["s_woodwork"].format(**f))
+    elif t == "INJURY":
+        parts.append(L["s_injury"].format(**f))
     elif t == "SHOT":
         if o == "SAVED":
             parts.append(L["s_save"].format(**f))
@@ -598,18 +712,27 @@ def story(ev, buildup, ctx, lines, lang="en"):
             parts += [L["s_card_y"].format(**f), L["s_ctx_card_y"].format(**f)]
         else:
             parts += [L["s_card_r"].format(**f), L["s_ctx_card_r"].format(**f)]
+            if ev.get("reshuffle"):
+                parts.append(L["s_reshuffle"].format(m=ev["reshuffle"]["player"]))
     elif t == "SUBSTITUTION":
         off = lines.get((team, ev["player_off"])) or {}
         parts.append(L["s_sub"].format(**f))
         parts.append(L["s_ctx_sub"].format(o=ev["player_off"], min=off.get("minutes", int(ev["minute"])),
                                            rating=off.get("rating") or "-", touches=off.get("touches", 0),
                                            km=off.get("distance_km", 0)))
+        why = next((L["sub_why"][x] for x in ev.get("tags") or [] if x in L["sub_why"]), "")
+        if why:
+            parts.append(why.strip().format(o=ev["player_off"]))
     if t == "SHOT":
         origin = ev.get("set_piece") or next((e["set_piece"] for e in reversed(buildup) if e.get("set_piece")), None)
         if origin:
             parts.append(L["s_from"][origin])
         if ev.get("body_part") == "HEAD":
             parts.append(L["s_head"])
+        if "rebound" in (ev.get("tags") or []):
+            parts.append(L["s_rebound"])
+        if (ev.get("var") or {}).get("decision") == "GOAL_STANDS":
+            parts.append(L["s_var_ok"])
     sep = "" if lang == "ja" else " "
     return sep.join(parts)
 
@@ -652,7 +775,9 @@ def report_text(r, lang="en"):
     b = r["best_player"]
     if b:
         keys = [k for k in ("goals", "assists", "shots", "tackles_won", "interceptions", "passes_completed") if b.get(k)][:3]
-        items = ("、" if lang == "ja" else ", ").join(L["items"][k].format(n=b[k]) for k in keys)
+        one = L.get("items1", {})  # singular forms, where the language has them
+        items = ("、" if lang == "ja" else ", ").join(one[k] if b[k] == 1 and k in one else L["items"][k].format(n=b[k])
+                                                     for k in keys)
         parts.append(L["r_best"].format(name=b["name"], t=names[b["team"]], r=b["rating"], items=items))
     sep = "" if lang == "ja" else " "
     return sep.join(parts)

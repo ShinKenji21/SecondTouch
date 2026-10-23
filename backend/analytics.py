@@ -14,7 +14,7 @@ PITCH_L, PITCH_W = 105.0, 68.0
 GOAL_W = 7.32
 BACK_LINE = {"CB", "RB", "LB"}
 ON_BALL = {"PASS", "DRIBBLE", "SHOT"}
-STATUS = {"SUBSTITUTION", "HALF_TIME", "FULL_TIME"}
+STATUS = {"SUBSTITUTION", "INJURY", "HALF_TIME", "FULL_TIME"}
 SET_PIECE_STAT = {"CORNER": "corners", "FREE_KICK": "free_kicks", "THROW_IN": "throw_ins",
                   "PENALTY": "penalties", "GOAL_KICK": "goal_kicks"}
 
@@ -65,7 +65,7 @@ def impact_moment(ev):
     t, o, m = ev["event_type"], ev["outcome"], ev["metrics"]
     reasons = []
     if t == "SHOT":
-        reasons.append("goal" if o == "GOAL" else "shot")
+        reasons.append({"GOAL": "goal", "DISALLOWED": "var_no_goal", "WOODWORK": "woodwork"}.get(o, "shot"))
         if (m["xg"] or 0) >= 0.3:
             reasons.append("big_chance")
         if ev.get("set_piece") == "PENALTY":
@@ -84,13 +84,16 @@ def impact_moment(ev):
         reasons.append("red_card" if ev["card"] == "RED" else "yellow_card")
     if ev.get("restart") == "PENALTY":
         reasons.append("penalty_awarded")
+    if o == "OWN_GOAL":
+        reasons.append("own_goal")
     return bool(reasons), reasons
 
 
 def is_key_event(ev):
     """Moments that belong in the match summary and get a story."""
     t, o = ev["event_type"], ev["outcome"]
-    return (o == "GOAL" or bool(ev.get("card")) or t == "SUBSTITUTION" or ev.get("restart") == "PENALTY"
+    return (o in ("GOAL", "OWN_GOAL", "DISALLOWED", "WOODWORK") or bool(ev.get("card")) or t in ("SUBSTITUTION", "INJURY")
+            or ev.get("restart") == "PENALTY"
             or (t == "SHOT" and (o == "SAVED" or ev.get("set_piece") in ("PENALTY", "FREE_KICK")
                                  or (ev["metrics"]["xg"] or 0) >= 0.3)))
 
@@ -133,6 +136,9 @@ class MatchStats:
                     "passes": 0, "passes_completed": 0, "key_passes": 0, "line_breaks": 0,
                     "dribbles": 0, "dribbles_won": 0, "tackles": 0, "tackles_won": 0,
                     "interceptions": 0, "fouls": 0, "fouls_won": 0, "offsides": 0,
+                    "xa": 0.0, "crosses": 0, "crosses_completed": 0, "long_balls": 0, "long_balls_completed": 0,
+                    "progressive_passes": 0, "aerials": 0, "aerials_won": 0, "clearances": 0, "blocks": 0,
+                    "big_chances_missed": 0, "own_goals": 0,
                     "yellow": 0, "red": 0, "saves": 0,
                     "touches": 0, "sprints": 0, "distance_m": 0.0, "top_speed": 0.0,
                 }
@@ -143,6 +149,8 @@ class MatchStats:
         self.t_press_wins = z()
         self.t_set = {t: {k: 0 for k in SET_PIECE_STAT.values()} for t in self.teams}
         self.t_offsides = z()
+        self.t_woodwork, self.t_disallowed, self.t_own_goals_for = z(), z(), z()
+        self.half = 1
         self.t_diff_sum, self.t_diff_n, self.t_top_ball = z(), z(), {t: 0.0 for t in self.teams}
         self.channels = {t: {"left": 0, "central": 0, "right": 0} for t in self.teams}
         self.final_third = z()
@@ -201,15 +209,25 @@ class MatchStats:
         self.minute = ev["minute"]
         t, o, team, pid = ev["event_type"], ev["outcome"], ev["team"], ev["player"]
         m, loc = ev["metrics"], ev["location"]
+        if ev.get("added_time"):
+            self._alert("milestone", "added_time", value=ev["added_time"])
+        for side, stance in (ev.get("stance_change") or {}).items():
+            if stance != "BALANCED":
+                self._alert("flow", stance.lower(), team=side)
 
         if t in ("HALF_TIME", "FULL_TIME"):
             self.right_team = ev.get("right_team", self.right_team)
             self.prev_positions = positions  # ends swapped: don't count the walk as running
+            if t == "HALF_TIME":
+                self.half = 2
             return
         self._distance(positions, dt)
         if t == "SUBSTITUTION":
             self.p(team, pid)["on"] = ev["minute"]
             self.p(team, ev["player_off"])["off"] = ev["minute"]
+            self.key_moments.append(self._moment(ev))
+            return
+        if t == "INJURY":
             self.key_moments.append(self._moment(ev))
             return
 
@@ -233,7 +251,27 @@ class MatchStats:
             if m["ball_speed_kmh"]:
                 self.t_top_ball[team] = max(self.t_top_ball[team], m["ball_speed_kmh"])
 
+        tags = ev.get("tags") or []
         if t == "PASS":
+            ok = o == "COMPLETE"
+            if "cross" in tags:
+                me["crosses"] += 1
+                me["crosses_completed"] += ok
+            if "long_ball" in tags:
+                me["long_balls"] += 1
+                me["long_balls_completed"] += ok
+            if ok and (m["forward_gain_m"] or 0) >= 10 and not ev.get("set_piece"):
+                me["progressive_passes"] += 1
+            if "delivery" in tags:
+                if ok:
+                    rec = self.p(team, ev["receiver"])
+                    rec["aerials"] += 1
+                    rec["aerials_won"] += 1
+                elif ev["opponent"] and "claimed" not in tags:
+                    d = self.p(opp_team, ev["opponent"])
+                    d["aerials"] += 1
+                    d["aerials_won"] += 1
+                    d["clearances"] += 1
             me["passes"] += 1
             self.t_passes[team] += 1
             self.t_diff_sum[team] += m["pass_difficulty"] or 0
@@ -260,6 +298,12 @@ class MatchStats:
             elif o == "OFFSIDE":
                 self.p(team, ev["receiver"])["offsides"] += 1
                 self.t_offsides[team] += 1
+                self.last_pass_to[team] = None
+            elif o == "OWN_GOAL":
+                self.p(opp_team, ev["opponent"])["own_goals"] += 1
+                self.t_own_goals_for[team] += 1
+                self.goals_against[opp_team] += 1
+                weight_for[team] += 4
                 self.last_pass_to[team] = None
             else:  # OUT of play
                 self.last_pass_to[team] = None
@@ -302,6 +346,17 @@ class MatchStats:
         elif t == "SHOT":
             me["shots"] += 1
             me["xg"] = round(me["xg"] + m["xg"], 2)
+            if ev.get("body_part") == "HEAD":
+                me["aerials"] += 1
+                me["aerials_won"] += 1
+            if m["xg"] >= 0.3 and o != "GOAL":
+                me["big_chances_missed"] += 1
+            if o == "BLOCKED" and ev["opponent"]:
+                self.p(opp_team, ev["opponent"])["blocks"] += 1
+            if o == "WOODWORK":
+                self.t_woodwork[team] += 1
+            if o == "DISALLOWED":
+                self.t_disallowed[team] += 1
             self.t_shots[team] += 1
             self.t_xg[team] = round(self.t_xg[team] + m["xg"], 2)
             if m["xg"] >= 0.3:
@@ -310,6 +365,7 @@ class MatchStats:
             lp = self.last_pass_to[team]
             if lp and lp[1] == pid:
                 self.p(team, lp[0])["key_passes"] += 1
+                self.p(team, lp[0])["xa"] = round(self.p(team, lp[0])["xa"] + m["xg"], 2)
             if o in ("GOAL", "SAVED"):
                 me["on_target"] += 1
                 self.t_on_target[team] += 1
@@ -338,7 +394,7 @@ class MatchStats:
         for side, w in weight_for.items():
             if w:
                 self.momentum_window.append((side, w))
-        self.momentum_log.append((self.minute, self.momentum()))
+        self.momentum_log.append((self.half, self.momentum()))
         self._flow(ev, holder)
         self._spells(ev, holder)
 
@@ -346,7 +402,8 @@ class MatchStats:
         return {"seq": ev["seq"], "clock": ev["clock"], "team": ev["team"], "player": ev["player"],
                 "type": ev["event_type"], "outcome": ev["outcome"], "card": ev["card"],
                 "xg": ev["metrics"]["xg"], "player_off": ev["player_off"], "opponent": ev["opponent"],
-                "set_piece": ev.get("set_piece"), "restart": ev.get("restart")}
+                "set_piece": ev.get("set_piece"), "restart": ev.get("restart"), "tags": ev.get("tags") or [],
+                "var": ev.get("var")}
 
     def _milestone_count(self, team, pid, stat, thresholds):
         p = self.p(team, pid)
@@ -480,7 +537,7 @@ class MatchStats:
     def _spells(self, ev, holder):
         """Track the current possession spell, the raw material of key-event stories."""
         compact = {k: ev.get(k) for k in ("seq", "clock", "team", "player", "event_type", "outcome",
-                                          "receiver", "opponent", "impact_reasons", "set_piece", "body_part")}
+                                          "receiver", "opponent", "impact_reasons", "set_piece", "body_part", "tags")}
         if not ev.get("possession_change"):
             if self.spell_team != holder:
                 self.spell, self.spell_team, self.spell_alerted = [], holder, False
@@ -533,7 +590,9 @@ class MatchStats:
              + 0.04 * p["passes_completed"] - 0.08 * failed + 0.2 * p["line_breaks"]
              + 0.12 * p["dribbles_won"] - 0.1 * (p["dribbles"] - p["dribbles_won"])
              + 0.2 * p["tackles_won"] + 0.15 * p["interceptions"] + 0.1 * p["on_target"]
-             + 0.6 * p["xg"] + 0.3 * p["saves"] - 0.1 * p["fouls"] - 0.3 * p["yellow"] - 1.5 * p["red"])
+             + 0.6 * p["xg"] + 0.3 * p["saves"] - 0.1 * p["fouls"] - 0.3 * p["yellow"] - 1.5 * p["red"]
+             + 0.4 * p["xa"] + 0.05 * p["aerials_won"] + 0.06 * p["clearances"] + 0.12 * p["blocks"]
+             + 0.03 * p["progressive_passes"] - 0.15 * p["big_chances_missed"] - 0.6 * p["own_goals"])
         return round(max(3.0, min(10.0, r)), 1)
 
     def team_stats(self, team):
@@ -555,6 +614,13 @@ class MatchStats:
             "interceptions": sum(p["interceptions"] for p in ps),
             "fouls": sum(p["fouls"] for p in ps),
             **self.t_set[team], "offsides": self.t_offsides[team],
+            **{k: sum(p[k] for p in ps) for k in ("crosses", "crosses_completed", "long_balls", "long_balls_completed",
+                                                  "progressive_passes", "aerials_won", "clearances", "blocks",
+                                                  "big_chances_missed")},
+            "xa": round(sum(p["xa"] for p in ps), 2),
+            "woodwork": self.t_woodwork[team], "goals_disallowed": self.t_disallowed[team],
+            "own_goals_for": self.t_own_goals_for[team],
+            "field_tilt": round(100 * self.final_third[team] / max(1, sum(self.final_third.values()))),
             "yellow": sum(p["yellow"] for p in ps), "red": sum(p["red"] for p in ps),
             "saves": sum(p["saves"] for p in ps),
             "distance_km": round(sum(p["distance_m"] for p in ps) / 1000, 1),
@@ -571,7 +637,9 @@ class MatchStats:
                                      "shots", "on_target", "xg", "passes", "passes_completed",
                                      "key_passes", "line_breaks", "dribbles", "dribbles_won",
                                      "tackles", "tackles_won", "interceptions", "fouls", "fouls_won",
-                                     "offsides", "yellow",
+                                     "offsides", "xa", "crosses", "crosses_completed", "long_balls",
+                                     "long_balls_completed", "progressive_passes", "aerials", "aerials_won",
+                                     "clearances", "blocks", "big_chances_missed", "own_goals", "yellow",
                                      "red", "saves", "touches", "sprints", "top_speed")}
             row["distance_km"] = round(p["distance_m"] / 1000, 1)
             row["minutes"] = self.minutes(p)
@@ -648,14 +716,15 @@ class MatchStats:
         control = {t: round(100 * sum(1 for s, st in states if s == "CONTROL" and st == t) / n) for t in self.teams}
         chaos = round(100 * sum(1 for s, _ in states if s == "CHAOS") / n)
         # momentum of the half just finished
-        half = [mo for mi, mo in self.momentum_log if ev["event_type"] == "HALF_TIME" or mi > 45]
+        half = [mo for h, mo in self.momentum_log if h == (1 if ev["event_type"] == "HALF_TIME" else 2)]
         moments = [k for k in self.key_moments if k["type"] != "SUBSTITUTION"][-8:]
         return {
             "kind": ev["event_type"], "clock": ev["clock"], "score": ev["score"],
             "home": self.home, "away": self.away,
             "teams": {t: {k: teams[t][k] for k in ("xg", "shots", "on_target", "possession", "pass_pct",
                                                     "big_chances", "tackles_won", "press_wins", "distance_km",
-                                                    "corners", "free_kicks", "fouls", "offsides", "yellow", "red")}
+                                                    "corners", "free_kicks", "fouls", "offsides", "yellow", "red",
+                                                    "woodwork", "big_chances_missed", "field_tilt")}
                       for t in self.teams},
             "best_player": best, "top_performers": top,
             "control": control, "chaos_pct": chaos,

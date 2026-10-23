@@ -154,6 +154,8 @@ class Session:
                 "overlays": overlays.build(ev, self.sim.positions, texts["commentary"], texts["alerts"],
                                            texts["story"], texts["report"], interval_ms),
                 "summary": ctx.summary, "stats": self.stats.snapshot(),
+                "fitness": self.sim.fitness(), "stance": dict(self.sim.stance),
+                "subs_used": dict(self.sim.subs_used),
                 "sent_at": time.time() * 1000,
             })
             if agent_reasoner.configured():
@@ -191,7 +193,7 @@ class Session:
     async def upgrade_story(self, ev, buildup, lines, lang, match_id):
         facts = {"moment": {k: ev.get(k) for k in ("clock", "team", "player", "event_type", "outcome", "opponent",
                                                    "player_off", "card", "set_piece", "restart", "restart_team",
-                                                   "body_part", "length_m", "score")},
+                                                   "body_part", "tags", "var", "reshuffle", "length_m", "score")},
                  "xg": ev["metrics"]["xg"], "build_up": buildup,
                  "players": {f"{t}:{p}": v for (t, p), v in lines.items()
                              if p in (ev["player"], ev["opponent"], ev["player_off"]) and v}}
@@ -266,14 +268,20 @@ class Session:
             for t in (HOME, AWAY)
         }
         tactics = {t: {k: v for k, v in snap["tactics"][t].items() if k != "avg_positions"} for t in (HOME, AWAY)}
+        fitness = self.sim.fitness()
+        for t in (HOME, AWAY):
+            for p in players[t]:
+                p["fitness"] = fitness[t].get(p["name"].split()[-1]) if p["name"] else None
         return {
             "minute": self.stats.minute, "home": HOME, "away": AWAY, "metadata": self.sim.metadata,
             "score": self.last[0]["score"] if self.last else {"home": 0, "away": 0},
             "summary": self.stats.summary(), "teams": snap["teams"], "tactics": tactics,
             "players": players, "favourite_club": self.fav(),
+            "fitness_on_pitch": fitness, "stance": self.sim.stance, "subs_used": self.sim.subs_used,
+            "added_time": {f"half_{k}": v for k, v in self.sim.added.items() if v is not None},
             "reports": {k: v["narrative"] for k, v in self.reports.items()},
             "recent_events": [{k: e.get(k) for k in ("clock", "team", "player", "event_type", "outcome", "set_piece",
-                                                     "restart", "card", "impact_reasons")}
+                                                     "restart", "card", "tags", "var", "impact_reasons")}
                               for e in self.recent],
         }
 
@@ -322,6 +330,21 @@ class Session:
                 parts.append(f"{names[team]} ({tac['formation']}) defend with a line {oop.get('line_height_m', '-')}m "
                              f"from goal, PPDA {tac['ppda'] or '-'}, and attack mostly down the {fav} ({ch[fav]}%).")
             return " ".join(parts)
+        if any(w in q for w in ("tired", "fitness", "fatigue", "energy", "legs")):
+            fit = self.sim.fitness()
+            parts = []
+            for team in (HOME, AWAY):
+                worst = sorted(fit[team].items(), key=lambda kv: kv[1])[:3]
+                parts.append(f"{names[team]}: most tired " + ", ".join(f"{p} {v}%" for p, v in worst)
+                             + f" ({self.sim.subs_used[team]} of {self.sim.metadata['max_subs']} subs used).")
+            return " ".join(parts)
+        if "var" in q.split() or "disallow" in q or "woodwork" in q or "post" in q.split():
+            return (f"Goals ruled out by VAR: {names[HOME]} {t[HOME]['goals_disallowed']}, {names[AWAY]} {t[AWAY]['goals_disallowed']}. "
+                    f"Woodwork: {names[HOME]} {t[HOME]['woodwork']}, {names[AWAY]} {t[AWAY]['woodwork']}.")
+        if any(w in q for w in ("sub", "change", "bench")):
+            return (f"Substitutions: {names[HOME]} {self.sim.subs_used[HOME]}, {names[AWAY]} {self.sim.subs_used[AWAY]} "
+                    f"(of {self.sim.metadata['max_subs']}). Approach now: {names[HOME]} {self.sim.stance[HOME].lower()}, "
+                    f"{names[AWAY]} {self.sim.stance[AWAY].lower()}.")
         if any(w in q for w in ("corner", "set piece", "set-piece", "free kick", "throw", "penalt", "offside",
                                 "foul", "card", "goal kick")):
             def n(count, word):

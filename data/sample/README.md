@@ -9,14 +9,17 @@ Coordinates are percentages of a 105 x 68 m pitch, x left to right, y top to bot
 | field | meaning |
 |---|---|
 | match_id, seq | match number in this export, event number within the match |
-| minute, clock | match time |
+| minute, clock, period | match time (clock shows added time as 45+2'), and the half (1 or 2) |
 | team, player | acting team and player (for TACKLE: the tackler) |
-| event_type | PASS, DRIBBLE, SHOT, TACKLE, SUBSTITUTION, HALF_TIME, FULL_TIME |
-| outcome | PASS: COMPLETE/INTERCEPTED/OUT (out of play)/OFFSIDE; DRIBBLE: SUCCESS; TACKLE: WON/FOUL; SHOT: GOAL/SAVED/MISS/BLOCKED |
+| event_type | PASS, DRIBBLE, SHOT, TACKLE, SUBSTITUTION, INJURY, HALF_TIME, FULL_TIME |
+| outcome | PASS: COMPLETE/INTERCEPTED/OUT (out of play)/OFFSIDE/OWN_GOAL (the opponent put it in their own net); DRIBBLE: SUCCESS; TACKLE: WON/FOUL; SHOT: GOAL/SAVED/MISS/BLOCKED/WOODWORK/DISALLOWED (ruled out by VAR) |
 | receiver, opponent, player_off, card | pass receiver (for OFFSIDE: the player flagged); opposing player involved; player substituted off; YELLOW/RED |
 | set_piece | this action restarts play: FREE_KICK, CORNER, THROW_IN, PENALTY or GOAL_KICK (a corner is a PASS, a penalty a SHOT) |
 | restart, restart_team | play stopped after this action and restarts with this set piece, taken by this team |
-| body_part | shots: FOOT or HEAD (headers mostly come from corners) |
+| body_part | shots: FOOT or HEAD (headers mostly come from corners and crosses) |
+| tags | pipe-separated: cross, delivery, claimed, through_ball, long_ball, rebound; substitutions: fatigue, tactical, injury, booked |
+| var_decision, var_reason | VAR check on a goal: GOAL_STANDS, or NO_GOAL for OFFSIDE/FOUL/HANDBALL |
+| added_time | minutes of added time announced with this event |
 | start_x..end_y | where the action started and ended |
 | xg | expected goals of a shot (distance, angle, pressure) |
 | pass_difficulty | 5-99 from length, direction, pressure and receiver space |

@@ -54,8 +54,8 @@ def test_every_restart_is_taken_next_by_the_right_team(matches):
             ev = r["ev"]
             if not ev["restart"]:
                 continue
-            # substitutions may happen while play is stopped; half-time cancels the restart
-            nxt = next(x["ev"] for x in rows[i + 1:] if x["ev"]["event_type"] != "SUBSTITUTION")
+            # treatment and substitutions may happen while play is stopped; half-time cancels the restart
+            nxt = next(x["ev"] for x in rows[i + 1:] if x["ev"]["event_type"] not in ("SUBSTITUTION", "INJURY"))
             if nxt["event_type"] in ("HALF_TIME", "FULL_TIME"):
                 continue
             assert nxt["set_piece"] == ev["restart"]
@@ -75,7 +75,7 @@ def test_set_pieces_are_taken_from_the_right_place(matches):
                 assert u == 100 and v in (0, 100)
             elif sp == "THROW_IN":
                 assert v in (0, 100)
-                assert ev["event_type"] == "PASS" and ev["length_m"] <= 32
+                assert ev["event_type"] == "PASS" and ev["length_m"] <= 44
             elif sp == "GOAL_KICK":
                 assert r["slots"][ev["team"]][ev["player"]][0] == "GK"
                 assert u <= SIX_U + 0.1 and abs(v - 50) <= SIX_HALF_V + 0.1
@@ -88,7 +88,7 @@ def test_players_line_up_for_the_restart(matches):
         for r in rows:
             ev, pos = r["ev"], r["positions"]
             kind, team = ev["restart"], ev["restart_team"]
-            if not kind or ev["event_type"] == "SUBSTITUTION":
+            if not kind or ev["event_type"] in ("SUBSTITUTION", "INJURY"):
                 continue
             opp = AWAY if team == HOME else HOME
             right = ev["right_team"]

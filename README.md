@@ -22,13 +22,13 @@ Open http://127.0.0.1:8000 (not the HTML file directly) and press **START MATCH*
 
 To use Azure OpenAI, copy `.env.example` to `.env` and fill in the three `AZURE_OPENAI_*` values (see [Azure OpenAI](#azure-openai)). Without them the app runs fully on the local engine and the header shows **AI: local templates**.
 
-Run the tests from the project root with `python -m pytest`.
+Run the tests from the project root with `python -m pytest`. With Node.js installed this also replays a whole match through the frontend and fails on any rendering error (`tests/frontend_smoke.js`).
 
 ## How it meets the brief
 
 | Requirement | Where it is |
 |---|---|
-| Ingest synthetic events: passes, shots, tackles, possession changes, pressure, metadata | `generator.py` streams passes, dribbles, shots and headers, tackles, fouls, yellow and red cards, offsides, the ball going out of play, set pieces (corners, free kicks including direct shots, throw-ins, goal kicks, penalties), substitutions, half-time and full-time, each with pressure, a `possession_change` flag and all 22 positions; every match carries metadata (competition, venue, referee, weather, lineups, coaches) |
+| Ingest synthetic events: passes, shots, tackles, possession changes, pressure, metadata | `generator.py` streams passes, dribbles, shots and headers, tackles, fouls, yellow and red cards, offsides, the ball going out of play, set pieces (corners, free kicks including direct shots, throw-ins, goal kicks, penalties), crosses, rebounds, shots off the woodwork, own goals, goals ruled out by VAR, injuries, substitutions, added time, half-time and full-time, each with pressure, a `possession_change` flag and all 22 positions; every match carries metadata (competition, venue, referee, weather, lineups, coaches) |
 | Interpret into statistics, patterns and context | `analytics.py`: team and player stats, ratings, tactics from positions, momentum, control vs chaos, pressure shifts, tempo |
 | Explain why a moment matters | Every impact moment carries a "why it matters" line citing a metric; Azure OpenAI rewrites it with full context |
 | Render alongside the match | 2D pitch, broadcast card, badges and toasts, report card, and timed overlay cues for a graphics engine |
@@ -39,7 +39,7 @@ Run the tests from the project root with `python -m pytest`.
 | Explainability: control vs chaos, pressure changes, rhythm | Game-flow state, pressure-shift alerts and tempo, on the pitch and in the analysis tab |
 | Synthetic dataset | `export_dataset.py` writes any number of matches as JSONL/CSV; a 3-match sample is in `data/sample/` |
 | Multi-language storytelling | Commentary, alerts, stories and reports in English, Spanish and Japanese |
-| Auto-eventing from video | Out of scope: there is no video in a synthetic-only project. The generator already produces the pass and speed metrics automatically; running a vision model over a real feed is future work. |
+| Auto-eventing from video | Not built: there is no video in a synthetic-only project. The pipeline is designed so a video detector can replace the simulator without touching anything downstream; [how it would plug in](#auto-eventing-from-video-how-it-would-plug-in). |
 
 ## What you see
 
@@ -48,12 +48,13 @@ Run the tests from the project root with `python -m pytest`.
 | **Pitch** | All 22 players moving continuously: teams shift with the ball, defenders press the carrier, attackers hold the offside line, runners sprint onto through balls, substitutes jog on. Teams change ends at half-time. Pass lines are coloured by difficulty, dribbles are dotted, shots carry an xG bubble. Speed and distance badges, milestone toasts and the half-time / full-time report appear over the pitch. Click any player to follow them. |
 | **Replay bar** | Step back/forward, pause/play, a scrubber with goal and card markers, speed (1x/4x/10x) and **GO LIVE · +N**. Pausing during live play keeps the match running (time-shift). Clicking a goal marker replays its build-up. Keys: Space, ←, →, L, Esc. |
 | **Live AI card** | The current moment in the chosen persona and language, its source (`LOCAL ENGINE` or `AZURE OPENAI`) and an **IMPACT** badge. |
-| **Mode panel** | *Analyst*: one telemetry card per team with its last action and running totals. *Casual*: the match at a glance in simple charts, a "who's on top" meter and the goals. *Player Cam*: the followed player's card, stats against the team average, and a heat map. |
+| **Mode panel** | *Analyst*: one telemetry card comparing both teams (xG, shots, possession, field tilt, pressure, passing, distance, substitutions), each team's last action, the numbers behind the action on screen, and a badge when the manager changes approach (chasing the game or protecting a lead). *Casual*: the match at a glance in simple charts, a "who's on top" meter and the goals. *Player Cam*: the followed player's card with live fitness, stats against the team average, and a heat map. |
+| **Guide** | Opens on the first visit and from **Guide** in the header: the screen in seven numbered parts, the three viewing modes, things to try and a glossary (xG, xA, impact moment, pressure index, field tilt, PPDA, fitness...). Every sidebar panel has an ⓘ tip on hover. |
 | **Header** | Mode, language, favourite club (highlights its moments; Casual commentary cheers for it), pinned metric (xG, possession, shots on target, pass accuracy, pressure, distance or top speed, always visible). Preferences are remembered in this browser. |
-| **Live Event Log** | Every event as it happens, with ⇄ for possession changes, ⚡ for impact moments, set-piece icons (⛳ corner, 🦶 free kick, 🙌 throw-in, 🥅 goal kick, ❗ penalty, 🚩 offside) and what play restarts with ("→ corner KHB"). |
-| **Match Stats** | Head-to-head team comparison (including corners, free kicks, throw-ins, goal kicks, penalties, offsides, fouls and cards), then a sortable player table including fouls won, offsides, distance covered and top speed. |
+| **Live Event Log** | Every event as it happens, with ⇄ for possession changes, ⚡ for impact moments, set-piece icons (⛳ corner, 🦶 free kick, 🙌 throw-in, 🥅 goal kick, ❗ penalty, 🚩 offside), 🪵 woodwork, 🚫 VAR, 🚑 injury, the kind of pass (cross, through ball, long ball), why a substitution was made, added time and what play restarts with ("→ corner KHB"). |
+| **Match Stats** | Head-to-head team comparison (xA, big chances missed, woodwork, field tilt, crosses, long balls, progressive passes, aerial duels, clearances, blocks, corners, free kicks, throw-ins, goal kicks, penalties, offsides, fouls and cards), then a sortable player table including live fitness, xA, aerials, clearances, blocks, fouls won, offsides, distance covered and top speed; the captain is marked C. |
 | **Tactics** | Line height, width and length in and out of possession, attack channels, directness, press wins and PPDA, a written read, and average positions. |
-| **Key Events & Stories** | Goals, cards, penalties, direct free kicks, substitutions, big chances, saves and the reports, each with the story behind it: build-up, the moment, and context. "My club only" filter. |
+| **Key Events & Stories** | Goals and own goals, VAR decisions, woodwork, cards, penalties, direct free kicks, injuries, substitutions, big chances, saves and the reports, each with the story behind it: build-up, the moment, and context. "My club only" filter. |
 | **In-Depth Analysis** | xG race, momentum, game flow (control/balanced/chaos band with each team's pressure), shot map, impact moments, reports. |
 | **Talk to AI** | Questions about the live match, answered by Azure OpenAI with the full match context or by the local engine. |
 | **Data & Overlays** | Download the match (events with positions, events CSV, player stats, overlay cues), match metadata, and the live overlay cue feed. |
@@ -117,11 +118,11 @@ Server to client:
 { "type": "answer", "id": 3, "text": "...", "source": "AZURE OPENAI" }
 ```
 
-`event_type` is `PASS`, `DRIBBLE`, `SHOT`, `TACKLE`, `SUBSTITUTION`, `HALF_TIME` or `FULL_TIME`. Outcomes: passes `COMPLETE`/`INTERCEPTED`/`OUT` (out of play)/`OFFSIDE` (`receiver` is the player flagged), dribbles `SUCCESS`, tackles `WON`/`FOUL` (the actor is the tackler or fouler, `opponent` the player on the ball), shots `GOAL`/`SAVED`/`MISS`/`BLOCKED`. Set pieces are ordinary passes and shots with `set_piece` set (`CORNER`, `FREE_KICK`, `THROW_IN`, `GOAL_KICK`, `PENALTY`), so they count in every statistic; an event after which play stops carries `restart` and `restart_team` (a saved shot parried behind: `restart: "CORNER"`), and shots carry `body_part` (`FOOT` or `HEAD`). Fields that don't apply are `null`, never a made-up default. Coordinates are percentages of the pitch; `right_team` is the team attacking towards x = 100 (Brackenford in the first half, Kestermouth in the second).
+`event_type` is `PASS`, `DRIBBLE`, `SHOT`, `TACKLE`, `SUBSTITUTION`, `INJURY`, `HALF_TIME` or `FULL_TIME`. Outcomes: passes `COMPLETE`/`INTERCEPTED`/`OUT` (out of play)/`OFFSIDE` (`receiver` is the player flagged)/`OWN_GOAL` (`opponent` put it in their own net; the goal counts for `team`), dribbles `SUCCESS`, tackles `WON`/`FOUL` (the actor is the tackler or fouler, `opponent` the player on the ball), shots `GOAL`/`SAVED`/`MISS`/`BLOCKED`/`WOODWORK`/`DISALLOWED` (ruled out by VAR; `var` gives the reason). `clock` shows added time (`45+2'`), `period` is the half, `added_time` announces the minutes added, `tags` describe the action (`cross`, `delivery`, `claimed`, `through_ball`, `long_ball`, `rebound`; for substitutions the reason: `fatigue`, `tactical`, `injury`, `booked`), `stance_change` marks a manager chasing the game or protecting a lead, and `reshuffle` says who covered after a red card. The event message also carries every player's `fitness`, each team's `stance` and `subs_used`. Set pieces are ordinary passes and shots with `set_piece` set (`CORNER`, `FREE_KICK`, `THROW_IN`, `GOAL_KICK`, `PENALTY`), so they count in every statistic; an event after which play stops carries `restart` and `restart_team` (a saved shot parried behind: `restart: "CORNER"`), and shots carry `body_part` (`FOOT` or `HEAD`). Fields that don't apply are `null`, never a made-up default. Coordinates are percentages of the pitch; `right_team` is the team attacking towards x = 100 (Brackenford in the first half, Kestermouth in the second).
 
 ### Overlay cues
 
-Every event carries `overlays`: graphics instructions with `start_ms` and `duration_ms` relative to the event, an absolute `at_ms`, a priority, and either a pitch anchor or a screen layout. Types: `player_tag`, `action`, `set_piece`, `speed_badge`, `distance_badge`, `lower_third`, `stat_card`, `banner` (goals, cards, penalties, substitutions, HT, FT), `report_card`. The schema is served at `/api/overlay-schema`, the pitch's own badges are drawn from this feed, and the Data & Overlays tab shows it live.
+Every event carries `overlays`: graphics instructions with `start_ms` and `duration_ms` relative to the event, an absolute `at_ms`, a priority, and either a pitch anchor or a screen layout. Types: `player_tag`, `action`, `set_piece`, `speed_badge`, `distance_badge`, `lower_third`, `stat_card`, `banner` (goals, own goals, VAR, cards, penalties, injuries, substitutions, HT, FT), `report_card`. The schema is served at `/api/overlay-schema`, the pitch's own badges are drawn from this feed, and the Data & Overlays tab shows it live.
 
 ## How the metrics work
 
@@ -149,6 +150,28 @@ python export_dataset.py --matches 50 --seed 1 --out ../data/synthetic
 ```
 
 Writes `events.jsonl` (with all 22 positions per event), `events.csv`, `players.csv`, `matches.csv` and a field guide. A 3-match sample is in [`data/sample/`](data/sample/). The Data & Overlays tab also downloads the match you are watching.
+
+## Auto-eventing from video: how it would plug in
+
+SecondTouch does not watch video: there is no real footage in a synthetic-only project. What it does have is a clean seam where a video system would connect. Everything after event detection (statistics, impact moments, commentary, AI, stories, overlays, replay, the dataset) only ever sees events in the [data contract](#data-contract) above, so a detector that produces those events can replace the simulator without changing the rest of the system.
+
+```
+ match video ──► 1. detect ──► 2. track ──► 3. map to pitch ──► 4. recognise events ──► events + positions ──► SecondTouch
+                 players,      identities     camera → 105 x 68 m    pass, shot, tackle,      (this contract)       (unchanged)
+                 ball          over time      (homography)           out of play, ...
+```
+
+| Stage | What it does | Typical approach | Fills in |
+|---|---|---|---|
+| 1. Detect | Find the players, referee and ball in every frame | An object detector (YOLO-family) fine-tuned on football footage | Bounding boxes |
+| 2. Track | Keep each player's identity across frames and through occlusion; split the two teams | A multi-object tracker (ByteTrack/BoT-SORT), team from kit colour clustering, shirt numbers by OCR where visible | Player ids, `team` |
+| 3. Map to the pitch | Turn camera pixels into pitch metres, even as the camera pans and zooms | Pitch-line keypoint detection and a per-frame homography | `positions` for all 22 players, `location`, `length_m` |
+| 4. Recognise events | Read the actions from who has the ball and where it goes | Rules on ball-possession changes and ball trajectory, plus an action-spotting model for shots, tackles and set pieces | `event_type`, `outcome`, `receiver`, `opponent`, `set_piece`, `restart` |
+| 5. Measure | Derive what the simulator computes today | Speeds and distances from the tracks; the existing formulas for pass difficulty, pressure and xG in `analytics.py` | `metrics`, speed and distance badges |
+
+**Where it connects in the code.** The server asks one object for each next event: `MatchSim` in `generator.py`, through `next_event()`, plus its `positions`, `possession`, `right_team` and `metadata` (and `fitness()`, `stance`, `subs_used` for the extras). A `VideoEventSource` with the same methods, reading the detector's output instead of simulating, is the only new backend piece. The metric formulas in `analytics.py` already take positions and distances as input, so they work unchanged on tracked data.
+
+**What would stay out of reach without more data.** Shirt numbers and identities are unreliable from broadcast angles, players off camera have no position, and a single camera cannot see all 22 players at once; production systems use multiple fixed cameras for this. Live latency also grows with every stage, so the 2-second event-to-render target would need GPU inference.
 
 ## Azure OpenAI
 
@@ -178,5 +201,6 @@ Every event carries `generated_at`; the browser records the time to render it an
 - The match is random but internally consistent; it is a simulation, not a model of real players. Only notable actions are generated (about 170 per match, not every touch), so totals such as passes are lower than in a real match.
 - When you change language, Player Cam focus or favourite club, only the latest event is re-rendered; earlier events in the replay keep the text they were created with.
 - Talk to AI answers from the local engine are in English only and cover common questions (a player, xG, momentum, game flow, pressing/tactics, reports, the score). Buttons and labels are in English; commentary, alerts, stories and reports are localized.
-- Set pieces follow the reference data: penalties go to the best shooter on the pitch, corners to the best passer, direct free kicks to the best mix of shooting and passing, and the tallest, strongest players attack corners. Passing, dribbling, defending, shooting and goalkeeping attributes nudge each action's success, and the referee's yellow-card, red-card and penalty rates set how often fouls are punished (about 11 fouls, 4 yellows, 0.2 reds and 0.3 penalties a match, with 7-8 corners). Defenders stand 9.15 m from free kicks, form a wall for shots at goal, mark in the box at corners and clear the box for penalties.
+- How the match is played comes from the reference data too. Each club's `playing_style` sets its passing (Brackenford keep the ball more with shorter passes, Kestermouth go longer and more direct), how wide it plays and how hard and high it presses. Each player's `stamina` sets how fast they tire; tired players run slower, misplace more passes, lose more duels and commit more fouls, and a player's `preferred_foot` decides whether a winger crosses from their natural side or cuts inside. Managers react to the score: a side behind late on pushes up, presses harder, shoots more and brings on attackers; a side ahead late on drops deeper and brings on defenders. Up to `substitutions_allowed` (5) changes in at most 3 in-game windows, for tired legs, a booked player, tactics or injury (injuries come from fouls and force a change). VAR (`var_in_use`) checks goals and rules a few out. Added time is built from the stoppages in each half. A defender sent off is covered by a midfielder dropping into the back line. The wet, windy conditions make long passes less accurate, the quick pitch speeds the ball up, the home side has a small edge, and the captain is marked.
+- Set pieces follow the reference data: penalties go to the best shooter on the pitch, corners to the best passer, direct free kicks to the best mix of shooting and passing, and the tallest, strongest players attack corners. Passing, dribbling, defending, shooting and goalkeeping attributes nudge each action's success, and the referee's yellow-card, red-card and penalty rates set how often fouls are punished (about 13 fouls, 4 yellows, 0.2 reds and 0.35 penalties a match, with 8 corners, 7 crosses, 0.7 shots off the woodwork, 0.1 own goals and about +3 and +5 minutes of added time). Defenders stand 9.15 m from free kicks, form a wall for shots at goal, mark in the box at corners and clear the box for penalties.
 - Clubs, squads, formations, managers, officials, venue, weather, head-to-head and storylines are read from `data/reference/match_reference_data.json` (made by `generate_reference_data.py` in the same folder, fixed seed). Each player's top speed in that file caps their sprints and carries. The substitutions the simulation makes are listed in `SUB_PLAN` in `generator.py`; the crests are `frontend/images/brackenford.svg` and `kestermouth.svg`.
