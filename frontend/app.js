@@ -11,16 +11,12 @@ const TEAM_SHORT = { Brackenford: "BRA", Kestermouth: "KHB" };
 const TEAM_LABEL = { Brackenford: "Brackenford", Kestermouth: "Kestermouth" };
 const MODE_KEY = { ANALYST: "analyst", CASUAL: "casual", PLAYER_CAM: "player_cam" };
 const MODE_LABEL = { ANALYST: "ANALYST", CASUAL: "CASUAL FAN", PLAYER_CAM: "PLAYER CAM" };
-const REASON_LABEL = {
-    goal: "Goal", shot: "Shot", big_chance: "Big chance", line_breaking_pass: "Line-breaking pass",
-    high_press_turnover: "High-press turnover", yellow_card: "Yellow card", red_card: "Red card",
-    penalty: "Penalty", penalty_awarded: "Penalty awarded", direct_free_kick: "Direct free kick",
-};
-const SP_LABEL = { FREE_KICK: "Free kick", CORNER: "Corner", THROW_IN: "Throw-in", PENALTY: "Penalty", GOAL_KICK: "Goal kick" };
-const VAR_REASON = { OFFSIDE: "offside", FOUL: "foul in the build-up", HANDBALL: "handball" };
-const SUB_REASON = { injury: "injury" };  // the only reason for a change a viewer can actually see
 // what the team's shape shows on the pitch; the manager's intent behind it is not something we can see
-const STANCE_LABEL = { CHASING: "📣 Pushing forward", PROTECTING: "🧱 Sitting deep" };
+const STANCE_LABEL = { CHASING: "Pushing forward", PROTECTING: "Sitting deep" };
+const STANCE_ICON = { CHASING: "bullhorn", PROTECTING: "shield-halved" };
+/* One line-icon set for the whole page (Font Awesome), and card shapes for bookings, as on a TV graphic. */
+const fa = name => `<i class="fa-solid fa-${name}" aria-hidden="true"></i>`;
+const cardIco = c => `<span class="card-ico ${c === "RED" ? "red" : "yellow"}" title="${c === "RED" ? "Red card" : "Yellow card"}"></span>`;
 /* A goal for ev.team: scored, or put into their own net by the opponent. */
 const isGoal = ev => ev.outcome === "GOAL" || ev.outcome === "OWN_GOAL";
 /* Minute on the 0-90 chart axis: first-half added time stays at 45, not over the second half. */
@@ -33,6 +29,125 @@ const $ = id => document.getElementById(id);
 const canvas = $("pitchCanvas");
 const ctx = canvas.getContext("2d");
 
+/* ---------- MATCH VIEW LANGUAGE ----------
+ * Everything the match view writes (pitch banners and labels, the event log, key events) follows the
+ * commentary language; the controls around it stay in English. */
+const UI = {
+    en: {
+        teams: { Brackenford: "Brackenford", Kestermouth: "Kestermouth" },
+        goal: "GOAL", own_goal: "OWN GOAL", og: "o.g.", var_stands: "VAR: goal stands", var_no: "VAR: NO GOAL",
+        var_ruled: "{p}'s goal ruled out for {why}", woodwork: "OFF THE WOODWORK!", injury: "INJURY",
+        injury_sub: "{p} ({t}) is down and needs treatment", penalty: "PENALTY!", pen_sub: "{t} · {o} fouled by {p}",
+        red: "RED CARD", yellow: "YELLOW CARD", card_sub: "{p} ({t}) on {o}", sub: "SUBSTITUTION",
+        sub_sub: "{t}: {p} on, {o} off", ht: "HALF-TIME · TEAMS CHANGE ENDS", ft: "FULL-TIME", impact: "IMPACT",
+        offside: "OFFSIDE", added: "+{n} MIN ADDED", replay: "REPLAY",
+        reasons: { goal: "Goal", shot: "Shot", big_chance: "Big chance", line_breaking_pass: "Line-breaking pass",
+                   high_press_turnover: "High-press turnover", yellow_card: "Yellow card", red_card: "Red card",
+                   penalty: "Penalty", penalty_awarded: "Penalty awarded", direct_free_kick: "Direct free kick",
+                   own_goal: "Own goal", var_no_goal: "VAR: no goal", woodwork: "Woodwork" },
+        sp: { FREE_KICK: "Free kick", CORNER: "Corner", THROW_IN: "Throw-in", PENALTY: "Penalty", GOAL_KICK: "Goal kick" },
+        var_reason: { OFFSIDE: "offside", FOUL: "a foul in the build-up", HANDBALL: "handball" },
+        sub_reason: { injury: "injury" },  // the only reason for a change a viewer can actually see
+        pass: "PASS", cross: "CROSS", through: "THROUGH BALL", long: "LONG BALL", out: "OUT OF PLAY",
+        offside_log: "OFFSIDE: {r}", own_goal_by: "OWN GOAL by {o}", claimed: "CLAIMED by {o}",
+        behind: "TURNED BEHIND by {o}", cleared: "CLEARED by {o}", intercepted: "INTERCEPTED by {o}",
+        dribble: "DRIBBLE", shot: "SHOT", header: "HEADER", pen: "PENALTY", fk: "FREE KICK", rebound: "REBOUND",
+        outcome: { GOAL: "GOAL", SAVED: "SAVED", MISS: "MISS", BLOCKED: "BLOCKED", WOODWORK: "WOODWORK" },
+        disallowed: "GOAL DISALLOWED (VAR: {why})", injury_log: "INJURY, treatment on the pitch",
+        tackle_won: "TACKLE WON on {o}", foul: "FOUL on {o}", pen_foul: "PENALTY! FOUL on {o}", sub_log: "SUB",
+        half_time: "HALF TIME", full_time: "FULL TIME", restart: "→ {sp} {t}",
+        k_own_goal: "{o} for {t}", k_penalty: "PENALTY to {t}: {o} fouled by {p}", k_card: "{p} ({t}) for a foul on {o}",
+        k_sub: "{t}: {p} on, {o} off", k_ht: "HALF-TIME REPORT", k_ft: "FULL-TIME REPORT", k_save: "SAVE",
+        k_pen_saved: "PENALTY SAVED", k_denies: "{o} denies {p}", k_pen_missed: "PENALTY MISSED", k_big: "BIG CHANCE",
+        k_woodwork: "WOODWORK", k_recap: "RECAP",
+    },
+    es: {
+        teams: { Brackenford: "Brackenford", Kestermouth: "Kestermouth" },
+        goal: "GOL", own_goal: "GOL EN PROPIA", og: "p.p.", var_stands: "VAR: gol válido", var_no: "VAR: NO ES GOL",
+        var_ruled: "Gol de {p} anulado por {why}", woodwork: "¡AL PALO!", injury: "LESIÓN",
+        injury_sub: "{p} ({t}) está en el suelo y recibe atención", penalty: "¡PENALTI!", pen_sub: "{t} · falta de {p} sobre {o}",
+        red: "TARJETA ROJA", yellow: "TARJETA AMARILLA", card_sub: "{p} ({t}) por falta sobre {o}", sub: "CAMBIO",
+        sub_sub: "{t}: entra {p}, sale {o}", ht: "DESCANSO · CAMBIO DE CAMPO", ft: "FINAL", impact: "IMPACTO",
+        offside: "FUERA DE JUEGO", added: "+{n} MIN DE AÑADIDO", replay: "REPETICIÓN",
+        reasons: { goal: "Gol", shot: "Disparo", big_chance: "Ocasión clara", line_breaking_pass: "Pase entre líneas",
+                   high_press_turnover: "Robo en presión alta", yellow_card: "Amarilla", red_card: "Roja",
+                   penalty: "Penalti", penalty_awarded: "Penalti señalado", direct_free_kick: "Falta directa",
+                   own_goal: "Gol en propia", var_no_goal: "VAR: no es gol", woodwork: "Al palo" },
+        sp: { FREE_KICK: "Tiro libre", CORNER: "Córner", THROW_IN: "Saque de banda", PENALTY: "Penalti", GOAL_KICK: "Saque de puerta" },
+        var_reason: { OFFSIDE: "fuera de juego", FOUL: "falta previa", HANDBALL: "mano" },
+        sub_reason: { injury: "lesión" },
+        pass: "PASE", cross: "CENTRO", through: "PASE AL HUECO", long: "PASE LARGO", out: "FUERA",
+        offside_log: "FUERA DE JUEGO: {r}", own_goal_by: "GOL EN PROPIA de {o}", claimed: "ATRAPADO por {o}",
+        behind: "DESPEJADO A CÓRNER por {o}", cleared: "DESPEJADO por {o}", intercepted: "INTERCEPTADO por {o}",
+        dribble: "REGATE", shot: "DISPARO", header: "CABEZAZO", pen: "PENALTI", fk: "TIRO LIBRE", rebound: "RECHACE",
+        outcome: { GOAL: "GOL", SAVED: "PARADA", MISS: "FUERA", BLOCKED: "BLOQUEADO", WOODWORK: "AL PALO" },
+        disallowed: "GOL ANULADO (VAR: {why})", injury_log: "LESIÓN, atención en el campo",
+        tackle_won: "ENTRADA GANADA a {o}", foul: "FALTA sobre {o}", pen_foul: "¡PENALTI! FALTA sobre {o}", sub_log: "CAMBIO",
+        half_time: "DESCANSO", full_time: "FINAL", restart: "→ {sp} {t}",
+        k_own_goal: "{o}, a favor de {t}", k_penalty: "PENALTI para {t}: falta de {p} sobre {o}", k_card: "{p} ({t}) por falta sobre {o}",
+        k_sub: "{t}: entra {p}, sale {o}", k_ht: "INFORME DEL DESCANSO", k_ft: "INFORME FINAL", k_save: "PARADA",
+        k_pen_saved: "PENALTI PARADO", k_denies: "{o} detiene a {p}", k_pen_missed: "PENALTI FALLADO", k_big: "OCASIÓN CLARA",
+        k_woodwork: "AL PALO", k_recap: "RESUMEN",
+    },
+    ja: {
+        teams: { Brackenford: "ブラッケンフォード", Kestermouth: "ケスターマス" },
+        goal: "ゴール", own_goal: "オウンゴール", og: "OG", var_stands: "VAR：ゴール認定", var_no: "VAR：ノーゴール",
+        var_ruled: "{p}のゴールは{why}で取り消し", woodwork: "ポスト直撃！", injury: "負傷",
+        injury_sub: "{p}（{t}）が倒れて治療中", penalty: "PK！", pen_sub: "{t} · {p}が{o}を倒す",
+        red: "レッドカード", yellow: "イエローカード", card_sub: "{p}（{t}）、{o}へのファウル", sub: "選手交代",
+        sub_sub: "{t}：{p} IN、{o} OUT", ht: "ハーフタイム · エンドが替わる", ft: "試合終了", impact: "注目",
+        offside: "オフサイド", added: "アディショナルタイム +{n}分", replay: "リプレイ",
+        reasons: { goal: "ゴール", shot: "シュート", big_chance: "決定機", line_breaking_pass: "ライン突破のパス",
+                   high_press_turnover: "ハイプレスで奪取", yellow_card: "イエローカード", red_card: "レッドカード",
+                   penalty: "PK", penalty_awarded: "PK獲得", direct_free_kick: "直接FK",
+                   own_goal: "オウンゴール", var_no_goal: "VARでノーゴール", woodwork: "ポスト直撃" },
+        sp: { FREE_KICK: "フリーキック", CORNER: "コーナーキック", THROW_IN: "スローイン", PENALTY: "PK", GOAL_KICK: "ゴールキック" },
+        var_reason: { OFFSIDE: "オフサイド", FOUL: "攻撃中のファウル", HANDBALL: "ハンド" },
+        sub_reason: { injury: "負傷" },
+        pass: "パス", cross: "クロス", through: "スルーパス", long: "ロングボール", out: "ラインアウト",
+        offside_log: "オフサイド：{r}", own_goal_by: "{o}のオウンゴール", claimed: "{o}がキャッチ",
+        behind: "{o}がクリア、CKに", cleared: "{o}がクリア", intercepted: "{o}がカット",
+        dribble: "ドリブル", shot: "シュート", header: "ヘディング", pen: "PK", fk: "FK", rebound: "こぼれ球",
+        outcome: { GOAL: "ゴール", SAVED: "セーブ", MISS: "枠外", BLOCKED: "ブロック", WOODWORK: "ポスト" },
+        disallowed: "ゴール取り消し（VAR：{why}）", injury_log: "負傷、ピッチ上で治療",
+        tackle_won: "{o}からボール奪取", foul: "{o}へのファウル", pen_foul: "PK！{o}へのファウル", sub_log: "交代",
+        half_time: "ハーフタイム", full_time: "試合終了", restart: "→ {t}の{sp}",
+        k_own_goal: "{o}（{t}の得点）", k_penalty: "{t}にPK：{p}が{o}を倒す", k_card: "{p}（{t}）、{o}へのファウル",
+        k_sub: "{t}：{p} IN、{o} OUT", k_ht: "ハーフタイムレポート", k_ft: "試合終了レポート", k_save: "セーブ",
+        k_pen_saved: "PKストップ", k_denies: "{o}が{p}のシュートを阻止", k_pen_missed: "PK失敗", k_big: "決定機",
+        k_woodwork: "ポスト直撃", k_recap: "まとめ",
+    },
+};
+const ui = () => UI[settings.lang] || UI.en;
+/* A match-view string with {placeholders} filled in. */
+const tr = (key, vars = {}) => String(ui()[key] ?? UI.en[key]).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+const teamName = t => ui().teams[t] || TEAM_LABEL[t] || t;
+const reasonName = r => ui().reasons[r] || UI.en.reasons[r] || r;
+const spName = sp => ui().sp[sp] || UI.en.sp[sp] || sp;
+const varWhy = ev => (ui().var_reason[ev.var.reason] || UI.en.var_reason[ev.var.reason]);
+
+/* ---------- INTERFACE LANGUAGE ----------
+ * Labels, tabs, headings and buttons follow the language too: elements marked data-i18n keep their English
+ * text in the page and take these when Spanish or Japanese is picked. Long help notes stay in English. */
+const CHROME = {
+    en: {"open_report": "Open report", "rs_shots": "Shots", "rs_on_target": "On target", "rs_possession": "Possession", "rs_pass": "Pass accuracy", "rs_big": "Big chances", "rs_press": "Ball wins in opp. half", "rs_corners": "Corners", "rs_fouls": "Fouls", "rs_offsides": "Offsides", "rs_woodwork": "Woodwork", "rs_tilt": "Field tilt", "rs_cards": "Cards", "rs_distance": "Distance (km)", "best": "Best player", "next_half": "Second half kicks off shortly", "next_match": "New match starts shortly", "lg_corner": "corner", "lg_fk": "free kick", "lg_throw": "throw-in", "lg_gk": "goal kick", "lg_pen": "penalty", "lg_off": "offside", "pc_touches": "Touches", "pc_passes_completed": "Passes completed", "pc_shots": "Shots", "pc_tackles_won": "Tackles won", "pc_sprints": "Sprints", "pc_distance_km": "Distance (km)", "pc_top_speed": "Top speed (km/h)", "pc_saves": "Saves", "team_avg": "team avg {v}", "fitness": "Est. fitness", "heat": "Heat map", "heat_note": "{n} snapshots · {t} attacking →", "attack": "{t} attack {a}", "lg_pass": "Pass difficulty easy → hard", "lg_keys": "Click a player to follow them · Space pause · ← → step · L live", "q_best": "Who is the best player so far?", "q_player": "How is {p} playing?", "q_sofar": "What has happened so far?", "q_ht": "Give me the half-time report", "q_ft": "Give me the full-time report", "fav_only": "{t} only", "fav_any": "My club only", "ask_ph": "Ask about the match, e.g. 'Who is pressing better?' or 'How is Thornquist playing?'", "live": "LIVE", "thinking": "Thinking…"},
+    es: {"open_report": "Abrir informe", "rs_shots": "Disparos", "rs_on_target": "A puerta", "rs_possession": "Posesión", "rs_pass": "Precisión de pase", "rs_big": "Ocasiones claras", "rs_press": "Recuperaciones en campo rival", "rs_corners": "Córners", "rs_fouls": "Faltas", "rs_offsides": "Fueras de juego", "rs_woodwork": "Palos", "rs_tilt": "Dominio territorial", "rs_cards": "Tarjetas", "rs_distance": "Distancia (km)", "best": "Mejor jugador", "next_half": "La segunda parte empieza en breve", "next_match": "El próximo partido empieza en breve", "lg_corner": "córner", "lg_fk": "tiro libre", "lg_throw": "saque de banda", "lg_gk": "saque de puerta", "lg_pen": "penalti", "lg_off": "fuera de juego", "pc_touches": "Toques", "pc_passes_completed": "Pases completados", "pc_shots": "Disparos", "pc_tackles_won": "Entradas ganadas", "pc_sprints": "Sprints", "pc_distance_km": "Distancia (km)", "pc_top_speed": "Velocidad máx. (km/h)", "pc_saves": "Paradas", "team_avg": "media equipo {v}", "fitness": "Forma física est.", "heat": "Mapa de calor", "heat_note": "{n} capturas · {t} ataca →", "attack": "{t} ataca {a}", "lg_pass": "Dificultad del pase: fácil → difícil", "lg_keys": "Clic en un jugador para seguirlo · Espacio pausa · ← → paso · L directo", "guide": "Guía", "m_analyst": "Analista", "m_casual": "Casual", "m_cam": "Cámara jugador", "kickoff": "EMPEZAR PARTIDO", "away": "Mientras no estabas", "h_ai": "Análisis IA en directo", "h_tele": "Telemetría de equipos", "h_glance": "El partido de un vistazo", "h_log": "Registro en directo", "impact_only": "Solo impacto", "t_stats": "Estadísticas", "t_tactics": "Táctica", "t_events": "Momentos e historias", "t_analysis": "Análisis a fondo", "t_ask": "Pregunta a la IA", "t_agents": "Agentes IA", "t_data": "Datos y gráficos", "h_players": "Estadísticas de jugadores", "h_avgpos": "Posiciones medias", "h_xg": "Carrera de xG", "h_mom": "Dominio", "h_flow": "Ritmo: control o caos, y presión", "h_shots": "Mapa de disparos", "h_impact": "Momentos de impacto", "h_reports": "Informes", "h_desk": "La mesa de agentes", "h_runs": "Ejecuciones en directo", "h_dataset": "Conjunto de datos sintético", "h_cues": "Señales de gráficos", "ask_btn": "Preguntar", "fav_none": "Sin favorito", "fav_home": "Hincha del Brackenford", "fav_away": "Hincha del Kestermouth", "pin_none": "Sin dato fijado", "pin_xg": "Fijar: xG", "pin_poss": "Fijar: posesión", "pin_ot": "Fijar: tiros a puerta", "pin_corners": "Fijar: córners", "pin_cards": "Fijar: tarjetas", "pin_pass": "Fijar: precisión de pase", "pin_press": "Fijar: presión", "pin_dist": "Fijar: distancia recorrida", "pin_speed": "Fijar: velocidad máxima", "q_mom": "¿Quién domina ahora?", "q_chances": "¿Quién crea mejores ocasiones?", "q_press": "¿Cómo presionan los equipos?", "q_set": "¿Cuántos córners y faltas?", "q_best": "¿Quién es el mejor jugador hasta ahora?", "q_player": "¿Cómo está jugando {p}?", "q_sofar": "¿Qué ha pasado hasta ahora?", "q_ht": "Dame el informe del descanso", "q_ft": "Dame el informe final", "fav_only": "Solo {t}", "fav_any": "Solo mi club", "ask_ph": "Pregunta sobre el partido, p. ej. «¿Quién presiona mejor?»", "live": "EN VIVO", "thinking": "Pensando…"},
+    ja: {"open_report": "レポートを開く", "rs_shots": "シュート", "rs_on_target": "枠内", "rs_possession": "ポゼッション", "rs_pass": "パス成功率", "rs_big": "決定機", "rs_press": "敵陣でのボール奪取", "rs_corners": "コーナーキック", "rs_fouls": "ファウル", "rs_offsides": "オフサイド", "rs_woodwork": "ポスト直撃", "rs_tilt": "敵陣支配率", "rs_cards": "カード", "rs_distance": "走行距離（km）", "best": "ベストプレーヤー", "next_half": "まもなく後半開始", "next_match": "まもなく次の試合開始", "lg_corner": "CK", "lg_fk": "FK", "lg_throw": "スローイン", "lg_gk": "ゴールキック", "lg_pen": "PK", "lg_off": "オフサイド", "pc_touches": "タッチ", "pc_passes_completed": "パス成功", "pc_shots": "シュート", "pc_tackles_won": "タックル成功", "pc_sprints": "スプリント", "pc_distance_km": "走行距離（km）", "pc_top_speed": "最高速度（km/h）", "pc_saves": "セーブ", "team_avg": "チーム平均 {v}", "fitness": "推定コンディション", "heat": "ヒートマップ", "heat_note": "{n}スナップショット · {t}が右へ攻撃 →", "attack": "{t} 攻撃方向 {a}", "lg_pass": "パス難度：易 → 難", "lg_keys": "選手をクリックで追跡 · Spaceで一時停止 · ← →でコマ送り · Lでライブ", "guide": "ガイド", "m_analyst": "アナリスト", "m_casual": "カジュアル", "m_cam": "選手カメラ", "kickoff": "試合開始", "away": "見逃した間に", "h_ai": "AIライブ分析", "h_tele": "チームデータ", "h_glance": "試合の概要", "h_log": "ライブイベントログ", "impact_only": "注目のみ", "t_stats": "スタッツ", "t_tactics": "戦術", "t_events": "主な出来事とストーリー", "t_analysis": "詳細分析", "t_ask": "AIに質問", "t_agents": "AIエージェント", "t_data": "データとオーバーレイ", "h_players": "選手スタッツ", "h_avgpos": "平均ポジション", "h_xg": "xGの推移", "h_mom": "流れ", "h_flow": "試合の流れ：支配か混戦か、プレス", "h_shots": "シュートマップ", "h_impact": "注目の場面", "h_reports": "レポート", "h_desk": "エージェントデスク", "h_runs": "エージェントの実行ログ", "h_dataset": "合成データセット", "h_cues": "オーバーレイ指示フィード", "ask_btn": "質問する", "fav_none": "応援クラブなし", "fav_home": "ブラッケンフォードを応援", "fav_away": "ケスターマスを応援", "pin_none": "固定表示なし", "pin_xg": "固定：xG", "pin_poss": "固定：ポゼッション", "pin_ot": "固定：枠内シュート", "pin_corners": "固定：コーナーキック", "pin_cards": "固定：カード", "pin_pass": "固定：パス成功率", "pin_press": "固定：プレス強度", "pin_dist": "固定：走行距離", "pin_speed": "固定：最高速度", "q_mom": "今、流れはどちらに？", "q_chances": "より良いチャンスを作っているのは？", "q_press": "両チームのプレスは？", "q_set": "コーナーとファウルの数は？", "q_best": "ここまでのベストプレーヤーは？", "q_player": "{p}の出来は？", "q_sofar": "ここまでの展開は？", "q_ht": "ハーフタイムレポートを見せて", "q_ft": "試合終了レポートを見せて", "fav_only": "{t}のみ", "fav_any": "応援クラブのみ", "ask_ph": "試合について質問：例「どちらのプレスが効いている？」", "live": "ライブ", "thinking": "考え中…"},
+};
+/* An interface string in the current language, with {placeholders} filled in. */
+const ct = (key, vars = {}) => String((CHROME[settings.lang] || {})[key] ?? CHROME.en[key])
+    .replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+
+function applyChrome() {
+    for (const el of Array.from(document.querySelectorAll("[data-i18n]"))) {
+        if (el.dataset.en === undefined) el.dataset.en = el.textContent;
+        el.textContent = (CHROME[settings.lang] || {})[el.dataset.i18n] || el.dataset.en;
+    }
+    $("ai-query-input").placeholder = ct("ask_ph");
+    updateSuggestions();
+    if (anim.entry) updateUI(anim.entry);  // the player card and the pitch legend are drawn from code
+}
+
 /* ---------- STATE ---------- */
 const settings = { mode: "PLAYER_CAM", team: HOME, player: "Thornquist", speed: 1, lang: "en", fav_team: "NONE" };
 let pinned = "none";
@@ -42,6 +157,8 @@ let ws = null, started = false, connId = 0;
 let history = [];             // [{key, event, positions, possession, commentary, summary, alerts, story, report, overlays}]
 let matchKey = null, metadata = null;
 let liveStats = null, liveFitness = null, liveStance = null, liveSubs = null;
+let agentRuns = [], aiEngine;          // agent desk runs (newest first); the model, null if off, undefined until connected
+let aiHold = null;                     // fresh AI commentary stays on the card for a moment
 let idx = -1;                 // index of the event on screen
 let live = true, replayPlaying = false, replayTimer = null, stopAt = null;
 let anim = { start: 0, dur: 800, ballDur: 500, from: null, entry: null };
@@ -297,7 +414,7 @@ function carrierAtEnd(entry) {
 
 /* The ball sits just in front of the carrier's feet (in their attacking direction)
  * so it is never hidden under a player; in flight it travels between them. */
-function drawBall(entry, t, screen) {
+function drawBall(entry, t, screen, now) {
     const ev = entry.event, l = ev.location, rt = rightTeam(entry);
     const r = Math.max(6, S * 1.05);
     const dir = team => (team === rt ? 1 : -1) * r * 1.15;
@@ -310,7 +427,15 @@ function drawBall(entry, t, screen) {
         [x1, y1] = screen[carrier];  // the receiver collects it on the run
         x1 += dir(entry.possession);
     }
-    const x = lerp(x0, x1, t), y = lerp(y0, y1, t);
+    let x = lerp(x0, x1, t), y = lerp(y0, y1, t);
+    // play stopped (out of play, a goal, a save held): once the ball has landed it is carried to
+    // where play restarts (corner flag, six-yard box, keeper's hands, centre spot) instead of jumping there
+    if (t >= 1 && entry.ball && Math.hypot(entry.ball[0] - l.end_x, entry.ball[1] - l.end_y) > 3) {
+        const k = easeMove(Math.max(0, Math.min(1, (now - anim.start - anim.ballDur - 250) / 650)));
+        const [bx, by] = pctPx(...entry.ball);
+        x = lerp(x, bx + dir(entry.possession), k);
+        y = lerp(y, by, k);
+    }
     const lofted = ev.event_type === "PASS" && (ev.length_m || 0) > 28;
     const lift = lofted ? Math.sin(Math.PI * t) * Math.min(1, ev.length_m / 45) * 3.5 * S : 0;
     const br = Math.max(5, S * 0.65) * (1 + lift / (14 * S));
@@ -338,7 +463,7 @@ function drawBadges(entry, screen, now) {
         if (!p) continue;
         const fade = Math.min(1, (elapsed - t0) / 200, (t1 - elapsed) / 300);
         const speedy = cue.type === "speed_badge";
-        const text = speedy ? `⚡ ${cue.player} ${cue.value_kmh.toFixed(1)} km/h` : `🏃 ${cue.player} ${cue.value_km} km`;
+        const text = speedy ? `${cue.player} ${cue.value_kmh.toFixed(1)} km/h` : `${cue.player} ${cue.value_km} km`;
         ctx.save();
         ctx.globalAlpha = Math.max(0, fade);
         ctx.font = "800 11px system-ui, sans-serif";
@@ -386,45 +511,45 @@ function drawOverlays(ev, t, now) {
             ctx.strokeStyle = `rgba(234,179,8,${1 - k})`; ctx.lineWidth = 4;
             ctx.beginPath(); ctx.arc(gx, gy, 10 + k * 50, 0, Math.PI * 2); ctx.stroke();
         }
-        const word = ev.outcome === "OWN_GOAL" ? "OWN GOAL" : "GOAL";
+        const word = tr(ev.outcome === "OWN_GOAL" ? "own_goal" : "goal");
         const cheer = fav() ? (ev.team === fav() ? `${word}! ★` : word) : `${word}!`;
-        const scorer = ev.outcome === "OWN_GOAL" ? `${ev.opponent} (o.g.)` : ev.player;
-        const checked = ev.var && ev.var.decision === "GOAL_STANDS" ? " · VAR: goal stands" : "";
-        banner(cheer, "#EAB308", `${scorer} · ${TEAM_LABEL[ev.team]} ${ev.score.home}-${ev.score.away}${checked}`);
+        const scorer = ev.outcome === "OWN_GOAL" ? `${ev.opponent} (${tr("og")})` : ev.player;
+        const checked = ev.var && ev.var.decision === "GOAL_STANDS" ? ` · ${tr("var_stands")}` : "";
+        banner(cheer, "#EAB308", `${scorer} · ${teamName(ev.team)} ${ev.score.home}-${ev.score.away}${checked}`);
     } else if (ev.outcome === "DISALLOWED" && done) {
-        banner("VAR: NO GOAL", "#EF4444", `${ev.player}'s goal ruled out for ${VAR_REASON[ev.var.reason]}`);
+        banner(tr("var_no"), "#EF4444", tr("var_ruled", { p: ev.player, why: varWhy(ev) }));
     } else if (ev.outcome === "WOODWORK" && done) {
-        banner("OFF THE WOODWORK!", "#F97316", `${ev.player} · ${TEAM_LABEL[ev.team]}`);
+        banner(tr("woodwork"), "#F97316", `${ev.player} · ${teamName(ev.team)}`);
     } else if (ev.event_type === "INJURY") {
-        banner("🚑 INJURY", "#E5E7EB", `${ev.player} (${TEAM_LABEL[ev.team]}) is down and needs treatment`);
+        banner(tr("injury"), "#E5E7EB", tr("injury_sub", { p: ev.player, t: teamName(ev.team) }));
     } else if (ev.restart === "PENALTY" && done) {
-        const card = ev.card ? ` · ${ev.card === "RED" ? "🟥" : "🟨"} ${ev.player}` : "";
-        banner("PENALTY!", "#EF4444", `${TEAM_LABEL[ev.restart_team]} · ${ev.opponent} fouled by ${ev.player}${card}`);
+        const card = ev.card ? ` · ${tr(ev.card === "RED" ? "red" : "yellow")}` : "";
+        banner(tr("penalty"), "#EF4444", tr("pen_sub", { t: teamName(ev.restart_team), o: ev.opponent, p: ev.player }) + card);
     } else if (ev.card && done) {
-        banner(ev.card === "RED" ? "RED CARD" : "YELLOW CARD", ev.card === "RED" ? "#EF4444" : "#EAB308",
-            `${ev.player} (${TEAM_LABEL[ev.team]}) on ${ev.opponent}`);
+        banner(tr(ev.card === "RED" ? "red" : "yellow"), ev.card === "RED" ? "#EF4444" : "#EAB308",
+            tr("card_sub", { p: ev.player, t: teamName(ev.team), o: ev.opponent }));
     } else if (ev.event_type === "SUBSTITUTION") {
-        const why = (ev.tags || []).map(t => SUB_REASON[t]).filter(Boolean)[0];
-        banner("SUBSTITUTION", "#E5E7EB", `${TEAM_LABEL[ev.team]}: ${ev.player} on, ${ev.player_off} off${why ? ` · ${why}` : ""}`);
+        const why = (ev.tags || []).map(x => ui().sub_reason[x]).filter(Boolean)[0];
+        banner(tr("sub"), "#E5E7EB", tr("sub_sub", { t: teamName(ev.team), p: ev.player, o: ev.player_off }) + (why ? ` · ${why}` : ""));
     } else if (ev.event_type === "HALF_TIME" || ev.event_type === "FULL_TIME") {
-        banner(ev.event_type === "HALF_TIME" ? "HALF-TIME · TEAMS CHANGE ENDS" : "FULL-TIME", "#FFFFFF",
-            `${TEAM_LABEL[HOME]} ${ev.score.home}-${ev.score.away} ${TEAM_LABEL[AWAY]}`);
+        banner(tr(ev.event_type === "HALF_TIME" ? "ht" : "ft"), "#FFFFFF",
+            `${teamName(HOME)} ${ev.score.home}-${ev.score.away} ${teamName(AWAY)}`);
     }
     let chipY = 8;
     if (ev.is_impact_moment) {
-        const why = ev.impact_reasons.map(r => REASON_LABEL[r] || r).join(" · ");
-        chip(`⚡ IMPACT · ${why}`, 8, chipY, "rgba(234,179,8,0.92)", "#000");
+        const why = ev.impact_reasons.map(reasonName).join(" · ");
+        chip(`${tr("impact")} · ${why}`, 8, chipY, "rgba(234,179,8,0.92)", "#000");
         chipY += 24;
     }
     if (ev.set_piece) {
-        chip(`${ICON[ev.set_piece]} ${SP_LABEL[ev.set_piece].toUpperCase()} · ${ev.player}`, 8, chipY, "rgba(8,12,20,0.85)", TEAM_COLOR[ev.team]);
+        chip(`${spName(ev.set_piece).toUpperCase()} · ${ev.player}`, 8, chipY, "rgba(8,12,20,0.85)", TEAM_COLOR[ev.team]);
     } else if (ev.outcome === "OFFSIDE" && done) {
-        chip(`🚩 OFFSIDE · ${ev.receiver}`, 8, chipY, "rgba(234,179,8,0.92)", "#000");
+        chip(`${tr("offside")} · ${ev.receiver}`, 8, chipY, "rgba(234,179,8,0.92)", "#000");
     } else if (ev.restart && ev.restart !== "PENALTY" && done) {
-        chip(`${ICON[ev.restart]} ${SP_LABEL[ev.restart].toUpperCase()} · ${TEAM_SHORT[ev.restart_team]}`, 8, chipY, "rgba(8,12,20,0.85)", TEAM_COLOR[ev.restart_team]);
+        chip(`${spName(ev.restart).toUpperCase()} · ${TEAM_SHORT[ev.restart_team]}`, 8, chipY, "rgba(8,12,20,0.85)", TEAM_COLOR[ev.restart_team]);
     }
-    if (ev.added_time) chip(`⏱ +${ev.added_time} MIN ADDED`, W - 8, live ? 8 : 32, "rgba(8,12,20,0.85)", "#E5E7EB", "right");
-    if (!live) chip(`REPLAY ${ev.clock}`, W - 8, 8, "rgba(8,12,20,0.85)", "#EAB308", "right");
+    if (ev.added_time) chip(tr("added", { n: ev.added_time }), W - 8, live ? 8 : 32, "rgba(8,12,20,0.85)", "#E5E7EB", "right");
+    if (!live) chip(`${tr("replay")} ${ev.clock}`, W - 8, 8, "rgba(8,12,20,0.85)", "#EAB308", "right");
 }
 
 function frame(now) {
@@ -442,7 +567,7 @@ function frame(now) {
             drawAction(entry.event, ease(tb), 1);
             drawn = interpPositions(anim.from, entry.positions, easeMove(tp));
             const screen = drawPlayers(drawn, entry.event, now, tp);
-            drawBall(entry, entry.event.event_type === "DRIBBLE" ? easeMove(tb) : ease(tb), screen);
+            drawBall(entry, entry.event.event_type === "DRIBBLE" ? easeMove(tb) : ease(tb), screen, now);
             drawBadges(entry, screen, now);
             drawOverlays(entry.event, tb, now);
         } else {
@@ -467,25 +592,55 @@ canvas.addEventListener("mousemove", e => {
 });
 
 /* ---------- BROADCAST CARD, TOASTS, PINNED METRIC ---------- */
+const AGENT_ICON = { Analyst: "magnifying-glass", Commentator: "pen-nib", Storyteller: "book-open", "Studio analyst": "microphone",
+    "Match desk": "comments", "Fact-checker": "circle-check", Orchestrator: "triangle-exclamation" };
+const STEP_LABEL = { passed: "passed", revise: "sent back", rejected: "rejected", revised: "revised", timeout: "timed out", error: "error" };
+
+/* The fact-checker's icon says how its check went: passed, sent back or rejected. */
+const stepIcon = s => fa(s.agent === "Fact-checker" ? (s.status === "passed" ? "circle-check" : s.status === "revise" ? "rotate-left" : "circle-xmark")
+    : AGENT_ICON[s.agent] || "circle");
+
+/* "Analyst 2.4s · 1 tool → Commentator 1.5s → Fact-checker passed": who did what for this text. */
+function trailHtml(p) {
+    if (!p || !p.steps) return "";
+    return p.steps.map(s => {
+        const icon = stepIcon(s);
+        const tools = /^(\d+) tool/.exec(s.detail || "");
+        const extra = s.agent === "Fact-checker" ? ` ${STEP_LABEL[s.status] || s.status}` : `${s.status === "revised" ? " (revised)" : ""} ${(s.ms / 1000).toFixed(1)}s${tools && +tools[1] ? ` · ${tools[1]} tool${+tools[1] > 1 ? "s" : ""}` : ""}`;
+        return `<span class="at-step at-${s.status}" title="${esc(s.detail || "")}">${icon} ${esc(s.agent)}${extra}</span>`;
+    }).join('<span class="at-arrow">→</span>');
+}
+const verifiedTag = p => p && (p.status === "passed" || p.status === "revised") ? ' <span class="ai-source verified">✓ fact-checked</span>' : "";
+
+/* While fresh AI commentary is on hold, routine events don't replace it (impact moments still do). */
+function cardEntry() {
+    return aiHold && performance.now() < aiHold.until && live ? aiHold.entry : anim.entry;
+}
+
 function showCommentary(entry, flash = false) {
     const c = entry.commentary;
     $("ai-commentary").innerText = c[MODE_KEY[settings.mode]];
     const lang = { en: "EN", es: "ES", ja: "JA" }[c.lang] || "";
-    $("ai-source").innerText = `${c.source} · ${MODE_LABEL[settings.mode]} · ${lang}`;
+    const behind = entry !== anim.entry ? ` · ${entry.event.clock}` : "";
+    $("ai-source").innerText = `${c.source} · ${MODE_LABEL[settings.mode]} · ${lang}${behind}`;
     $("ai-source").classList.toggle("from-azure", c.source === "AZURE OPENAI");
+    const trail = c.source === "AZURE OPENAI" ? trailHtml(entry.pipeline) : "";
+    $("agent-trail").hidden = !trail;
+    $("agent-trail").innerHTML = trail;
     const ev = entry.event;
     const badge = $("impact-badge");
     badge.hidden = !ev.is_impact_moment;
-    badge.innerText = ev.is_impact_moment ? `⚡ ${ev.impact_reasons.map(r => REASON_LABEL[r] || r)[0]}` : "";
+    badge.innerHTML = ev.is_impact_moment ? `${fa("bolt")} ${esc(reasonName(ev.impact_reasons[0]))}` : "";
     if (flash) {
         const card = $("ai-card");
         card.classList.remove("ai-flash"); void card.offsetWidth; card.classList.add("ai-flash");
     }
 }
 
-const TOAST_ICON = { added_time: "⏱", chasing: "📣", protecting: "🧱",
-    first_goal: "⚽", brace: "⚽⚽", hat_trick: "🎩", touches: "👟", passes_completed: "🎯", team_passes: "🔗",
-    tackles_won: "🛡️", saves: "🧤", spell: "🔄", top_speed: "⚡", chaos: "🌪️", control: "🎛️", press_up: "📈" };
+const TOAST_ICON = { added_time: "stopwatch", chasing: "bullhorn", protecting: "shield-halved", recap: "newspaper",
+    first_goal: "futbol", brace: "futbol", hat_trick: "futbol", touches: "shoe-prints", passes_completed: "bullseye",
+    team_passes: "link", tackles_won: "shield", saves: "hand", spell: "rotate", top_speed: "bolt", chaos: "tornado",
+    control: "sliders", press_up: "chart-line" };
 
 function showToasts(entry) {
     const stack = $("toast-stack");
@@ -494,7 +649,8 @@ function showToasts(entry) {
         const el = document.createElement("div");
         el.className = `toast ${a.kind}${a.team && a.team === fav() ? " fav" : ""}`;
         if (a.team) el.style.setProperty("--tc", TEAM_COLOR[a.team]);
-        el.innerHTML = `<span class="toast-icon">${TOAST_ICON[a.key] || "•"}</span><span>${esc(a.text)}</span>`;
+        const times = a.key === "hat_trick" ? 3 : a.key === "brace" ? 2 : 1;
+        el.innerHTML = `<span class="toast-icon">${fa(TOAST_ICON[a.key] || "circle-info").repeat(times)}</span><span>${esc(a.text)}</span>`;
         stack.prepend(el);
         while (stack.children.length > 3) stack.lastChild.remove();
         setTimeout(() => el.classList.add("out"), 4200 / Math.sqrt(settings.speed));
@@ -505,20 +661,21 @@ function showToasts(entry) {
 function pinnedText() {
     if (pinned === "none" || !liveStats || !anim.entry) return "";
     const s = anim.entry.summary, T = liveStats.teams;
-    const pair = (label, h, a) => `📌 ${label}  ${TEAM_SHORT[HOME]} ${h} · ${a} ${TEAM_SHORT[AWAY]}`;
+    const pair = (label, h, a) => `${label}  ${TEAM_SHORT[HOME]} ${h} · ${a} ${TEAM_SHORT[AWAY]}`;
+    const cards = x => `${x.yellow} yellow${x.red ? `, ${x.red} red` : ""}`;
     switch (pinned) {
         case "xg": return pair("xG", s.xg[0].toFixed(2), s.xg[1].toFixed(2));
         case "possession": return pair("Possession", `${s.possession[0]}%`, `${s.possession[1]}%`);
         case "on_target": return pair("On target", s.on_target[0], s.on_target[1]);
         case "corners": return pair("Corners", T[HOME].corners, T[AWAY].corners);
-        case "cards": return pair("Cards", `${T[HOME].yellow}🟨${T[HOME].red ? ` ${T[HOME].red}🟥` : ""}`, `${T[AWAY].yellow}🟨${T[AWAY].red ? ` ${T[AWAY].red}🟥` : ""}`);
+        case "cards": return pair("Cards", cards(T[HOME]), cards(T[AWAY]));
         case "pass_pct": return pair("Pass accuracy", `${T[HOME].pass_pct}%`, `${T[AWAY].pass_pct}%`);
         case "press": return pair("Pressure applied", s.flow.press[HOME], s.flow.press[AWAY]);
         case "distance": return pair("Distance", `${T[HOME].distance_km} km`, `${T[AWAY].distance_km} km`);
         case "top_speed": {
             let best = null;
             for (const t of TEAMS) for (const p of liveStats.players[t]) if (!best || p.top_speed > best.p.top_speed) best = { t, p };
-            return best && best.p.top_speed ? `📌 Top speed  ${best.p.id} (${TEAM_SHORT[best.t]}) ${best.p.top_speed.toFixed(1)} km/h` : "📌 Top speed  —";
+            return best && best.p.top_speed ? `Top speed  ${best.p.id} (${TEAM_SHORT[best.t]}) ${best.p.top_speed.toFixed(1)} km/h` : "Top speed  —";
         }
     }
     return "";
@@ -537,7 +694,7 @@ function updatePinned() {
 
 function updateUI(entry) {
     const ev = entry.event;
-    showCommentary(entry);
+    if (ev.is_impact_moment || !aiHold || performance.now() >= aiHold.until || !live) { aiHold = null; showCommentary(entry); }
     $("match-clock").innerText = ev.clock;
     $("score-home").innerText = ev.score.home;
     $("score-away").innerText = ev.score.away;
@@ -548,14 +705,15 @@ function updateUI(entry) {
     $("poss-home-bar").style.width = `${poss[0]}%`;
     const rt = rightTeam(entry);
     if (rt !== pitchRight) { pitchRight = rt; buildPitchLayer(); }  // teams changed ends: swap the crests
-    $(`dir-${HOME}`).innerText = `${TEAM_LABEL[HOME]} attack ${rt === HOME ? "→" : "←"}`;
-    $(`dir-${AWAY}`).innerText = `${TEAM_LABEL[AWAY]} attack ${rt === AWAY ? "→" : "←"}`;
+    $(`dir-${HOME}`).innerText = ct("attack", { t: teamName(HOME), a: rt === HOME ? "→" : "←" });
+    $(`dir-${AWAY}`).innerText = ct("attack", { t: teamName(AWAY), a: rt === AWAY ? "→" : "←" });
     updatePinned();
     renderModePanel();
 }
 
 /* ---------- MODE PANELS ---------- */
 function renderModePanel() {
+    updateSuggestions();
     if (!anim.entry) return;
     if (settings.mode === "ANALYST") renderTeamTelemetry();
     else if (settings.mode === "CASUAL") renderGlance();
@@ -593,10 +751,10 @@ function renderTeamTelemetry() {
     const e = anim.entry, s = e.summary, ev = e.event, m = ev.metrics || {};
     const T = liveStats ? liveStats.teams : null;
     const stance = TEAMS.filter(t => liveStance && STANCE_LABEL[liveStance[t]])
-        .map(t => `<span class="stance-chip" style="border-color:${TEAM_COLOR[t]}" title="What the team's shape shows: a higher line and more direct play, or dropping deeper">${TEAM_SHORT[t]} ${STANCE_LABEL[liveStance[t]]}</span>`).join("");
+        .map(t => `<span class="stance-chip" style="border-color:${TEAM_COLOR[t]}" title="What the team's shape shows: a higher line and more direct play, or dropping deeper">${TEAM_SHORT[t]} ${fa(STANCE_ICON[liveStance[t]])} ${STANCE_LABEL[liveStance[t]]}</span>`).join("");
     const last = TEAMS.map(team => {
         const a = lastActionOf(team);
-        const what = a ? `#${player(team, a.player).num} <strong>${esc(a.player)}</strong> · ${a.set_piece ? SP_LABEL[a.set_piece].toLowerCase()
+        const what = a ? `#${player(team, a.player).num} <strong>${esc(a.player)}</strong> · ${a.set_piece ? spName(a.set_piece).toLowerCase()
             : a.event_type === "SHOT" ? shotKind(a).toLowerCase() : a.event_type === "PASS" ? passKind(a).toLowerCase() : a.event_type.toLowerCase()}${a.outcome ? " " + a.outcome.toLowerCase() : ""} · ${a.clock}` : "no action yet";
         return `<div class="tt-last" style="--tc:${TEAM_COLOR[team]}"><span class="tt-team">${TEAM_SHORT[team]}</span>${what}</div>`;
     }).join("");
@@ -630,9 +788,9 @@ function renderTeamTelemetry() {
 
 function moodText(flow) {
     const tempo = flow.tempo === "HIGH" ? " Fast and frantic right now." : flow.tempo === "SLOW" ? " The pace has dropped." : "";
-    if (flow.state === "CONTROL") return `😎 ${TEAM_LABEL[flow.state_team]} are calmly keeping the ball.${tempo}`;
-    if (flow.state === "CHAOS") return `🔥 End to end! The ball keeps changing hands.${tempo}`;
-    return `⚖️ An even contest at the moment.${tempo}`;
+    if (flow.state === "CONTROL") return `${TEAM_LABEL[flow.state_team]} are calmly keeping the ball.${tempo}`;
+    if (flow.state === "CHAOS") return `End to end: the ball keeps changing hands.${tempo}`;
+    return `An even contest at the moment.${tempo}`;
 }
 
 function renderGlance() {
@@ -661,14 +819,13 @@ function renderGlance() {
     $("momentum-needle").style.left = `${50 - s.momentum / 2}%`;
     const goals = history.filter(h => h.key === matchKey && isGoal(h.event) && history.indexOf(h) <= idx);
     const scorer = ev => ev.outcome === "OWN_GOAL" ? `${esc(ev.opponent)} (o.g.)` : esc(ev.player);
-    $("glance-goals").innerHTML = goals.map(h => `<li style="--tc:${TEAM_COLOR[h.event.team]}">⚽ ${h.event.clock} ${scorer(h.event)} <span class="text-muted">${TEAM_LABEL[h.event.team]}</span></li>`).join("")
+    $("glance-goals").innerHTML = goals.map(h => `<li style="--tc:${TEAM_COLOR[h.event.team]}">${fa("futbol")} ${h.event.clock} ${scorer(h.event)} <span class="text-muted">${TEAM_LABEL[h.event.team]}</span></li>`).join("")
         || `<li class="text-muted">No goals yet</li>`;
 }
 
 const PC_STATS = {
-    outfield: [["touches", "Touches"], ["passes_completed", "Passes completed"], ["shots", "Shots"],
-               ["tackles_won", "Tackles won"], ["sprints", "Sprints"], ["distance_km", "Distance (km)"], ["top_speed", "Top speed (km/h)"]],
-    keeper: [["saves", "Saves"], ["touches", "Touches"], ["passes_completed", "Passes completed"], ["distance_km", "Distance (km)"]],
+    outfield: ["touches", "passes_completed", "shots", "tackles_won", "sprints", "distance_km", "top_speed"],
+    keeper: ["saves", "touches", "passes_completed", "distance_km"],
 };
 
 function renderPlayerCard() {
@@ -692,13 +849,14 @@ function renderPlayerCard() {
     }
     const keeper = p.pos === "GK";
     const peers = rows.filter(r => r.minutes > 0 && (r.pos === "GK") === keeper);
-    $("pc-bars").innerHTML = PC_STATS[keeper ? "keeper" : "outfield"].map(([k, label]) => {
+    $("pc-bars").innerHTML = PC_STATS[keeper ? "keeper" : "outfield"].map(k => {
+        const label = ct(`pc_${k}`);
         const vals = peers.map(r => r[k] || 0);
         const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
         const max = Math.max(...vals, p[k] || 0, 1);
         const v = p[k] || 0;
         const fmt = x => k === "top_speed" && !x ? "–" : (k === "distance_km" || k === "top_speed") ? x.toFixed(1) : Math.round(x * 10) / 10;
-        return `<div class="pc-row"><div class="pc-row-label"><span>${label}</span><span><strong>${fmt(v)}</strong> <span class="text-muted">team avg ${fmt(avg)}</span></span></div>
+        return `<div class="pc-row"><div class="pc-row-label"><span>${label}</span><span><strong>${fmt(v)}</strong> <span class="text-muted">${ct("team_avg", { v: fmt(avg) })}</span></span></div>
             <div class="pc-bar"><div class="pc-fill" style="width:${100 * v / max}%; background:${TEAM_COLOR[team]}"></div><div class="pc-avg" style="left:${100 * avg / max}%"></div></div></div>`;
     }).join("");
     renderHeatMap(team, settings.player);
@@ -736,7 +894,7 @@ function renderHeatMap(team, pid) {
         g.fillStyle = "rgba(255,255,255,0.7)"; g.font = "600 16px system-ui"; g.textAlign = "center";
         g.fillText("No positions yet", w / 2, h / 2);
     }
-    $("pc-heat-note").innerText = `${pts.length} snapshots · ${TEAM_LABEL[team]} attacking →`;
+    $("pc-heat-note").innerText = ct("heat_note", { n: pts.length, t: teamName(team) });
 }
 
 /* ---------- REPORT CARD ---------- */
@@ -744,16 +902,16 @@ function openReport(entry) {
     const r = entry.report;
     if (!r) return;
     reportEntry = entry;
-    $("report-title").innerText = r.kind === "HALF_TIME" ? "HALF-TIME REPORT" : "FULL-TIME REPORT";
+    $("report-title").innerText = tr(r.kind === "HALF_TIME" ? "k_ht" : "k_ft");
     $("report-score").innerHTML = `<span style="color:${TEAM_COLOR[HOME]}">${TEAM_LABEL[HOME].toUpperCase()}</span> <strong>${r.score.home} – ${r.score.away}</strong> <span style="color:${TEAM_COLOR[AWAY]}">${TEAM_LABEL[AWAY].toUpperCase()}</span>`;
     const th = r.teams[HOME], ta = r.teams[AWAY];
-    const rows = [["xG", th.xg.toFixed(2), ta.xg.toFixed(2), th.xg, ta.xg], ["Shots", th.shots, ta.shots], ["On target", th.on_target, ta.on_target],
-        ["Possession", `${th.possession}%`, `${ta.possession}%`, th.possession, ta.possession], ["Pass accuracy", `${th.pass_pct}%`, `${ta.pass_pct}%`, th.pass_pct, ta.pass_pct],
-        ["Big chances", th.big_chances, ta.big_chances], ["Ball wins in opp. half", th.press_wins, ta.press_wins],
-        ["Corners", th.corners, ta.corners], ["Fouls", th.fouls, ta.fouls], ["Offsides", th.offsides, ta.offsides],
-        ["Woodwork", th.woodwork, ta.woodwork], ["Field tilt", `${th.field_tilt}%`, `${ta.field_tilt}%`, th.field_tilt, ta.field_tilt],
-        ["Cards", `${th.yellow}🟨 ${th.red}🟥`, `${ta.yellow}🟨 ${ta.red}🟥`, th.yellow + 2 * th.red, ta.yellow + 2 * ta.red],
-        ["Distance (km)", th.distance_km, ta.distance_km]];
+    const rows = [["xG", th.xg.toFixed(2), ta.xg.toFixed(2), th.xg, ta.xg], [ct("rs_shots"), th.shots, ta.shots], [ct("rs_on_target"), th.on_target, ta.on_target],
+        [ct("rs_possession"), `${th.possession}%`, `${ta.possession}%`, th.possession, ta.possession], [ct("rs_pass"), `${th.pass_pct}%`, `${ta.pass_pct}%`, th.pass_pct, ta.pass_pct],
+        [ct("rs_big"), th.big_chances, ta.big_chances], [ct("rs_press"), th.press_wins, ta.press_wins],
+        [ct("rs_corners"), th.corners, ta.corners], [ct("rs_fouls"), th.fouls, ta.fouls], [ct("rs_offsides"), th.offsides, ta.offsides],
+        [ct("rs_woodwork"), th.woodwork, ta.woodwork], [ct("rs_tilt"), `${th.field_tilt}%`, `${ta.field_tilt}%`, th.field_tilt, ta.field_tilt],
+        [ct("rs_cards"), `${th.yellow}${cardIco("YELLOW")} ${th.red}${cardIco("RED")}`, `${ta.yellow}${cardIco("YELLOW")} ${ta.red}${cardIco("RED")}`, th.yellow + 2 * th.red, ta.yellow + 2 * ta.red],
+        [ct("rs_distance"), th.distance_km, ta.distance_km]];
     $("report-stats").innerHTML = rows.map(([label, h, a, hn = +h, an = +a]) => {
         const tot = hn + an, hp = tot ? 100 * hn / tot : 50;
         return `<div class="rs-row"><span>${h}</span><div><span class="rs-label">${label}</span>
@@ -761,10 +919,12 @@ function openReport(entry) {
     }).join("");
     $("report-narrative").innerText = r.narrative;
     const b = r.best_player;
-    $("report-best").innerHTML = b ? `<span class="rb-label">Best player</span> <strong>${esc(b.name)}</strong> <span style="color:${TEAM_COLOR[b.team]}">${TEAM_LABEL[b.team]}</span> <span class="rating r-high">${b.rating.toFixed(1)}</span>` : "";
-    const icon = m => isGoal(m) ? "⚽" : m.outcome === "DISALLOWED" ? ICON.DISALLOWED : m.restart === "PENALTY" ? ICON.PENALTY : m.card === "RED" ? "🟥" : m.card ? "🟨" : m.outcome === "SAVED" ? "🧤" : "🎯";
+    $("report-best").innerHTML = b ? `<span class="rb-label">${esc(ct("best"))}</span> <strong>${esc(b.name)}</strong> <span style="color:${TEAM_COLOR[b.team]}">${TEAM_LABEL[b.team]}</span> <span class="rating r-high">${b.rating.toFixed(1)}</span>` : "";
+    const icon = m => m.card && m.restart !== "PENALTY" ? cardIco(m.card) : fa(isGoal(m) ? ICON.GOAL : m.outcome === "DISALLOWED" ? ICON.DISALLOWED
+        : m.restart === "PENALTY" ? ICON.PENALTY : m.outcome === "SAVED" ? ICON.SAVED : ICON.MISS);
     $("report-moments").innerHTML = r.key_moments.map(m => `<li>${icon(m)} ${m.clock} ${esc(m.player)} <span class="text-muted">${TEAM_LABEL[m.team]}</span></li>`).join("");
-    $("report-source").innerText = `${entry.reportSource || "LOCAL ENGINE"} · ${r.kind === "HALF_TIME" ? "Second half kicks off shortly" : "New match starts shortly"}`;
+    const checked = entry.reportSource === "AZURE OPENAI" && entry.reportPipeline && entry.reportPipeline.status !== "rejected" ? " · ✓ fact-checked" : "";
+    $("report-source").innerText = `${entry.reportSource || "LOCAL ENGINE"}${checked} · ${ct(r.kind === "HALF_TIME" ? "next_half" : "next_match")}`;
     $("report-modal").hidden = false;
 }
 function closeReport() { $("report-modal").hidden = true; reportEntry = null; }
@@ -803,7 +963,7 @@ function updateLiveButton() {
     const btn = $("return-live-btn");
     const behind = history.length - 1 - idx;
     btn.classList.toggle("is-live", live);
-    $("return-live-text").innerText = live ? "LIVE" : `GO LIVE${behind > 0 ? ` · +${behind}` : ""}`;
+    $("return-live-text").innerText = live ? ct("live") : `GO LIVE${behind > 0 ? ` · +${behind}` : ""}`;
     $("play-pause-btn").innerHTML = `<i class="fa-solid fa-${live || replayPlaying ? "pause" : "play"}"></i>`;
     const pill = $("live-indicator");
     if (!started) return;
@@ -903,9 +1063,9 @@ function renderMarkers() {
     history.forEach((h, i) => {
         const ev = h.event;
         let cls = null, label = "";
-        if (isGoal(ev)) { cls = "goal"; label = `⚽ ${ev.clock} ${ev.outcome === "OWN_GOAL" ? `${ev.opponent} (o.g.)` : ev.player}`; }
-        else if (ev.outcome === "DISALLOWED") { cls = "var"; label = `🚫 ${ev.clock} ${ev.player}: VAR, no goal`; }
-        else if (ev.card) { cls = ev.card === "RED" ? "red" : "yellow"; label = `${ev.card === "RED" ? "🟥" : "🟨"} ${ev.clock} ${ev.player}`; }
+        if (isGoal(ev)) { cls = "goal"; label = `Goal ${ev.clock} ${ev.outcome === "OWN_GOAL" ? `${ev.opponent} (o.g.)` : ev.player}`; }
+        else if (ev.outcome === "DISALLOWED") { cls = "var"; label = `${ev.clock} ${ev.player}: VAR, no goal`; }
+        else if (ev.card) { cls = ev.card === "RED" ? "red" : "yellow"; label = `${ev.card === "RED" ? "Red" : "Yellow"} card ${ev.clock} ${ev.player}`; }
         else if (ev.event_type === "HALF_TIME") { cls = "ht"; label = "Half-time"; }
         if (cls) marks.push(`<button class="tl-mark ${cls}" style="left:${(100 * i / (n - 1)).toFixed(2)}%" data-seq="${ev.seq}" title="${esc(label)}" aria-label="${esc(label)}"></button>`);
     });
@@ -917,19 +1077,20 @@ $("timeline-markers").addEventListener("click", e => {
 });
 
 /* ---------- EVENT LOG ---------- */
-const ICON = { GOAL: "⚽", SAVED: "🧤", MISS: "🎯", BLOCKED: "🧱", COMPLETE: "➡️", INTERCEPTED: "✂️", SUCCESS: "💨",
-               WON: "🛡️", FOUL: "✋", OUT: "↗️", OFFSIDE: "🚩", SUBSTITUTION: "🔁", HALF_TIME: "⏸", FULL_TIME: "🏁",
-               CORNER: "⛳", FREE_KICK: "🦶", THROW_IN: "🙌", GOAL_KICK: "🥅", PENALTY: "❗",
-               OWN_GOAL: "⚽", WOODWORK: "🪵", DISALLOWED: "🚫", INJURY: "🚑" };
+const ICON = { GOAL: "futbol", SAVED: "hand", MISS: "crosshairs", BLOCKED: "shield-halved", COMPLETE: "arrow-right",
+              INTERCEPTED: "scissors", SUCCESS: "wind", WON: "shield", FOUL: "circle-exclamation", OUT: "arrow-turn-up",
+              OFFSIDE: "flag", SUBSTITUTION: "right-left", HALF_TIME: "pause", FULL_TIME: "flag-checkered",
+              CORNER: "border-top-left", FREE_KICK: "shoe-prints", THROW_IN: "hands-holding", GOAL_KICK: "arrow-up-long",
+              PENALTY: "circle-dot", OWN_GOAL: "futbol", WOODWORK: "grip-lines-vertical", DISALLOWED: "ban", INJURY: "kit-medical" };
 
 /* What kind of shot: penalty, free kick, header, rebound or an ordinary shot. */
-const shotKind = ev => ev.set_piece === "PENALTY" ? "PENALTY" : ev.set_piece === "FREE_KICK" ? "FREE KICK"
-    : ev.body_part === "HEAD" ? "HEADER" : (ev.tags || []).includes("rebound") ? "REBOUND" : "SHOT";
+const shotKind = ev => tr(ev.set_piece === "PENALTY" ? "pen" : ev.set_piece === "FREE_KICK" ? "fk"
+    : ev.body_part === "HEAD" ? "header" : (ev.tags || []).includes("rebound") ? "rebound" : "shot");
 /* What kind of pass: a set piece, a cross, a through ball, a long ball or an ordinary pass. */
 const passKind = ev => {
     const tags = ev.tags || [];
-    if (ev.set_piece) return SP_LABEL[ev.set_piece].toUpperCase();
-    return tags.includes("cross") ? "CROSS" : tags.includes("through_ball") ? "THROUGH BALL" : tags.includes("long_ball") ? "LONG BALL" : "PASS";
+    if (ev.set_piece) return spName(ev.set_piece).toUpperCase();
+    return tr(tags.includes("cross") ? "cross" : tags.includes("through_ball") ? "through" : tags.includes("long_ball") ? "long" : "pass");
 };
 
 function logLabel(ev) {
@@ -938,24 +1099,39 @@ function logLabel(ev) {
     switch (ev.event_type) {
         case "PASS":
             if (ev.outcome === "COMPLETE") return `${kind}→ ${ev.receiver}`;
-            if (ev.outcome === "OWN_GOAL") return `${kind}· OWN GOAL by ${ev.opponent}`;
-            if (ev.outcome === "OUT") return `${kind}OUT OF PLAY`;
-            if (ev.outcome === "OFFSIDE") return `OFFSIDE: ${ev.receiver}`;
-            if (tags.includes("claimed")) return `${kind}CLAIMED by ${ev.opponent}`;
-            return `${kind}${ev.restart === "CORNER" ? "TURNED BEHIND by" : tags.includes("delivery") ? "CLEARED by" : "INTERCEPTED by"} ${ev.opponent}`;
-        case "DRIBBLE": return "DRIBBLE";
+            if (ev.outcome === "OWN_GOAL") return `${kind}· ${tr("own_goal_by", { o: ev.opponent })}`;
+            if (ev.outcome === "OUT") return `${kind}${tr("out")}`;
+            if (ev.outcome === "OFFSIDE") return tr("offside_log", { r: ev.receiver });
+            if (tags.includes("claimed")) return `${kind}${tr("claimed", { o: ev.opponent })}`;
+            return kind + tr(ev.restart === "CORNER" ? "behind" : tags.includes("delivery") ? "cleared" : "intercepted", { o: ev.opponent });
+        case "DRIBBLE": return tr("dribble");
         case "SHOT":
-            if (ev.outcome === "DISALLOWED") return `${shotKind(ev)} · GOAL DISALLOWED (VAR: ${VAR_REASON[ev.var.reason]})`;
-            return `${shotKind(ev)} · ${ev.outcome}${ev.var && ev.var.decision === "GOAL_STANDS" ? " (VAR ✓)" : ""}`;
-        case "INJURY": return "INJURY, treatment on the pitch";
-        case "TACKLE": return ev.outcome === "WON" ? `TACKLE WON on ${ev.opponent}`
-            : `${ev.restart === "PENALTY" ? "PENALTY! FOUL" : "FOUL"} on ${ev.opponent}${ev.card ? (ev.card === "RED" ? " 🟥" : " 🟨") : ""}`;
+            if (ev.outcome === "DISALLOWED") return `${shotKind(ev)} · ${tr("disallowed", { why: varWhy(ev) })}`;
+            return `${shotKind(ev)} · ${ui().outcome[ev.outcome] || ev.outcome}${ev.var && ev.var.decision === "GOAL_STANDS" ? " (VAR ✓)" : ""}`;
+        case "INJURY": return tr("injury_log");
+        case "TACKLE": return ev.outcome === "WON" ? tr("tackle_won", { o: ev.opponent })
+            : tr(ev.restart === "PENALTY" ? "pen_foul" : "foul", { o: ev.opponent });
         case "SUBSTITUTION": {
-            const why = tags.map(t => SUB_REASON[t]).filter(Boolean)[0];
-            return `SUB ${ev.player} ⇄ ${ev.player_off}${why ? ` (${why})` : ""}`;
+            const why = tags.map(x => ui().sub_reason[x]).filter(Boolean)[0];
+            return `${tr("sub_log")} ${ev.player} ⇄ ${ev.player_off}${why ? ` (${why})` : ""}`;
         }
+        case "HALF_TIME": return tr("half_time");
+        case "FULL_TIME": return tr("full_time");
         default: return ev.event_type.replace("_", " ");
     }
+}
+
+function logItemHtml(ev) {
+    const mine = fav() && ev.team === fav();
+    const who = ev.team && ev.event_type !== "SUBSTITUTION"
+        ? `<span class="team-tag" style="--tc:${TEAM_COLOR[ev.team]}">${esc(ev.player)}</span> ` : "";
+    const name = isGoal(ev) ? ICON.GOAL : ev.restart === "PENALTY" ? ICON.PENALTY
+        : ev.set_piece && ev.event_type === "PASS" ? ICON[ev.set_piece] : ICON[ev.outcome || ev.event_type];
+    const icon = name ? fa(name) : "";
+    const card = ev.card ? ` ${cardIco(ev.card)}` : "";
+    const restart = ev.restart ? ` <span class="restart-tag" title="Play restarts with this set piece">${esc(tr("restart", { sp: spName(ev.restart).toLowerCase(), t: TEAM_SHORT[ev.restart_team] }))}</span>` : "";
+    const added = ev.added_time ? ` <span class="restart-tag">${fa("stopwatch")} +${ev.added_time}</span>` : "";
+    return `<span class="event-time">${esc(ev.clock)}</span><span>${mine ? `<span class="fav-star">${fa("star")}</span> ` : ""}${icon || "•"} ${who}<strong>${esc(logLabel(ev))}</strong>${card}${restart}${added}${ev.possession_change ? ' <span class="poss-chg" title="Possession changed">⇄</span>' : ""}${ev.is_impact_moment ? ` <span class="zap">${fa("bolt")}</span>` : ""}</span>`;
 }
 
 function addLogItem(entry) {
@@ -966,13 +1142,7 @@ function addLogItem(entry) {
     item.dataset.seq = ev.seq;
     item.setAttribute("role", "button");
     item.tabIndex = 0;
-    const who = ev.team && ev.event_type !== "SUBSTITUTION"
-        ? `<span class="team-tag" style="--tc:${TEAM_COLOR[ev.team]}">${esc(ev.player)}</span> ` : "";
-    const icon = isGoal(ev) ? ICON.GOAL : ev.restart === "PENALTY" ? ICON.PENALTY
-        : ev.set_piece && ev.event_type === "PASS" ? ICON[ev.set_piece] : ICON[ev.outcome || ev.event_type];
-    const restart = ev.restart ? ` <span class="restart-tag" title="Play restarts with this set piece">→ ${SP_LABEL[ev.restart].toLowerCase()} ${TEAM_SHORT[ev.restart_team]}</span>` : "";
-    const added = ev.added_time ? ` <span class="restart-tag">⏱ +${ev.added_time}</span>` : "";
-    item.innerHTML = `<span class="event-time">${esc(ev.clock)}</span><span>${mine ? "★ " : ""}${icon || "•"} ${who}<strong>${esc(logLabel(ev))}</strong>${restart}${added}${ev.possession_change ? ' <span class="poss-chg" title="Possession changed">⇄</span>' : ""}${ev.is_impact_moment ? ' <span class="zap">⚡</span>' : ""}</span>`;
+    item.innerHTML = logItemHtml(ev);
     const list = $("event-log-container");
     list.prepend(item);
     while (list.children.length > 150) list.lastChild.remove();
@@ -998,24 +1168,27 @@ function isKeyEvent(ev) {
 }
 
 function keyEventText(ev) {
-    const how = ev.event_type === "SHOT" && shotKind(ev) !== "SHOT" ? `, ${shotKind(ev).toLowerCase()}` : "";
+    const how = ev.event_type === "SHOT" && (ev.set_piece || ev.body_part === "HEAD" || (ev.tags || []).includes("rebound"))
+        ? `, ${shotKind(ev).toLowerCase()}` : "";
     const xg = ev.metrics.xg != null ? ` (${ev.metrics.xg.toFixed(2)} xG${how})` : "";
-    if (ev.outcome === "GOAL") return `⚽ <strong>GOAL</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}${xg} · ${ev.score.home}-${ev.score.away}${ev.var && ev.var.decision === "GOAL_STANDS" ? " · VAR ✓" : ""}`;
-    if (ev.outcome === "OWN_GOAL") return `⚽ <strong>OWN GOAL</strong> ${esc(ev.opponent)} for ${TEAM_LABEL[ev.team]} · ${ev.score.home}-${ev.score.away}`;
-    if (ev.outcome === "DISALLOWED") return `🚫 <strong>VAR: NO GOAL</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}: ${VAR_REASON[ev.var.reason]}`;
-    if (ev.outcome === "WOODWORK") return `🪵 <strong>WOODWORK</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}${xg}`;
-    if (ev.event_type === "INJURY") return `🚑 <strong>INJURY</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}`;
-    if (ev.restart === "PENALTY") return `${ICON.PENALTY} <strong>PENALTY</strong> to ${TEAM_LABEL[ev.restart_team]}: ${esc(ev.opponent)} fouled by ${esc(ev.player)}${ev.card ? (ev.card === "RED" ? " 🟥" : " 🟨") : ""}`;
-    if (ev.card) return `${ev.card === "RED" ? "🟥 <strong>RED CARD</strong>" : "🟨 <strong>YELLOW CARD</strong>"} ${esc(ev.player)} (${TEAM_LABEL[ev.team]}) for a foul on ${esc(ev.opponent)}`;
+    const tn = teamName(ev.team);
+    const big = s => `<strong>${s}</strong>`;
+    if (ev.outcome === "GOAL") return `${fa(ICON.GOAL)} ${big(tr("goal"))} ${esc(ev.player)}, ${tn}${xg} · ${ev.score.home}-${ev.score.away}${ev.var && ev.var.decision === "GOAL_STANDS" ? " · VAR ✓" : ""}`;
+    if (ev.outcome === "OWN_GOAL") return `${fa(ICON.GOAL)} ${big(tr("own_goal"))} ${esc(tr("k_own_goal", { o: ev.opponent, t: tn }))} · ${ev.score.home}-${ev.score.away}`;
+    if (ev.outcome === "DISALLOWED") return `${fa(ICON.DISALLOWED)} ${big(tr("var_no"))} ${esc(ev.player)}, ${tn}: ${varWhy(ev)}`;
+    if (ev.outcome === "WOODWORK") return `${fa(ICON.WOODWORK)} ${big(tr("k_woodwork"))} ${esc(ev.player)}, ${tn}${xg}`;
+    if (ev.event_type === "INJURY") return `${fa(ICON.INJURY)} ${big(tr("injury"))} ${esc(ev.player)}, ${tn}`;
+    if (ev.restart === "PENALTY") return `${fa(ICON.PENALTY)} ${esc(tr("k_penalty", { t: teamName(ev.restart_team), o: ev.opponent, p: ev.player }))}${ev.card ? ` ${cardIco(ev.card)}` : ""}`;
+    if (ev.card) return `${cardIco(ev.card)} ${big(tr(ev.card === "RED" ? "red" : "yellow"))} ${esc(tr("k_card", { p: ev.player, t: tn, o: ev.opponent }))}`;
     if (ev.event_type === "SUBSTITUTION") {
-        const why = (ev.tags || []).map(t => SUB_REASON[t]).filter(Boolean)[0];
-        return `🔁 <strong>SUB</strong> ${TEAM_LABEL[ev.team]}: ${esc(ev.player)} on, ${esc(ev.player_off)} off${why ? ` (${why})` : ""}`;
+        const why = (ev.tags || []).map(x => ui().sub_reason[x]).filter(Boolean)[0];
+        return `${fa(ICON.SUBSTITUTION)} ${big(tr("sub_log"))} ${esc(tr("k_sub", { t: tn, p: ev.player, o: ev.player_off }))}${why ? ` (${why})` : ""}`;
     }
-    if (ev.event_type === "HALF_TIME") return `⏸ <strong>HALF-TIME REPORT</strong> ${TEAM_LABEL[HOME]} ${ev.score.home}-${ev.score.away} ${TEAM_LABEL[AWAY]}`;
-    if (ev.event_type === "FULL_TIME") return `🏁 <strong>FULL-TIME REPORT</strong> ${TEAM_LABEL[HOME]} ${ev.score.home}-${ev.score.away} ${TEAM_LABEL[AWAY]}`;
-    if (ev.outcome === "SAVED") return `🧤 <strong>${ev.set_piece === "PENALTY" ? "PENALTY SAVED" : "SAVE"}</strong> ${esc(ev.opponent)} denies ${esc(ev.player)}${xg}`;
-    const label = ev.set_piece === "PENALTY" ? "PENALTY MISSED" : ev.set_piece === "FREE_KICK" ? "FREE KICK" : "BIG CHANCE";
-    return `🎯 <strong>${label}</strong> ${esc(ev.player)}, ${TEAM_LABEL[ev.team]}${xg}: ${ev.outcome.toLowerCase()}`;
+    if (ev.event_type === "HALF_TIME") return `${fa(ICON.HALF_TIME)} ${big(tr("k_ht"))} ${teamName(HOME)} ${ev.score.home}-${ev.score.away} ${teamName(AWAY)}`;
+    if (ev.event_type === "FULL_TIME") return `${fa(ICON.FULL_TIME)} ${big(tr("k_ft"))} ${teamName(HOME)} ${ev.score.home}-${ev.score.away} ${teamName(AWAY)}`;
+    if (ev.outcome === "SAVED") return `${fa(ICON.SAVED)} ${big(tr(ev.set_piece === "PENALTY" ? "k_pen_saved" : "k_save"))} ${esc(tr("k_denies", { o: ev.opponent, p: ev.player }))}${xg}`;
+    const label = tr(ev.set_piece === "PENALTY" ? "k_pen_missed" : ev.set_piece === "FREE_KICK" ? "fk" : "k_big");
+    return `${fa(ICON.MISS)} ${big(label)} ${esc(ev.player)}, ${tn}${xg}: ${(ui().outcome[ev.outcome] || ev.outcome).toLowerCase()}`;
 }
 
 function keyEventStory(entry) {
@@ -1031,12 +1204,16 @@ function addKeyEvent(entry) {
     li.tabIndex = 0;
     const mine = fav() && ev.team === fav();
     li.className = `ke ${ev.team ? (ev.team === HOME ? "home" : "away") : "neutral"}${mine ? " fav" : ""}`;
-    li.innerHTML = `<div class="ke-top"><span class="time-tag">${esc(ev.clock)}</span> ${keyEventText(ev)}
-        ${entry.report ? '<button class="chip open-report">Open report</button>' : ""}
-        <span class="replay-hint"><i class="fa-solid fa-rotate-left"></i> replay</span></div>
-        <p class="story"></p>`;
+    li.innerHTML = `<div class="ke-top">${keTopHtml(entry)}</div><p class="story"></p>`;
     $("key-events-list").prepend(li);
     updateKeyEventStory(entry);
+}
+
+function keTopHtml(entry) {
+    const ev = entry.event;
+    return `<span class="time-tag">${esc(ev.clock)}</span> ${keyEventText(ev)}
+        ${entry.report ? `<button class="chip open-report">${esc(ct("open_report"))}</button>` : ""}
+        <span class="replay-hint"><i class="fa-solid fa-rotate-left"></i> replay</span>`;
 }
 
 function updateKeyEventStory(entry) {
@@ -1045,7 +1222,8 @@ function updateKeyEventStory(entry) {
     const p = li.querySelector(".story");
     const text = keyEventStory(entry);
     const src = entry.report ? entry.reportSource : entry.storySource;
-    p.innerHTML = text ? `${esc(text)} <span class="ai-source ${src === "AZURE OPENAI" ? "from-azure" : ""}">${src || "LOCAL ENGINE"}</span>` : "";
+    const checked = src === "AZURE OPENAI" ? verifiedTag(entry.report ? entry.reportPipeline : entry.storyPipeline) : "";
+    p.innerHTML = text ? `${esc(text)} <span class="ai-source ${src === "AZURE OPENAI" ? "from-azure" : ""}">${src || "LOCAL ENGINE"}</span>${checked}` : "";
 }
 
 function onKeyEventActivate(e) {
@@ -1131,8 +1309,8 @@ function renderPlayerTable() {
     const body = rows.map(r => {
         const focus = settings.team === statsTeam && settings.player === r.id;
         const subTxt = r.sub_on != null ? ` <span class="sub-on">↑${r.sub_on}'</span>` : "";
-        const offTxt = r.sub_off != null ? ` <span class="sub-off">${r.red ? "🟥" : "↓"}${r.sub_off}'</span>` : "";
-        const cards = "🟨".repeat(r.yellow) + "🟥".repeat(r.red) || "–";
+        const offTxt = r.sub_off != null ? ` <span class="sub-off">${r.red ? cardIco("RED") : "↓"}${r.sub_off}'</span>` : "";
+        const cards = cardIco("YELLOW").repeat(r.yellow) + cardIco("RED").repeat(r.red) || "–";
         return `<tr class="${r.minutes === 0 && r.sub_on == null && !r.starter ? "bench" : ""}${focus ? " focus" : ""}" data-pid="${esc(r.id)}">
             <td class="num">${r.num}</td><td class="pname">${esc(r.name)}${squads && squads[statsTeam][r.id]?.captain ? ' <span class="capt" title="Captain">C</span>' : ""}${subTxt}${offTxt}</td><td>${r.pos}</td>
             <td>${r.minutes}</td><td>${r.fitness != null ? `${r.fitness}%` : "–"}</td><td><span class="rating ${ratingCls(r.rating)}">${r.rating != null ? r.rating.toFixed(1) : "–"}</span></td>
@@ -1261,7 +1439,7 @@ function renderXgChart() {
     if (Math.abs(labelY[0] - labelY[1]) < 13) { const mid = (labelY[0] + labelY[1]) / 2; labelY[0] = mid + (last[1] >= last[2] ? -7 : 7); labelY[1] = mid + (last[1] >= last[2] ? 7 : -7); }
     svg.innerHTML = grid +
         `<path d="${step(1)}" class="xg-line" stroke="${TEAM_COLOR[HOME]}"/><path d="${step(2)}" class="xg-line" stroke="${TEAM_COLOR[AWAY]}"/>` +
-        goals.map(([mn, t, v, p]) => `<circle cx="${sx(mn)}" cy="${sy(v)}" r="5" fill="${TEAM_COLOR[t]}" stroke="#111827" stroke-width="2" data-tip="⚽ ${mn.toFixed(0)}' ${esc(p)} (${TEAM_LABEL[t]})"/>`).join("") +
+        goals.map(([mn, t, v, p]) => `<circle cx="${sx(mn)}" cy="${sy(v)}" r="5" fill="${TEAM_COLOR[t]}" stroke="#111827" stroke-width="2" data-tip="Goal ${mn.toFixed(0)}' ${esc(p)} (${TEAM_LABEL[t]})"/>`).join("") +
         `<text x="${sx(last[0]) + 8}" y="${labelY[0] + 4}" class="direct-label">${TEAM_SHORT[HOME]} ${last[1].toFixed(2)}</text>` +
         `<text x="${sx(last[0]) + 8}" y="${labelY[1] + 4}" class="direct-label">${TEAM_SHORT[AWAY]} ${last[2].toFixed(2)}</text>` +
         `<line class="crosshair" x1="0" x2="0" y1="${m.t}" y2="${h - m.b}" visibility="hidden"/>` +
@@ -1373,7 +1551,7 @@ function renderImpactList() {
     $("impact-list").innerHTML = items.map(e => {
         const ev = e.event;
         return `<li data-seq="${ev.seq}" tabindex="0"><span class="time-tag">${ev.clock}</span>
-            <span class="reason">${ev.impact_reasons.map(r => REASON_LABEL[r] || r).join(" · ")}</span>
+            <span class="reason">${ev.impact_reasons.map(reasonName).join(" · ")}</span>
             <span class="src ${e.commentary.source === "AZURE OPENAI" ? "from-azure" : ""}">${e.commentary.source === "AZURE OPENAI" ? "AI" : "local"}</span>
             <p>${esc(e.commentary.analyst)}</p></li>`;
     }).join("") || `<li class="text-muted">No impact moments yet.</li>`;
@@ -1479,6 +1657,7 @@ function renderActiveTab() {
     else if (activeTab === "tactics") renderTactics();
     else if (activeTab === "analysis") renderAnalysis();
     else if (activeTab === "data") renderData();
+    else if (activeTab === "agents") renderAgents();
 }
 document.querySelectorAll(".drawer-tab-btn").forEach(btn => btn.addEventListener("click", () => {
     document.querySelectorAll(".drawer-tab-btn").forEach(b => b.classList.toggle("active", b === btn));
@@ -1489,7 +1668,8 @@ document.querySelectorAll(".drawer-tab-btn").forEach(btn => btn.addEventListener
 }));
 
 /* ---------- TALK TO AI ---------- */
-function ask(question) {
+/* `hint` is the English question behind a suggestion, for the local engine when the model is off. */
+function ask(question, hint) {
     question = question.trim();
     if (!question) return;
     const box = $("ai-query-response");
@@ -1502,22 +1682,88 @@ function ask(question) {
     const qa = document.createElement("div");
     qa.className = "qa";
     qa.dataset.id = id;
-    qa.innerHTML = `<p class="q">${esc(question)}</p><p class="a text-muted">Thinking…</p>`;
+    qa.innerHTML = `<p class="q">${esc(question)}</p><p class="a text-muted">${esc(ct("thinking"))}</p>`;
     box.prepend(qa);
     while (box.children.length > 6) box.lastChild.remove();
-    ws.send(JSON.stringify({ type: "ask", id, question }));
+    ws.send(JSON.stringify({ type: "ask", id, question, hint }));
     $("ai-query-input").value = "";
 }
 $("ai-query-send-btn").addEventListener("click", () => ask($("ai-query-input").value));
 $("ai-query-input").addEventListener("keydown", e => { if (e.key === "Enter") ask(e.target.value); });
-$("ai-suggestions").addEventListener("click", e => { const c = e.target.closest(".chip"); if (c) ask(c.innerText); });
+$("ai-suggestions").addEventListener("click", e => { const c = e.target.closest(".chip"); if (c) ask(c.innerText, c.dataset.q); });
+
+/* Two suggestions follow the viewer and the match: the player they follow in Player Cam, and the
+ * latest report once there is one (before half-time there is none to ask for). */
+function updateSuggestions() {
+    const followed = settings.mode === "PLAYER_CAM" && settings.player;
+    const q = (el, key, vars) => { el.innerText = ct(key, vars); el.dataset.q = CHROME.en[key].replace("{p}", vars ? vars.p : ""); };
+    q($("ask-player"), followed ? "q_player" : "q_best", { p: settings.player });
+    const done = matchEntries().map(e => e.event.event_type);
+    q($("ask-story"), done.includes("FULL_TIME") ? "q_ft" : done.includes("HALF_TIME") ? "q_ht" : "q_sofar");
+}
 
 function onAnswer(msg) {
     const qa = document.querySelector(`.qa[data-id="${msg.id}"] .a`);
     if (!qa) return;
     qa.classList.remove("text-muted");
-    qa.innerHTML = `${esc(msg.text)} <span class="ai-source ${msg.source === "AZURE OPENAI" ? "from-azure" : ""}">${msg.source}</span>`;
+    qa.innerHTML = `${esc(msg.text)} <span class="ai-source ${msg.source === "AZURE OPENAI" ? "from-azure" : ""}">${msg.source}</span>${msg.source === "AZURE OPENAI" ? verifiedTag(msg.pipeline) : ""}`
+        + (msg.pipeline && msg.source === "AZURE OPENAI" ? `<div class="agent-trail">${trailHtml(msg.pipeline)}</div>` : "");
 }
+
+/* ---------- RECAPS AND CATCH-UP ---------- */
+let awayFrom = null, catchId = 0, catchTimer = null;
+let recaps = new Map();  // seq -> {clock, local: {lang: text}, ai: {lang: {text, pipeline}}}
+const lastSeq = () => (history.length ? history[history.length - 1].event.seq : 0);
+
+/* A recap every quarter of an hour, in Key Events & Stories; the agents' version replaces the template. */
+function onRecap(msg) {
+    const key = `${connId}:${msg.match_id}`;
+    if (key !== matchKey) return;
+    const rec = recaps.get(msg.seq) || { clock: msg.clock, local: {}, ai: {} };
+    recaps.set(msg.seq, rec);
+    if (msg.source === "AZURE OPENAI") rec.ai[msg.lang] = { text: msg.text, pipeline: msg.pipeline };
+    else rec.local = msg.i18n || { ...rec.local, [msg.lang]: msg.text };
+    let li = document.querySelector(`#key-events-list li[data-recap="${msg.seq}"]`);
+    const fresh = !li;
+    if (fresh) {
+        li = document.createElement("li");
+        li.className = "ke neutral recap";
+        li.dataset.recap = msg.seq;
+        $("key-events-list").prepend(li);
+    }
+    renderRecap(li, rec);
+    if (fresh && live) showToasts({ alerts: [{ kind: "milestone", key: "recap", text: `${msg.clock} recap in Key Events & Stories` }] });
+}
+
+/* A recap in the language on screen: the agents' version if they wrote one in it, else the template. */
+function renderRecap(li, rec) {
+    const ai = rec.ai[settings.lang];
+    const text = ai ? ai.text : rec.local[settings.lang] || Object.values(rec.local)[0] || "";
+    const src = ai ? "AZURE OPENAI" : "LOCAL ENGINE";
+    li.innerHTML = `<div class="ke-top"><span class="time-tag">${esc(rec.clock)}</span> ${fa("newspaper")} <strong>${esc(tr("k_recap"))}</strong></div>
+        <p class="story">${esc(text)} <span class="ai-source ${ai ? "from-azure" : ""}">${src}</span>${ai ? verifiedTag(ai.pipeline) : ""}</p>`;
+}
+
+function requestCatchup(since) {
+    catchId += 1;
+    $("catchup-text").innerText = "Catching you up…";
+    $("catchup-source").innerText = "";
+    $("catchup-span").innerText = "";
+    $("catchup").hidden = false;
+    ws.send(JSON.stringify({ type: "catchup", id: catchId, since_seq: since }));
+}
+
+function onCatchup(msg) {
+    if (msg.id !== catchId) return;
+    const ai = msg.source === "AZURE OPENAI";
+    $("catchup-span").innerText = `${msg.start} to ${msg.end}`;
+    $("catchup-text").innerText = msg.text;
+    $("catchup-source").innerHTML = `<span class="${ai ? "from-azure" : ""}">${msg.source}</span>${ai ? verifiedTag(msg.pipeline) : ""}`;
+    $("catchup").hidden = false;
+    clearTimeout(catchTimer);
+    catchTimer = setTimeout(() => { $("catchup").hidden = true; }, 30000);
+}
+$("catchup-close").addEventListener("click", () => { $("catchup").hidden = true; clearTimeout(catchTimer); });
 
 /* ---------- SOCKET MESSAGES ---------- */
 function resetMatch(key) {
@@ -1525,6 +1771,7 @@ function resetMatch(key) {
     liveStats = null;
     $("event-log-container").innerHTML = "";
     $("key-events-list").innerHTML = "";
+    recaps = new Map();
     $("toast-stack").innerHTML = "";
     closeReport();
     history = history.filter(h => h.key === key);
@@ -1554,9 +1801,12 @@ function onMatchStart(msg) {
 function onEvent(msg) {
     const key = `${connId}:${msg.match_id}`;
     if (key !== matchKey) resetMatch(key);
-    const entry = { key, event: msg.event, positions: msg.positions, possession: msg.possession,
+    const entry = { key, event: msg.event, positions: msg.positions, possession: msg.possession, ball: msg.ball,
                     commentary: msg.commentary, summary: msg.summary, alerts: msg.alerts || [],
-                    story: msg.story, report: msg.report, overlays: msg.overlays || [] };
+                    story: msg.story, report: msg.report, overlays: msg.overlays || [],
+                    local: msg.i18n || { [msg.commentary.lang]: { commentary: msg.commentary, story: msg.story,
+                                                                   report_narrative: msg.report && msg.report.narrative } },
+                    ai: {} };
     history.push(entry);
     if (history.length > MAX_HISTORY) { history.shift(); idx = Math.max(0, idx - 1); }
     liveStats = msg.stats;
@@ -1579,14 +1829,67 @@ function findEntry(msg) {
     return history.find(h => h.key === key && h.event.seq === msg.seq);
 }
 
+/* ---------- LANGUAGE ----------
+ * Every event carries its template text in each language (entry.local) and keeps the agents' text per
+ * language (entry.ai). The fields the page reads are filled for the language on screen, so switching
+ * language rewrites the whole match so far, and switching back brings the agents' text back. */
+function useLang(entry, lang = settings.lang) {
+    const local = entry.local[lang] || entry.local[Object.keys(entry.local)[0]];
+    const ai = entry.ai[lang] || {};
+    entry.commentary = ai.commentary || local.commentary;
+    entry.pipeline = ai.commentary ? ai.pipeline : null;
+    entry.story = ai.story || local.story || null;
+    entry.storySource = ai.story ? "AZURE OPENAI" : "LOCAL ENGINE";
+    entry.storyPipeline = ai.story ? ai.storyPipeline : null;
+    if (entry.report) {
+        entry.report.narrative = ai.report || local.report_narrative;
+        entry.reportSource = ai.report ? "AZURE OPENAI" : "LOCAL ENGINE";
+        entry.reportPipeline = ai.report ? ai.reportPipeline : null;
+    }
+}
+const aiText = (entry, lang) => (entry.ai[lang] = entry.ai[lang] || {});
+
+/* The language changed: rewrite the event log, key events, recaps, the card and the open tab. */
+function switchMatchLanguage() {
+    const entries = matchEntries();
+    entries.forEach(e => useLang(e));
+    const bySeq = new Map(entries.map(e => [e.event.seq, e]));
+    for (const item of Array.from($("event-log-container").children)) {
+        const e = bySeq.get(+item.dataset.seq);
+        if (e) item.innerHTML = logItemHtml(e.event);
+    }
+    for (const li of Array.from($("key-events-list").children)) {
+        if (li.dataset.recap) { const rec = recaps.get(+li.dataset.recap); if (rec) renderRecap(li, rec); continue; }
+        const e = bySeq.get(+li.dataset.seq);
+        if (e) { li.querySelector(".ke-top").innerHTML = keTopHtml(e); updateKeyEventStory(e); }
+    }
+    if (anim.entry) showCommentary(cardEntry());
+    if (reportEntry) openReport(reportEntry);
+    renderActiveTab();
+}
+
 function onCommentary(msg) {
     const entry = findEntry(msg);
     if (!entry) return;
-    entry.commentary = msg.commentary;
-    if (msg.alerts) entry.alerts = msg.alerts;
-    if ("story" in msg) { entry.story = msg.story; entry.storySource = "LOCAL ENGINE"; updateKeyEventStory(entry); }
-    if (msg.report_narrative && entry.report) { entry.report.narrative = msg.report_narrative; entry.reportSource = "LOCAL ENGINE"; updateKeyEventStory(entry); }
-    if (entry === anim.entry) showCommentary(entry, msg.commentary.source === "AZURE OPENAI");
+    const lang = msg.commentary.lang || settings.lang;
+    const fromAi = msg.commentary.source === "AZURE OPENAI";
+    if (fromAi) Object.assign(aiText(entry, lang), { commentary: msg.commentary, pipeline: msg.pipeline });
+    else {  // the latest event again, for a new language, focus player or club
+        const local = entry.local[lang] = entry.local[lang] || {};
+        local.commentary = msg.commentary;
+        if ("story" in msg) local.story = msg.story;
+        if (msg.report_narrative) local.report_narrative = msg.report_narrative;
+    }
+    if (msg.alerts && lang === settings.lang) entry.alerts = msg.alerts;
+    if (lang !== settings.lang) return;  // kept for when the viewer switches back
+    useLang(entry);
+    updateKeyEventStory(entry);
+    const recent = history.length - 1 - history.indexOf(entry) <= 6;
+    if (fromAi && live && recent) {
+        // the agents take a few seconds: keep their line on the card long enough to read
+        aiHold = { entry, until: performance.now() + 7000 / Math.sqrt(settings.speed) };
+        showCommentary(entry, true);
+    } else if (entry === anim.entry) showCommentary(entry, fromAi);
     if (reportEntry === entry) openReport(entry);
     if (activeTab === "analysis") { renderImpactList(); renderReports(); }
 }
@@ -1594,19 +1897,57 @@ function onCommentary(msg) {
 function onStory(msg) {
     const entry = findEntry(msg);
     if (!entry) return;
-    entry.story = msg.story;
-    entry.storySource = msg.source;
+    const lang = msg.lang || settings.lang;
+    Object.assign(aiText(entry, lang), { story: msg.story, storyPipeline: msg.pipeline });
+    if (lang !== settings.lang) return;
+    useLang(entry);
     updateKeyEventStory(entry);
 }
 
 function onReport(msg) {
     const entry = findEntry(msg);
     if (!entry || !entry.report) return;
-    entry.report.narrative = msg.narrative;
-    entry.reportSource = msg.source;
+    const lang = msg.lang || settings.lang;
+    Object.assign(aiText(entry, lang), { report: msg.narrative, reportPipeline: msg.pipeline });
+    if (lang !== settings.lang) return;
+    useLang(entry);
     updateKeyEventStory(entry);
     if (reportEntry === entry) openReport(entry);
     if (activeTab === "analysis") renderReports();
+}
+
+const RUN_KIND = { commentary: `${fa("bolt")} Impact moment`, story: `${fa("book-open")} Key-event story`, report: `${fa("pause")} Report`,
+                   answer: `${fa("comments")} Question`, recap: `${fa("newspaper")} Recap`, catchup: `${fa("backward")} Catch-up` };
+const RUN_STATUS = { passed: `${fa("circle-check")} verified`, revised: `${fa("rotate-left")} revised, then verified`,
+                     rejected: `${fa("circle-xmark")} rejected: templates kept`, error: `${fa("triangle-exclamation")} fell back to templates` };
+
+function onAgentRun(msg) {
+    agentRuns.unshift({ kind: msg.kind, clock: msg.clock, seq: msg.seq, p: msg.pipeline });
+    agentRuns.length = Math.min(agentRuns.length, 60);
+    if (activeTab === "agents") renderAgents();
+}
+
+function renderAgents() {
+    const n = agentRuns.length, by = s => agentRuns.filter(r => r.p.status === s).length;
+    const ms = n ? Math.round(agentRuns.reduce((a, r) => a + r.p.ms, 0) / n) : 0;
+    const tools = agentRuns.reduce((a, r) => a + (r.p.tools || []).length, 0);
+    const stat = (v, l, t) => `<div title="${t}"><strong>${v}</strong><span>${l}</span></div>`;
+    $("agent-stats").innerHTML = stat(n, "runs", "Agent pipeline runs this session")
+        + stat(by("passed"), "verified first time", "The fact-checker passed the first draft")
+        + stat(by("revised"), "fixed on revision", "The fact-checker sent a draft back and the fixed version passed")
+        + stat(by("rejected") + by("error"), "kept templates", "Rejected twice, timed out or failed: the instant template text stayed on screen")
+        + stat(n ? `${(ms / 1000).toFixed(1)}s` : "—", "average run", "From the moment to verified text")
+        + stat(tools, "tool calls", "Times an agent fetched live stats with a tool");
+    $("agent-engine").innerHTML = aiEngine ? `Built with <strong>Microsoft Agent Framework</strong> · running on <strong>Microsoft Foundry</strong> (${esc(aiEngine)}).`
+        : aiEngine === undefined ? "Built with <strong>Microsoft Agent Framework</strong> on <strong>Microsoft Foundry</strong>. Connects when the match starts."
+        : "The agents are off: no Microsoft Foundry keys are set, so everything comes from the instant template engine.";
+    $("agent-count").innerText = `${n} run${n === 1 ? "" : "s"}`;
+    $("agent-runs").innerHTML = agentRuns.slice(0, 30).map(r => `<li class="run-${r.p.status}">
+        <div class="ar-head"><span class="time-tag">${esc(r.clock)}</span><strong>${RUN_KIND[r.kind] || r.kind}</strong>
+            <span class="ar-status">${RUN_STATUS[r.p.status] || r.p.status}</span><span class="text-muted">${(r.p.ms / 1000).toFixed(1)}s</span></div>
+        <div class="agent-trail">${trailHtml(r.p)}</div>
+        ${r.p.steps.filter(s => s.detail && (s.agent !== "Fact-checker" || s.status !== "passed")).map(s => `<div class="ar-detail">${stepIcon(s)} ${esc(s.agent)}: ${esc(s.detail)}</div>`).join("")}
+    </li>`).join("") || `<li class="text-muted">${aiEngine === null ? "No runs: the agents need Microsoft Foundry keys." : "Start the match: runs appear here at each impact moment, key event and report."}</li>`;
 }
 
 function recordLatency(generatedAt) {
@@ -1621,6 +1962,7 @@ function recordLatency(generatedAt) {
 
 function onHello(msg) {
     interval = msg.interval;
+    aiEngine = msg.ai_configured ? msg.deployment : null;
     squads = msg.squads;
     buildPlayerDropdown(settings.team, settings.player);
     const st = $("ai-status");
@@ -1653,6 +1995,9 @@ function connect() {
         else if (msg.type === "story") onStory(msg);
         else if (msg.type === "report") onReport(msg);
         else if (msg.type === "answer") onAnswer(msg);
+        else if (msg.type === "agent_run") onAgentRun(msg);
+        else if (msg.type === "recap") onRecap(msg);
+        else if (msg.type === "catchup") onCatchup(msg);
         else if (msg.type === "match_start") onMatchStart(msg);
         else if (msg.type === "hello") onHello(msg);
     };
@@ -1702,11 +2047,29 @@ $("speed-select").addEventListener("change", e => {
 $("lang-select").addEventListener("change", e => {
     settings.lang = e.target.value;
     document.documentElement.lang = settings.lang;
-    sendConfig();  // the server re-sends the latest commentary in the new language at once
+    switchMatchLanguage();
+    applyChrome();
+    applyFav();
+    sendConfig();
 });
 
 function applyFav() {
     for (const t of TEAMS) $(`team-col-${t}`).classList.toggle("fav", fav() === t);
+    // moments already on screen follow the new club too, not only the ones still to come
+    const bySeq = new Map(matchEntries().map(e => [e.event.seq, e]));
+    for (const el of [...Array.from($("key-events-list").children), ...Array.from($("event-log-container").children)]) {
+        const e = bySeq.get(+el.dataset.seq);
+        if (!e) continue;
+        el.classList.toggle("fav", !!fav() && e.event.team === fav());
+        if (el.classList.contains("event-item")) el.innerHTML = logItemHtml(e.event);  // the ★
+    }
+    // the filter needs a club: without one it would hide every club's moments
+    const box = $("ke-fav-only");
+    box.disabled = !fav();
+    if (!fav()) { box.checked = false; $("key-events-list").classList.remove("fav-only"); }
+    $("ke-fav-label").innerText = fav() ? ct("fav_only", { t: teamName(fav()) }) : ct("fav_any");
+    $("ke-fav-toggle").title = fav() ? "Hide the other club's moments; recaps and reports stay"
+        : "Pick your club with ★ at the top first";
     if (fav()) setStatsTeam(fav());
 }
 $("fav-select").addEventListener("change", e => {
@@ -1762,7 +2125,7 @@ function setMode(mode) {
     document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
     for (const m of ["ANALYST", "CASUAL", "PLAYER_CAM"]) $(`panel-mode-${m}`).hidden = m !== mode;
     $("player-focus-container").style.display = mode === "PLAYER_CAM" ? "flex" : "none";
-    if (anim.entry) showCommentary(anim.entry);  // all three personas are already here: switch instantly
+    if (anim.entry) showCommentary(cardEntry());  // all three personas are already here: switch instantly
     renderModePanel();
     sendConfig();
 }
@@ -1798,6 +2161,7 @@ fetch("/api/squads").then(r => r.json()).then(d => {
     buildPlayerDropdown(settings.team, settings.player);
 }).catch(() => {});
 setMode(settings.mode);
+applyChrome();
 applyFav();
 if (!guideSeen()) openGuide();
 window.addEventListener("resize", resize);
@@ -1805,6 +2169,10 @@ window.addEventListener("resize", resize);
 document.addEventListener("visibilitychange", () => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     ws.send(JSON.stringify({ type: "config", visible: !document.hidden }));
+    if (document.hidden) { awayFrom = { seq: lastSeq(), key: matchKey }; return; }
+    // back after missing part of the match: ask for a catch-up
+    if (awayFrom && awayFrom.key === matchKey && live && lastSeq() - awayFrom.seq >= 6) requestCatchup(awayFrom.seq);
+    awayFrom = null;
 });
 /* Scrollbars stay hidden until used: mark whatever is scrolling for a moment so its thumb shows. */
 const scrollTimers = new WeakMap();

@@ -1,37 +1,42 @@
-"""Stage 2 - AI reasoning with Azure OpenAI.
-
-Impact moments are sent to the configured deployment, which returns all three
-personas in one JSON object. The reply is validated with Pydantic; anything
-malformed, slow or failing returns None and the template text stays on screen.
+"""Stage 2 - the connection to Microsoft Foundry (Azure OpenAI), the agents' instructions, and the
+fact-only view of an event the agents read. The agents themselves and the workflows that coordinate
+them are in agents.py.
 """
-import json
-import logging
 import os
 
-from pydantic import ValidationError
-
-from models import PersonaCommentary
 from analytics import metres
-from persona_router import LANG_NAMES, T, TEAM_NAMES, _zone
+from persona_router import T, TEAM_NAMES, _zone
 
-log = logging.getLogger("secondtouch.ai")
 _client = None
 # The stream never waits for the model (template text is already on screen), so a few seconds is fine.
 TIMEOUT_S = float(os.getenv("AZURE_OPENAI_TIMEOUT_S", "6"))
 
 SYSTEM = (
-    "You are SecondTouch, a live football commentary engine. You get the facts of one match event as JSON. "
-    "Explain why the moment matters (a press bypassed, a line broken, the quality of a chance), not just what happened. "
+    "You are the SecondTouch commentary team for one live football moment. You get its facts as JSON. "
     "Rules: use only the facts given and never invent players, scores, leads or numbers; read the score exactly as "
     "given (if it is level, nobody is leading); describe places with the zone words given, never coordinates or "
     "percentages of the pitch; write team and player names exactly as given, without translating or respelling them.\n"
-    "Reply with a JSON object with exactly these keys:\n"
-    '  "analyst": at most two short sentences, under 230 characters, tactical, citing at least one metric and the zone;\n'
-    '  "casual": one short, high-energy sentence, under 140 characters; if favourite_club is given, speak as one of its '
-    "supporters (celebrate its moments, groan at the opponent's);\n"
-    '  "player_cam": one sentence under 200 characters about the focus player, in the third person: if they are '
+    "Write like a real TV broadcast, where each voice has its own job:\n"
+    '  "casual" is the lead commentator calling the action live: present tense, short bursts, led by the player\'s '
+    "name and a precise action verb (threads, slides, whips in, drills, curls, nods, nicks, blocks, palms away), saying "
+    "what actually happened, not generic hype. Match the energy to moment_size: 'notable' is appreciative and calm, "
+    "'big' rises, 'huge' is full voice (a goal can be its own exclamation). One or two short phrases, under 120 "
+    "characters. Speak like a person, not a data feed: no jargon or metrics (no xG, 'third', 'line-breaking', "
+    "'pressure index') and no minutes or clock times. If favourite_club is given, speak as one of its supporters. "
+    "Never use stock phrases such as "
+    "'what a cracker', 'serious push', 'all over them', 'statement', 'game changer', 'what a moment'.\n"
+    '  "analyst" is the co-commentator: explains why it matters (space, pressure, a line bypassed, the quality of a '
+    "chance) in at most two short sentences under 230 characters, citing at least one metric and the zone. Measured, "
+    "no exclamations.\n"
+    '  "player_cam" follows the focus player, in the third person, one sentence under 200 characters: if they are '
     "involved, what they did; otherwise where they are relative to the ball, with their touches or sprints.\n"
-    "Write every value in {language}."
+    "Examples of the casual voice (style only; the [brackets] stand for the real names in the facts):\n"
+    "  notable pass: '[passer] threads it between the lines, and [runner] is away.'\n"
+    "  big save: '[shooter] gets the header in, and [keeper] palms it round the post!'\n"
+    "  huge goal: '[scorer]... curls it in! [team] lead!' (only if the score says they lead)\n"
+    "  Spanish: '¡[passer] la mete entre líneas y [runner] ya corre!' / '¡GOOOL de [scorer]!'\n"
+    "  Japanese: '[passer]、ライン間へ通した！[runner]が抜け出す！' / 'ゴール！[scorer]が決めた！'\n"
+    "Reply with a JSON object with exactly the keys analyst, casual and player_cam. Write every value in {language}."
 )
 
 NARRATIVE_SYSTEM = {
@@ -87,6 +92,17 @@ def _deployment():
     return os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
 
 
+def _moment_size(ev):
+    """How loud the lead commentator should be: huge (goals, red cards, penalties, VAR), big (big chances,
+    saves, the woodwork) or notable (a good pass, a press win, a booking)."""
+    r = set(ev["impact_reasons"])
+    if r & {"goal", "own_goal", "red_card", "penalty", "penalty_awarded", "var_no_goal"}:
+        return "huge"
+    if r & {"big_chance", "woodwork", "direct_free_kick"} or ev["outcome"] == "SAVED":
+        return "big"
+    return "notable"
+
+
 def _score_line(ev, ctx, names):
     h, a = ev["score"]["home"], ev["score"]["away"]
     situation = "level" if h == a else f"{names[ctx.home] if h > a else names[ctx.away]} lead by {abs(h - a)}"
@@ -98,6 +114,8 @@ def event_facts(ev, ctx, lang="en"):
     places as zones (not coordinates), the score with who leads, and where the focus player is."""
     names = TEAM_NAMES.get(lang, TEAM_NAMES["en"])
     m = {k: v for k, v in ev["metrics"].items() if v is not None}
+    if "players_bypassed" in m:  # say what it counts, so it is not read as "lines broken"
+        m["opponents_bypassed"] = m.pop("players_bypassed")
     loc = ev["location"]
     zone = _zone(T["en"], ev["team"], ctx.right_team, loc["start_x"], loc["start_y"]) if ev["team"] else None
     focus = ctx.positions.get(ctx.focus_team, {}).get(ctx.focus_player)
@@ -109,6 +127,7 @@ def event_facts(ev, ctx, lang="en"):
         "set_piece": ev.get("set_piece"), "body_part": ev.get("body_part") if ev.get("body_part") == "HEAD" else None,
         "play_restarts_with": f"{ev['restart']} to {ev['restart_team']}" if ev.get("restart") else None,
         "length_m": ev["length_m"], "metrics": m, "why_flagged": ev["impact_reasons"],
+        "moment_size": _moment_size(ev),
         "zone": zone,
         "score": _score_line(ev, ctx, names),
         "team_xg": {names[t]: xg for t, xg in zip((ctx.home, ctx.away), ctx.summary["xg"])},
@@ -121,68 +140,3 @@ def event_facts(ev, ctx, lang="en"):
         "game_flow": {k: ctx.summary["flow"][k] for k in ("state", "state_team", "press", "tempo")},
     }
     return {k: v for k, v in facts.items() if v not in (None, [], {})}
-
-
-async def persona_commentary(ev, ctx, lang):
-    """Return {"analyst", "casual", "player_cam"} from Azure OpenAI, or None."""
-    if not configured():
-        return None
-    try:
-        r = await _azure().chat.completions.create(
-            model=_deployment(),
-            messages=[
-                {"role": "system", "content": SYSTEM.format(language=LANG_NAMES[lang])},
-                {"role": "user", "content": json.dumps(event_facts(ev, ctx, lang), ensure_ascii=False)},
-            ],
-            response_format={"type": "json_object"},
-            max_completion_tokens=220,
-        )
-        out = PersonaCommentary.model_validate_json(r.choices[0].message.content or "")
-        return out.model_dump()
-    except ValidationError as e:
-        log.warning("Azure reply failed validation, keeping templates: %s", e.errors()[:1])
-    except Exception as e:  # network, auth, timeout, content filter
-        log.warning("Azure call failed, keeping templates: %s", type(e).__name__)
-    return None
-
-
-async def narrative(kind, facts, lang):
-    """A story behind a key event ("story") or a half/full-time report ("report"), or None."""
-    if not configured():
-        return None
-    when = "half-time" if facts.get("kind") == "HALF_TIME" else "full-time"
-    try:
-        r = await _azure().chat.completions.create(
-            model=_deployment(),
-            messages=[
-                {"role": "system", "content": NARRATIVE_SYSTEM[kind].format(language=LANG_NAMES[lang], when=when)},
-                {"role": "user", "content": json.dumps(facts, ensure_ascii=False)},
-            ],
-            max_completion_tokens=320,
-        )
-        text = (r.choices[0].message.content or "").strip()
-        return text if 20 <= len(text) <= 1500 else None
-    except Exception as e:
-        log.warning("Azure %s failed, keeping templates: %s", kind, type(e).__name__)
-        return None
-
-
-async def answer_question(question, match_context, lang):
-    """Free-text answer for the Talk to AI tab, or None."""
-    if not configured():
-        return None
-    try:
-        r = await _azure().chat.completions.create(
-            model=_deployment(),
-            messages=[
-                {"role": "system", "content": ASK_SYSTEM.format(language=LANG_NAMES[lang])},
-                {"role": "user", "content": "Match data:\n" + json.dumps(match_context, ensure_ascii=False)
-                 + "\n\nQuestion: " + question[:500]},
-            ],
-            max_completion_tokens=300,
-        )
-        text = (r.choices[0].message.content or "").strip()
-        return text or None
-    except Exception as e:
-        log.warning("Azure ask failed: %s", type(e).__name__)
-        return None

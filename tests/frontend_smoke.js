@@ -60,7 +60,8 @@ const run = (label, fn) => {
     try { fn(); } catch (e) { errors.push(`${label}: ${e.stack.split("\n").slice(0, 3).join(" | ")}`); }
 };
 const HANDLER = { hello: "onHello", match_start: "onMatchStart", event: "onEvent", commentary: "onCommentary",
-                  story: "onStory", report: "onReport", answer: "onAnswer" };
+                  story: "onStory", report: "onReport", answer: "onAnswer", agent_run: "onAgentRun",
+                  recap: "onRecap", catchup: "onCatchup" };
 let n = 0;
 for (const msg of msgs) {
     n++;
@@ -78,8 +79,51 @@ for (const msg of msgs) {
     if (n % 60 === 0) run(`replay #${n}`, () => { g.replayBuildUp(msg.event.seq); g.stepReplay(); g.goLive(); });
 }
 
+// the match view in every commentary language: no crash, no untranslated gap
+for (const lang of ["es", "ja", "en"]) {
+    vm.runInContext(`settings.lang = "${lang}"`, g);
+    for (const msg of msgs.filter(m => m.type === "event")) {
+        const what = `${lang} ${msg.event.event_type}/${msg.event.outcome}`;
+        run(`logLabel ${what}`, () => {
+            const texts = [g.logLabel(msg.event)];
+            if (g.isKeyEvent(msg.event)) texts.push(g.keyEventText(msg.event));
+            if (texts.some(s => s.includes("undefined"))) throw new Error(`untranslated: ${texts.join(" / ")}`);
+        });
+    }
+    run(`frame ${lang}`, () => g.frame(now += 300));
+    const goal = vm.runInContext(`tr("goal")`, g);
+    if (goal !== { es: "GOL", ja: "ゴール", en: "GOAL" }[lang]) errors.push(`the match view did not switch to ${lang}: ${goal}`);
+}
+
+// switching language rewrites what is already on screen, and the agents' text comes back on switching back
+run("switch language", () => {
+    const entry = vm.runInContext("matchEntries().find(e => e.story)", g);
+    if (!entry) throw new Error("no key event with a story");
+    entry.ai.en = { story: "Agent story in English." };
+    vm.runInContext(`settings.lang = "ja"; switchMatchLanguage()`, g);
+    if (entry.story !== (entry.local.ja.story || null) || entry.storySource !== "LOCAL ENGINE") throw new Error(`not Japanese: ${entry.story}`);
+    if (entry.commentary.lang !== "ja") throw new Error("the commentary stayed in another language");
+    vm.runInContext(`settings.lang = "en"; switchMatchLanguage()`, g);
+    if (entry.story !== "Agent story in English." || entry.storySource !== "AZURE OPENAI") throw new Error("the agents' story was lost");
+});
+
+run("interface in Japanese", () => {
+    vm.runInContext(`settings.lang = "ja"; applyChrome(); settings.lang = "en"; applyChrome()`, g);
+    if (vm.runInContext(`ct("live")`, g) !== "LIVE") throw new Error("the interface did not switch back");
+    for (const key of Object.keys(vm.runInContext("CHROME.en", g)))
+        for (const lang of ["es", "ja"]) if (!vm.runInContext(`CHROME.${lang}`, g)[key]) throw new Error(`${key} missing in ${lang}`);
+});
+
+run("pick a club mid-match", () => vm.runInContext(`settings.fav_team = AWAY; applyFav(); settings.fav_team = "NONE"; applyFav()`, g));
+
+run("renderAgents", () => g.renderAgents());
+run("setMode after AI", () => g.setMode("CASUAL"));
+
 // it must actually have rendered, not just survived
 const html = id => String((elements[id] && elements[id].innerHTML) || "");
+if (!html("agent-runs").includes("Fact-checker")) errors.push("the agent runs were not rendered");
+if (!String(elements["catchup-text"] && elements["catchup-text"].innerText).includes("While you were away")) errors.push("the catch-up was not shown");
+if (!html("agent-stats").includes("verified first time")) errors.push("the agent stats were not rendered");
 if (!html("h2h-list").includes("Corners")) errors.push("match stats were not rendered");
 if (!html("player-table").includes("<tbody>")) errors.push("player table was not rendered");
 if (!String(elements["match-clock"] && elements["match-clock"].innerText)) errors.push("clock was not set");

@@ -178,7 +178,8 @@ class MatchStats:
         self.match_top_speed = 0.0
         self.prev_positions = None
         self.key_moments = []
-        self.momentum_log = []
+        self.momentum_log = []          # (half, momentum, clock, seq) after every event
+        self.ht_score = None
         self.alerts = []
 
     # ---- helpers -------------------------------------------------------
@@ -220,6 +221,7 @@ class MatchStats:
             self.prev_positions = positions  # ends swapped: don't count the walk as running
             if t == "HALF_TIME":
                 self.half = 2
+                self.ht_score = dict(ev["score"])
             return
         self._distance(positions, dt)
         if t == "SUBSTITUTION":
@@ -394,7 +396,7 @@ class MatchStats:
         for side, w in weight_for.items():
             if w:
                 self.momentum_window.append((side, w))
-        self.momentum_log.append((self.half, self.momentum()))
+        self.momentum_log.append((self.half, self.momentum(), ev["clock"], ev["seq"]))
         self._flow(ev, holder)
         self._spells(ev, holder)
 
@@ -402,8 +404,9 @@ class MatchStats:
         return {"seq": ev["seq"], "clock": ev["clock"], "team": ev["team"], "player": ev["player"],
                 "type": ev["event_type"], "outcome": ev["outcome"], "card": ev["card"],
                 "xg": ev["metrics"]["xg"], "player_off": ev["player_off"], "opponent": ev["opponent"],
-                "set_piece": ev.get("set_piece"), "restart": ev.get("restart"), "tags": ev.get("tags") or [],
-                "var": ev.get("var")}
+                "set_piece": ev.get("set_piece"), "restart": ev.get("restart"),
+                "restart_team": ev.get("restart_team"), "tags": ev.get("tags") or [],
+                "var": ev.get("var"), "score": dict(ev["score"])}
 
     def _milestone_count(self, team, pid, stat, thresholds):
         p = self.p(team, pid)
@@ -697,6 +700,60 @@ class MatchStats:
                 "distance_km": round(p["distance_m"] / 1000, 1), "top_speed": p["top_speed"],
                 "minutes": self.minutes(p), "yellow": p["yellow"]}
 
+    def story_arc(self, ev):
+        """The whole match as a story: the turning points in order (goals that changed the picture, red cards,
+        penalties missed, goals ruled out, momentum swings), the half-time score and who was on top in each half.
+        Facts only: the words come from the templates or the Studio analyst."""
+        home, away = self.teams
+        points, prev = [], {"home": 0, "away": 0}
+        for k in self.key_moments:
+            if k["outcome"] in ("GOAL", "OWN_GOAL"):
+                sc = k["score"]
+                side = "home" if k["team"] == home else "away"
+                other = "away" if side == "home" else "home"
+                before, after = prev[side] - prev[other], sc[side] - sc[other]
+                kind = ("opener" if prev == {"home": 0, "away": 0} else "equaliser" if after == 0
+                        else "ahead" if before == 0 else "extend" if before > 0 else "pull_back")
+                points.append({"seq": k["seq"], "clock": k["clock"], "kind": kind, "team": k["team"],
+                               "player": k["player"] if k["outcome"] == "GOAL" else k["opponent"],
+                               "own_goal": k["outcome"] == "OWN_GOAL", "score": dict(sc)})
+                prev = dict(sc)
+            elif k["card"] == "RED":
+                points.append({"seq": k["seq"], "clock": k["clock"], "kind": "red_card", "team": k["team"],
+                               "player": k["player"]})
+            elif k["set_piece"] == "PENALTY" and k["outcome"] in ("SAVED", "MISS", "WOODWORK"):
+                points.append({"seq": k["seq"], "clock": k["clock"], "kind": "penalty_missed", "team": k["team"],
+                               "player": k["player"]})
+            elif k["outcome"] == "DISALLOWED":
+                points.append({"seq": k["seq"], "clock": k["clock"], "kind": "goal_ruled_out", "team": k["team"],
+                               "player": k["player"]})
+        # momentum swings: a team on top (momentum 30+) for a sustained spell, after the other team was
+        swings, run_team, run_start, run_len, last_team = [], None, None, 0, None
+        for _, mo, clock, seq in self.momentum_log:
+            team = home if mo >= 30 else away if mo <= -30 else None
+            if team != run_team:
+                run_team, run_start, run_len = team, (clock, seq), 0
+            run_len += 1
+            if team and run_len == 15:                      # about four minutes on top
+                if last_team and team != last_team:
+                    swings.append({"seq": run_start[1], "clock": run_start[0], "kind": "momentum_swing", "team": team})
+                last_team = team
+        points += swings[:2]
+        points.sort(key=lambda p: p["seq"])
+        if len(points) > 7:                                # keep every goal; drop the minor turns first
+            minor = [p for p in points if p["kind"] in ("momentum_swing", "goal_ruled_out")]
+            for p in minor[:len(points) - 7]:
+                points.remove(p)
+        on_top = {}
+        for half in (1, 2):
+            mo = [m for h, m, *_ in self.momentum_log if h == half]
+            avg = sum(mo) / len(mo) if mo else 0
+            on_top[f"half_{half}"] = home if avg >= 15 else away if avg <= -15 else None
+        sc = ev["score"]
+        return {"final_score": dict(sc), "half_time_score": self.ht_score,
+                "winner": home if sc["home"] > sc["away"] else away if sc["away"] > sc["home"] else None,
+                "on_top": on_top, "turning_points": [{k: v for k, v in p.items() if k != "seq"} for p in points]}
+
     def report(self, ev):
         """Structured half-time / full-time report."""
         teams = {t: self.team_stats(t) for t in self.teams}
@@ -716,7 +773,7 @@ class MatchStats:
         control = {t: round(100 * sum(1 for s, st in states if s == "CONTROL" and st == t) / n) for t in self.teams}
         chaos = round(100 * sum(1 for s, _ in states if s == "CHAOS") / n)
         # momentum of the half just finished
-        half = [mo for h, mo in self.momentum_log if h == (1 if ev["event_type"] == "HALF_TIME" else 2)]
+        half = [mo for h, mo, *_ in self.momentum_log if h == (1 if ev["event_type"] == "HALF_TIME" else 2)]
         moments = [k for k in self.key_moments if k["type"] != "SUBSTITUTION"][-8:]
         return {
             "kind": ev["event_type"], "clock": ev["clock"], "score": ev["score"],
@@ -730,4 +787,5 @@ class MatchStats:
             "control": control, "chaos_pct": chaos,
             "momentum_avg": round(sum(half) / len(half)) if half else 0,
             "key_moments": moments,
+            **({"story": self.story_arc(ev)} if ev["event_type"] == "FULL_TIME" else {}),
         }

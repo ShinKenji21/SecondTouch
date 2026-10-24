@@ -3,8 +3,9 @@
 Each connection runs its own match. The sender loop generates an event,
 updates the statistics, renders the three personas, alerts, key-event story
 and any half-time/full-time report from templates, builds the overlay cues and
-sends it all at once. Azure OpenAI then upgrades impact moments, stories and
-reports in the background, so the AI never holds up the stream.
+sends it all at once. The agent desk (agents.py: Microsoft Agent Framework on
+Microsoft Foundry) then upgrades impact moments, stories and reports in the
+background, so the AI never holds up the stream; each run's trace is sent too.
 """
 import asyncio
 import json
@@ -26,14 +27,20 @@ except ImportError:
     pass
 
 import agent_reasoner
+import agents
 import overlays
+import telemetry
 from analytics import MatchStats, is_key_event
 from generator import AWAY, FORMATIONS, HOME, SQUADS, MatchSim
 from models import ClientConfig, Event
-from persona_router import TEAM_NAMES, Context, alert_text, render, report_text, story
+from persona_router import LANG_NAMES, TEAM_NAMES, Context, alert_text, recap_text, render, report_text, story
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("secondtouch")
+# Agent Framework and httpx log every workflow step, tool call and request at INFO; keep the terminal readable
+for noisy in ("agent_framework", "httpx", "httpx2", "azure"):
+    logging.getLogger(noisy).setLevel(logging.WARNING)
+TRACING = telemetry.setup()
 
 HERE = Path(__file__).resolve().parent
 FRONTEND_DIR = HERE.parent / "frontend"
@@ -43,6 +50,9 @@ VALIDATE = os.getenv("VALIDATE_EVENTS") == "1"
 # writes for the first few matches of each visit and never while the tab is hidden. Talk to AI is
 # always answered, since someone asked.
 AI_MATCHES_PER_VIEWER = int(os.getenv("AI_MATCHES_PER_VIEWER", "2"))
+# a recap every quarter of an hour (half-time and full-time have their own reports): (half, minute)
+RECAP_AT = ((1, 15), (1, 30), (2, 60), (2, 75))
+MODE_NAME = {"ANALYST": "Analyst", "CASUAL": "Casual", "PLAYER_CAM": "Player Cam"}
 
 app = FastAPI(title="SecondTouch")
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
@@ -89,6 +99,8 @@ class Session:
         self.sim = MatchSim()
         self.stats = MatchStats(SQUADS, FORMATIONS, HOME, AWAY)
         self.last, self.recent, self.reports = None, [], {}
+        self.recaps = []      # (seq, clock) of each recap sent this match
+        self.clock_at = {}    # seq -> clock, to say where a catch-up starts
 
     async def send(self, obj):
         async with self.lock:
@@ -124,6 +136,16 @@ class Session:
         }
         return out
 
+    def local_i18n(self, ev, ctx, buildup, report, lines):
+        """The template text of one event in every language, so the viewer can switch language and the
+        whole match so far follows, not only what comes next."""
+        out = {}
+        for lang in LANG_NAMES:
+            out[lang] = {"commentary": {**render(ev, ctx, lang), "source": "LOCAL ENGINE", "lang": lang},
+                         "story": story(ev, buildup, ctx, lines, lang) if is_key_event(ev) else None,
+                         "report_narrative": report_text(report, lang) if report else None}
+        return out
+
     # ---- sender ------------------------------------------------------------
     async def run(self):
         await self.send({"type": "hello", "ai_configured": agent_reasoner.configured(),
@@ -151,14 +173,17 @@ class Session:
             texts = self.texts(ev, ctx, alerts, buildup, report, lines, lang)
             self.last = (ev, ctx, alerts, buildup, report, lines)
             self.recent = (self.recent + [ev])[-8:]
+            self.clock_at[ev["seq"]] = ev["clock"]
             if report:
                 self.reports[ev["event_type"]] = texts["report"]
             interval_ms = round(self.cfg["interval"] * 1000 / speed)
             await self.send({
                 "type": "event", "match_id": self.match_id, "event": ev,
                 "positions": self.sim.positions, "possession": self.sim.possession,
+                "ball": [round(self.sim.ball[0], 1), round(self.sim.ball[1], 1)],  # where play continues from
                 "commentary": {**texts["commentary"], "source": "LOCAL ENGINE", "lang": lang},
                 "alerts": texts["alerts"], "story": texts["story"], "report": texts["report"],
+                "i18n": self.local_i18n(ev, ctx, buildup, report, lines),
                 "overlays": overlays.build(ev, self.sim.positions, texts["commentary"], texts["alerts"],
                                            texts["story"], texts["report"], interval_ms),
                 "summary": ctx.summary, "stats": self.stats.snapshot(),
@@ -166,6 +191,8 @@ class Session:
                 "subs_used": dict(self.sim.subs_used),
                 "sent_at": time.time() * 1000,
             })
+            if self.recap_due(ev):
+                await self.send_recap(ev)
             if agent_reasoner.configured() and self.ai_allowed():
                 if ev["is_impact_moment"] and speed == 1:
                     asyncio.create_task(self.upgrade(ev, ctx, lang, self.match_id))
@@ -188,15 +215,27 @@ class Session:
             pass
 
     def _current(self, match_id, lang):
-        return match_id == self.match_id and lang == self.cfg["lang"]
+        """Still the same match. A result in a language the viewer has since left is still sent, tagged
+        with its language: the page keeps it and shows it again if they switch back."""
+        return match_id == self.match_id and lang in LANG_NAMES
+
+    def desk(self):
+        """The live match as the agents' tools see it."""
+        return agents.MatchDesk(self.stats, self.sim, list(self.recent), self.reports, HOME, AWAY)
+
+    async def report_run(self, kind, ev, match_id, pipeline):
+        """Every agent run is reported, including the ones that fell back to templates."""
+        if pipeline and match_id == self.match_id:
+            await self.send({"type": "agent_run", "match_id": match_id, "seq": ev["seq"], "clock": ev["clock"],
+                             "kind": kind, "pipeline": pipeline})
 
     async def upgrade(self, ev, ctx, lang, match_id):
-        started = time.time()
-        ai = await agent_reasoner.persona_commentary(ev, ctx, lang)
+        ai, pipeline = await agents.commentary(ev, ctx, lang, self.desk())
+        await self.report_run("commentary", ev, match_id, pipeline)
         if ai and self._current(match_id, lang):
             await self.send({"type": "commentary", "match_id": match_id, "seq": ev["seq"],
                              "commentary": {**ai, "source": "AZURE OPENAI", "lang": lang},
-                             "ai_ms": round((time.time() - started) * 1000)})
+                             "pipeline": pipeline, "ai_ms": pipeline["ms"]})
 
     async def upgrade_story(self, ev, buildup, lines, lang, match_id):
         facts = {"moment": {k: ev.get(k) for k in ("clock", "team", "player", "event_type", "outcome", "opponent",
@@ -205,18 +244,76 @@ class Session:
                  "xg": ev["metrics"]["xg"], "build_up": buildup,
                  "players": {f"{t}:{p}": v for (t, p), v in lines.items()
                              if p in (ev["player"], ev["opponent"], ev["player_off"]) and v}}
-        text = await agent_reasoner.narrative("story", facts, lang)
+        text, pipeline = await agents.story(facts, ev["score"], lang)
+        await self.report_run("story", ev, match_id, pipeline)
         if text and self._current(match_id, lang):
             await self.send({"type": "story", "match_id": match_id, "seq": ev["seq"], "story": text,
-                             "source": "AZURE OPENAI"})
+                             "source": "AZURE OPENAI", "lang": lang, "pipeline": pipeline})
+
+    # ---- recaps and catch-ups --------------------------------------------------------
+    def recap_due(self, ev):
+        if ev["event_type"] in ("HALF_TIME", "FULL_TIME"):
+            return False
+        done = len(self.recaps)
+        return done < len(RECAP_AT) and ev["period"] == RECAP_AT[done][0] and ev["minute"] >= RECAP_AT[done][1]
+
+    def recap_facts(self, kind, since_seq, start, ev):
+        """The stretch of play since `since_seq`, the numbers now, and who is watching."""
+        s = self.stats.summary()
+        mode, fav = self.cfg["mode"], self.fav()
+        return {"kind": kind, "start": start, "end": ev["clock"], "clock": ev["clock"], "score": ev["score"],
+                "home": HOME, "away": AWAY, "xg": s["xg"], "shots": s["shots"], "possession": s["possession"],
+                "momentum": s["momentum"], "fav_team": fav,
+                "moments": [m for m in self.stats.key_moments if m["seq"] > since_seq][-8:],
+                "viewer": {"mode": MODE_NAME[mode], "favourite_club": fav,
+                           "followed_player": self.cfg["player"] if mode == "PLAYER_CAM" else None}}
+
+    async def send_recap(self, ev):
+        since, start = self.recaps[-1] if self.recaps else (0, "0'")
+        self.recaps.append((ev["seq"], ev["clock"]))
+        facts, lang = self.recap_facts("PERIODIC", since, start, ev), self.cfg["lang"]
+        await self.send({"type": "recap", "match_id": self.match_id, "seq": ev["seq"], "clock": ev["clock"],
+                         "kind": "periodic", "text": recap_text(facts, lang), "source": "LOCAL ENGINE", "lang": lang,
+                         "i18n": {k: recap_text(facts, k) for k in LANG_NAMES}})
+        if agent_reasoner.configured() and self.ai_allowed():
+            asyncio.create_task(self.upgrade_recap(ev, facts, lang, self.match_id))
+
+    async def upgrade_recap(self, ev, facts, lang, match_id):
+        text, pipeline = await agents.recap(facts, self.desk(), lang)
+        await self.report_run("recap", ev, match_id, pipeline)
+        if text and self._current(match_id, lang):
+            await self.send({"type": "recap", "match_id": match_id, "seq": ev["seq"], "clock": ev["clock"],
+                             "kind": "periodic", "text": text, "source": "AZURE OPENAI", "lang": lang, "pipeline": pipeline})
+
+    async def catchup(self, msg):
+        """A viewer is back after missing part of the match: what happened while they were away, for them."""
+        if not self.last:
+            return
+        ev = self.last[0]
+        try:
+            since = int(msg.get("since_seq") or 0)
+        except (TypeError, ValueError):
+            return
+        if ev["seq"] - since < 4:
+            return
+        start = self.clock_at.get(since + 1) or self.clock_at.get(since) or "0'"
+        facts, lang, match_id = self.recap_facts("CATCHUP", since, start, ev), self.cfg["lang"], self.match_id
+        reply = {"type": "catchup", "id": msg.get("id"), "match_id": match_id, "start": start, "end": ev["clock"], "lang": lang}
+        await self.send({**reply, "text": recap_text(facts, lang), "source": "LOCAL ENGINE"})
+        if agent_reasoner.configured():  # someone is watching and asked, so the per-visit limit does not apply
+            text, pipeline = await agents.recap(facts, self.desk(), lang)
+            await self.report_run("catchup", ev, match_id, pipeline)
+            if text and self._current(match_id, lang) and lang == self.cfg["lang"]:
+                await self.send({**reply, "text": text, "source": "AZURE OPENAI", "pipeline": pipeline})
 
     async def upgrade_report(self, ev, report, lang, match_id):
-        text = await agent_reasoner.narrative("report", report, lang)
+        text, pipeline = await agents.report(report, lang)
+        await self.report_run("report", ev, match_id, pipeline)
         if text and self._current(match_id, lang):
-            if ev["event_type"] in self.reports:
+            if ev["event_type"] in self.reports and lang == self.cfg["lang"]:
                 self.reports[ev["event_type"]]["narrative"] = text
             await self.send({"type": "report", "match_id": match_id, "seq": ev["seq"], "narrative": text,
-                             "source": "AZURE OPENAI"})
+                             "source": "AZURE OPENAI", "lang": lang, "pipeline": pipeline})
 
     # ---- receiver ------------------------------------------------------------
     async def receive(self):
@@ -229,6 +326,9 @@ class Session:
                 continue
             if msg.get("type") == "ask":
                 asyncio.create_task(self.answer(msg))
+                continue
+            if msg.get("type") == "catchup":
+                asyncio.create_task(self.catchup(msg))
                 continue
             try:
                 cfg = ClientConfig.model_validate(msg)
@@ -259,11 +359,12 @@ class Session:
         if not question:
             return
         lang = self.cfg["lang"]
-        text = await agent_reasoner.answer_question(question, self.match_context(), lang)
+        text, pipeline = await agents.answer(question, self.desk(), self.match_context(), lang)
         source = "AZURE OPENAI"
-        if text is None:
-            text, source = self.local_answer(question), "LOCAL ENGINE"
-        await self.send({"type": "answer", "id": msg.get("id"), "text": text, "source": source})
+        if text is None:  # a suggestion clicked in Spanish or Japanese carries its English question as a hint
+            hint = str(msg.get("hint") or "")[:200]
+            text, source = self.local_answer(hint or question), "LOCAL ENGINE"
+        await self.send({"type": "answer", "id": msg.get("id"), "text": text, "source": source, "pipeline": pipeline})
 
     # ---- Talk to AI ------------------------------------------------------------
     def match_context(self):
@@ -323,6 +424,15 @@ class Session:
         if any(w in q for w in ("report", "summary", "recap", "half")) and self.reports:
             latest = self.reports.get("FULL_TIME") or self.reports.get("HALF_TIME")
             return latest["narrative"]
+        if any(w in q for w in ("so far", "happened", "summary", "recap", "catch me up")):
+            return recap_text(self.recap_facts("PERIODIC", 0, "0'", self.last[0]), "en")
+        if "best" in q or "player of the match" in q or "standing out" in q:
+            on = [(p, team) for team in (HOME, AWAY) for p in snap["players"][team] if p["minutes"]]
+            top = sorted(on, key=lambda pt: pt[0]["rating"], reverse=True)[:3]
+            lead, team = top[0]
+            return (f"{lead['name']} ({names[team]}, {lead['pos']}) has the best rating so far: {lead['rating']}, with "
+                    f"{lead['goals']} goals, {lead['shots']} shots and {lead['passes_completed']}/{lead['passes']} passes. "
+                    "Next: " + ", ".join(f"{p['name']} {p['rating']}" for p, _ in top[1:]) + ".")
         if any(w in q for w in ("chaos", "control", "tempo", "rhythm", "flow")):
             f = s["flow"]
             state = {"CONTROL": f"{names.get(f['state_team'], '')} are in control",

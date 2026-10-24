@@ -223,3 +223,37 @@ def test_new_moments_render_and_tell_stories_in_every_language(matches):
                 assert all(v and "{" not in v for v in out.values()), (kind, lang, out)
                 assert "{" not in story(ev, r["buildup"], ctx, lines, lang)
     assert {"OWN_GOAL", "WOODWORK", "INJURY", "SUBSTITUTION", "cross", "rebound", "claimed"} <= kinds
+
+
+def test_recaps_read_well_in_every_language(matches):
+    from persona_router import recap_text
+    sim, stats, rows = matches[4]
+    ev = rows[len(rows) // 3]["ev"]
+    s = stats.summary()
+    r = {"kind": "PERIODIC", "start": "0'", "end": ev["clock"], "clock": ev["clock"], "score": ev["score"],
+         "home": HOME, "away": AWAY, "xg": s["xg"], "shots": s["shots"], "possession": s["possession"],
+         "momentum": s["momentum"], "fav_team": HOME, "moments": stats.key_moments[-8:]}
+    for lang in ("en", "es", "ja"):
+        periodic, catchup = recap_text(r, lang), recap_text(dict(r, kind="CATCHUP", start="12'"), lang)
+        assert "{" not in periodic + catchup and len(periodic) > 40
+        assert periodic.split()[0] != catchup.split()[0]
+    assert "Brackenford fans" in recap_text(dict(r, kind="CATCHUP", start="12'"), "en")
+    assert "fans" not in recap_text(r, "en")  # only a personal catch-up speaks to the viewer's club
+
+
+def test_full_time_story_tells_the_turning_points_in_order():
+    from persona_router import story_text
+    arc = {"final_score": {"home": 2, "away": 1}, "half_time_score": {"home": 0, "away": 1}, "winner": "Brackenford",
+           "on_top": {"half_1": "Kestermouth", "half_2": "Kestermouth"},
+           "turning_points": [
+               {"clock": "30'", "kind": "opener", "team": "Kestermouth", "player": "Strachley", "own_goal": False, "score": {"home": 0, "away": 1}},
+               {"clock": "58'", "kind": "equaliser", "team": "Brackenford", "player": "Thornquist", "own_goal": False, "score": {"home": 1, "away": 1}},
+               {"clock": "63'", "kind": "red_card", "team": "Kestermouth", "player": "Ekwuruke"},
+               {"clock": "80'", "kind": "ahead", "team": "Brackenford", "player": "Adewolu-Hart", "own_goal": False, "score": {"home": 2, "away": 1}}]}
+    en = story_text(arc, "Brackenford", "en")
+    assert en.index("Strachley") < en.index("Thornquist") < en.index("Ekwuruke") < en.index("Adewolu-Hart")
+    assert "0-1 at the break" in en and "held on" not in en          # they came from behind
+    arc["turning_points"].append({"clock": "84'", "kind": "momentum_swing", "team": "Kestermouth"})
+    assert story_text(arc, "Brackenford", "en").endswith("Brackenford held on for the win.")
+    for lang in ("es", "ja"):
+        assert "Adewolu-Hart" in story_text(arc, "Brackenford", lang)

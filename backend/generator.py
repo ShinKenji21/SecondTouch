@@ -996,7 +996,8 @@ class MatchSim:
     # ---- event records -------------------------------------------------
     def _blank(self):
         return {
-            "seq": self.seq, "minute": round(self.minute, 2), "clock": self.clock(), "period": self.period,
+            # the minute is rounded down, like the clock, so 74.996 is not 75.0 next to 74'
+            "seq": self.seq, "minute": math.floor(self.minute * 100) / 100, "clock": self.clock(), "period": self.period,
             "team": None, "player": None, "event_type": None, "outcome": None,
             "opponent": None, "receiver": None, "player_off": None, "card": None,
             "set_piece": None, "restart": None, "restart_team": None, "body_part": None,

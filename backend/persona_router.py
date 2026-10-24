@@ -734,8 +734,74 @@ def story(ev, buildup, ctx, lines, lang="en"):
     return sep.join(parts)
 
 
+# ---- the story of the match: the full-time report opens with the turning points, in order ----------------
+STORY_T = {
+    "en": {"head": "The story of the match:", "og": "{p} (own goal)",
+           "h1": "{t} had the better of the first half, and it was {score} at the break.",
+           "h1_even": "The first half was evenly matched, and it was {score} at the break.",
+           "opener": "{p} opened the scoring for {t} ({c}).", "ahead": "{p} put {t} ahead, {score} ({c}).",
+           "equaliser": "{p} levelled it for {t} at {score} ({c}).", "extend": "{p} made it {score} for {t} ({c}).",
+           "pull_back": "{p} pulled one back for {t}, {score} ({c}).",
+           "red_card": "{p} was sent off ({c}), leaving {t} with ten men.",
+           "penalty_missed": "{p} failed to score a penalty for {t} ({c}).",
+           "goal_ruled_out": "VAR ruled out a goal by {p} for {t} ({c}).",
+           "momentum_swing": "From {c}, {t} took control of the game.",
+           "h2": "{t} were the stronger side after the break.", "held_on": "{t} held on for the win."},
+    "es": {"head": "La historia del partido:", "og": "{p} (en propia puerta)",
+           "h1": "{t} dominó la primera parte; al descanso, {score}.",
+           "h1_even": "Primera parte igualada; al descanso, {score}.",
+           "opener": "{p} abrió el marcador para {t} ({c}).", "ahead": "{p} adelantó a {t}, {score} ({c}).",
+           "equaliser": "{p} empató para {t}, {score} ({c}).", "extend": "{p} puso el {score} para {t} ({c}).",
+           "pull_back": "{p} recortó distancias para {t}, {score} ({c}).",
+           "red_card": "{p} fue expulsado ({c}) y {t} se quedó con diez.",
+           "penalty_missed": "{p} falló un penalti para {t} ({c}).",
+           "goal_ruled_out": "El VAR anuló un gol de {p} para {t} ({c}).",
+           "momentum_swing": "Desde el {c}, {t} tomó el control del partido.",
+           "h2": "{t} fue mejor tras el descanso.", "held_on": "{t} aguantó y se llevó la victoria."},
+    "ja": {"head": "試合の流れ：", "og": "{p}（オウンゴール）",
+           "h1": "前半は{t}が優勢で、{score}で折り返した。", "h1_even": "前半は互角の展開で、{score}で折り返した。",
+           "opener": "{c}、{p}が{t}の先制点を決めた。", "ahead": "{c}、{p}のゴールで{t}がリード（{score}）。",
+           "equaliser": "{c}、{p}が{t}の同点ゴール（{score}）。", "extend": "{c}、{p}が{t}の追加点（{score}）。",
+           "pull_back": "{c}、{p}が{t}の1点を返した（{score}）。",
+           "red_card": "{c}、{t}の{p}が退場し、数的不利に。", "penalty_missed": "{c}、{t}の{p}がPKを失敗。",
+           "goal_ruled_out": "{c}、{t}の{p}のゴールはVARで取り消し。",
+           "momentum_swing": "{c}頃から{t}が主導権を握った。", "h2": "後半は{t}が上回った。", "held_on": "{t}が逃げ切った。"},
+}
+
+
+def story_text(arc, home, lang="en"):
+    """The full-time story: who was on top, the turning points in order, and how the second half went."""
+    S, names = STORY_T.get(lang, STORY_T["en"]), _names(lang)
+    ht = arc["half_time_score"] or {"home": 0, "away": 0}
+    first = arc["on_top"]["half_1"]
+    parts = [S["head"], (S["h1"] if first else S["h1_even"]).format(t=names.get(first, ""), score=f"{ht['home']}-{ht['away']}")]
+    for tp in arc["turning_points"]:
+        sc = tp.get("score")
+        p = tp.get("player") or ""
+        if tp.get("own_goal"):
+            p = S["og"].format(p=p)
+        parts.append(S[tp["kind"]].format(p=p, t=names[tp["team"]], c=tp["clock"],
+                                          score=f"{sc['home']}-{sc['away']}" if sc else ""))
+    second = arc["on_top"]["half_2"]
+    if second and second != first:
+        parts.append(S["h2"].format(t=names[second]))
+    # the winners were already ahead and the other side was on top after that: they held on
+    win = arc["winner"]
+    if win:
+        tps = arc["turning_points"]
+        last_goal = max((i for i, tp in enumerate(tps) if tp["team"] == win and tp.get("score")), default=-1)
+        pressed_after = any(tp["kind"] == "momentum_swing" and tp["team"] != win for tp in tps[last_goal + 1:])
+        ahead_at_ht = (ht["home"] > ht["away"]) == (win == home) and ht["home"] != ht["away"]
+        if pressed_after or (ahead_at_ht and second and second != win):
+            parts.append(S["held_on"].format(t=names[win]))
+    return ("" if lang == "ja" else " ").join(parts)
+
+
 def report_text(r, lang="en"):
-    """A short written verdict for the half-time or full-time report."""
+    """A short written verdict for the half-time or full-time report; at full time it opens with the story."""
+    if r.get("story"):
+        plain = {k: v for k, v in r.items() if k != "story"}
+        return story_text(r["story"], r["home"], lang) + "\n\n" + report_text(plain, lang)
     L, names = _L(lang), _names(lang)
     h, a = r["home"], r["away"]
     th, ta = r["teams"][h], r["teams"][a]
@@ -778,3 +844,100 @@ def report_text(r, lang="en"):
         parts.append(L["r_best"].format(name=b["name"], t=names[b["team"]], r=b["rating"], items=items))
     sep = "" if lang == "ja" else " "
     return sep.join(parts)
+
+
+# ---- recaps: every quarter of an hour, and "while you were away" ---------------------------------
+RECAP_T = {
+    "en": {
+        "head": {"PERIODIC": "{clock} recap: {score}.", "CATCHUP": "While you were away ({start} to {end}): {score}."},
+        "numbers": "xG {hx}-{ax}, shots {hs}-{as}, possession {hp}-{ap}%.",
+        "m": {"goal": "{p} scored ({c})", "own_goal": "{o} put through their own net ({c})",
+              "red": "{p} was sent off ({c})", "yellow": "{p} was booked ({c})", "penalty": "a penalty to {t} ({c})",
+              "save": "{o} saved from {p} ({c})", "var": "{p}'s goal was ruled out by VAR ({c})",
+              "woodwork": "{p} hit the woodwork ({c})", "miss": "{p} missed a big chance ({c})",
+              "sub": "{p} came on for {o} ({c})", "injury": "{p} was injured ({c})"},
+        "moments": "Key moments: {list}.", "quiet": "No major incidents.",
+        "on_top": "{t} are on top right now.", "even": "It's evenly balanced.",
+        "you_club": "For {t} fans: {state}.", "lead": "they lead", "trail": "they trail", "level": "it's level",
+    },
+    "es": {
+        "head": {"PERIODIC": "Resumen al {clock}: {score}.", "CATCHUP": "Mientras no estabas ({start} a {end}): {score}."},
+        "numbers": "xG {hx}-{ax}, disparos {hs}-{as}, posesión {hp}-{ap}%.",
+        "m": {"goal": "gol de {p} ({c})", "own_goal": "gol en propia puerta de {o} ({c})",
+              "red": "expulsión de {p} ({c})", "yellow": "amarilla para {p} ({c})", "penalty": "penalti a favor de {t} ({c})",
+              "save": "parada de {o} a {p} ({c})", "var": "el VAR anuló el gol de {p} ({c})",
+              "woodwork": "{p} estrelló el balón en el palo ({c})", "miss": "{p} falló una ocasión clara ({c})",
+              "sub": "entró {p} por {o} ({c})", "injury": "{p} se lesionó ({c})"},
+        "moments": "Momentos clave: {list}.", "quiet": "Sin incidencias importantes.",
+        "on_top": "{t} domina en este momento.", "even": "El partido está igualado.",
+        "you_club": "Para la afición de {t}: {state}.", "lead": "van ganando", "trail": "van perdiendo", "level": "hay empate",
+    },
+    "ja": {
+        "head": {"PERIODIC": "{clock}時点のまとめ：{score}。", "CATCHUP": "離れている間（{start}〜{end}）：{score}。"},
+        "numbers": "xG {hx}-{ax}、シュート{hs}-{as}、ポゼッション{hp}-{ap}%。",
+        "m": {"goal": "{p}のゴール（{c}）", "own_goal": "{o}のオウンゴール（{c}）",
+              "red": "{p}が退場（{c}）", "yellow": "{p}に警告（{c}）", "penalty": "{t}にPK（{c}）",
+              "save": "{o}が{p}のシュートをセーブ（{c}）", "var": "VARで{p}のゴールが取り消し（{c}）",
+              "woodwork": "{p}のシュートがポスト直撃（{c}）", "miss": "{p}が決定機を逃す（{c}）",
+              "sub": "{o}に代わり{p}が出場（{c}）", "injury": "{p}が負傷（{c}）"},
+        "moments": "主な出来事：{list}。", "quiet": "大きな出来事はなし。",
+        "on_top": "現在は{t}が優勢。", "even": "互角の展開。",
+        "you_club": "{t}ファンへ：{state}。", "lead": "リードしている", "trail": "追う展開", "level": "同点",
+    },
+}
+
+
+def _recap_moment(L, m, names):
+    """One key moment as a short phrase, or None for moments a recap leaves out."""
+    t, o, c = m["type"], m["outcome"], m["clock"]
+    f = {"p": m["player"], "o": m["opponent"] or m["player_off"], "c": c, "t": names.get(m["team"], "")}
+    key = None
+    if o == "GOAL":
+        key = "goal"
+    elif o == "OWN_GOAL":
+        key = "own_goal"
+    elif o == "DISALLOWED":
+        key = "var"
+    elif m.get("restart") == "PENALTY":
+        key = "penalty"
+        f["t"] = names.get(m.get("restart_team") or "", "") or names.get(m["team"], "")
+    elif m["card"] == "RED":
+        key = "red"
+    elif m["card"] == "YELLOW":
+        key = "yellow"
+    elif o == "WOODWORK":
+        key = "woodwork"
+    elif t == "SHOT" and o == "SAVED":
+        key = "save"
+    elif t == "SHOT" and (m["xg"] or 0) >= 0.3:
+        key = "miss"
+    elif t == "SUBSTITUTION":
+        key = "sub"
+    elif t == "INJURY":
+        key = "injury"
+    return L["m"][key].format(**f) if key else None
+
+
+def recap_text(r, lang="en"):
+    """A short recap of a stretch of play. r: kind (PERIODIC or CATCHUP), start, end, clock, score,
+    home, away, xg, shots, possession, momentum, moments, and for a catch-up the viewer's fav_team."""
+    L, names = RECAP_T.get(lang, RECAP_T["en"]), _names(lang)
+    h, a = r["home"], r["away"]
+    parts = [L["head"][r["kind"]].format(clock=r["clock"], start=r["start"], end=r["end"],
+                                          score=_score_text(lang, r["score"], h, a)),
+             L["numbers"].format(hx=f"{r['xg'][0]:.2f}", ax=f"{r['xg'][1]:.2f}", hs=r["shots"][0], **{"as": r["shots"][1]},
+                                 hp=r["possession"][0], ap=r["possession"][1])]
+    # subs and injuries only matter in a recap when little else happened
+    phrases = [x for x in (_recap_moment(L, m, names) for m in r["moments"]) if x]
+    major = [x for m, x in zip(r["moments"], phrases) if m["type"] not in ("SUBSTITUTION", "INJURY")]
+    chosen = (major or phrases)[-4:]
+    sep = "、" if lang == "ja" else ", "
+    parts.append(L["moments"].format(list=sep.join(chosen)) if chosen else L["quiet"])
+    mom = r.get("momentum", 0)
+    parts.append(L["on_top"].format(t=names[h if mom > 0 else a]) if abs(mom) >= 30 else L["even"])
+    fav = r.get("fav_team")
+    if r["kind"] == "CATCHUP" and fav in (h, a):
+        own, their = (r["score"]["home"], r["score"]["away"]) if fav == h else (r["score"]["away"], r["score"]["home"])
+        state = L["lead"] if own > their else L["trail"] if own < their else L["level"]
+        parts.append(L["you_club"].format(t=names[fav], state=state))
+    return ("" if lang == "ja" else " ").join(parts)
