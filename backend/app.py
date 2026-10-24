@@ -39,6 +39,10 @@ HERE = Path(__file__).resolve().parent
 FRONTEND_DIR = HERE.parent / "frontend"
 DEFAULT_INTERVAL = min(2.0, max(1.0, float(os.getenv("EVENT_INTERVAL_S", "1.5"))))
 VALIDATE = os.getenv("VALIDATE_EVENTS") == "1"
+# Credit guard: the stream plays match after match for as long as a tab is open, so the model only
+# writes for the first few matches of each visit and never while the tab is hidden. Talk to AI is
+# always answered, since someone asked.
+AI_MATCHES_PER_VIEWER = int(os.getenv("AI_MATCHES_PER_VIEWER", "2"))
 
 app = FastAPI(title="SecondTouch")
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
@@ -89,6 +93,10 @@ class Session:
     async def send(self, obj):
         async with self.lock:
             await self.ws.send_text(json.dumps(obj, ensure_ascii=False))
+
+    def ai_allowed(self):
+        """Whether the model may write for this viewer now (see AI_MATCHES_PER_VIEWER)."""
+        return self.cfg.get("visible", True) and self.match_id <= AI_MATCHES_PER_VIEWER
 
     def fav(self):
         return None if self.cfg["fav_team"] == "NONE" else self.cfg["fav_team"]
@@ -158,7 +166,7 @@ class Session:
                 "subs_used": dict(self.sim.subs_used),
                 "sent_at": time.time() * 1000,
             })
-            if agent_reasoner.configured():
+            if agent_reasoner.configured() and self.ai_allowed():
                 if ev["is_impact_moment"] and speed == 1:
                     asyncio.create_task(self.upgrade(ev, ctx, lang, self.match_id))
                 if texts["story"] and speed == 1:

@@ -24,6 +24,7 @@ class ClientConfig(BaseModel):
     lang: Optional[Lang] = None
     interval: Optional[float] = None
     fav_team: Optional[Literal["NONE", "Brackenford", "Kestermouth"]] = None  # favourite club, "NONE" for neutral
+    visible: Optional[bool] = None  # False while the viewer's tab is hidden: the model pauses
 
     @field_validator("speed")
     @classmethod

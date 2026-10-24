@@ -1801,6 +1801,11 @@ setMode(settings.mode);
 applyFav();
 if (!guideSeen()) openGuide();
 window.addEventListener("resize", resize);
+// tell the server when the tab is hidden, so the AI pauses instead of writing for nobody
+document.addEventListener("visibilitychange", () => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ type: "config", visible: !document.hidden }));
+});
 /* Scrollbars stay hidden until used: mark whatever is scrolling for a moment so its thumb shows. */
 const scrollTimers = new WeakMap();
 document.addEventListener("scroll", e => {

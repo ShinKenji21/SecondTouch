@@ -11,23 +11,27 @@ import os
 from pydantic import ValidationError
 
 from models import PersonaCommentary
-from persona_router import LANG_NAMES
+from analytics import metres
+from persona_router import LANG_NAMES, T, TEAM_NAMES, _zone
 
 log = logging.getLogger("secondtouch.ai")
 _client = None
-TIMEOUT_S = float(os.getenv("AZURE_OPENAI_TIMEOUT_S", "4"))
+# The stream never waits for the model (template text is already on screen), so a few seconds is fine.
+TIMEOUT_S = float(os.getenv("AZURE_OPENAI_TIMEOUT_S", "6"))
 
 SYSTEM = (
-    "You are SecondTouch, a live football commentary engine. You get the facts of one "
-    "match event as JSON. Explain why the moment matters tactically (e.g. bypassing a press, "
-    "a defensive line breaking, the shot's xG). Use only the facts given, never invent players, "
-    "scores or numbers. Reply with a JSON object with exactly these keys:\n"
-    '  "analyst": one or two sentences, tactical and numeric, citing at least one metric and the pitch zone;\n'
-    '  "casual": one short, high-energy sentence for a casual fan, mention momentum if it is strong; if a '
-    "favourite_club is given, speak as one of its supporters (celebrate its moments, groan at the opponent's);\n"
-    '  "player_cam": one sentence from the point of view of the focus player, using their touches/sprints and '
-    "distance to the ball.\n"
-    "Write every value in {language}. Keep player names as given."
+    "You are SecondTouch, a live football commentary engine. You get the facts of one match event as JSON. "
+    "Explain why the moment matters (a press bypassed, a line broken, the quality of a chance), not just what happened. "
+    "Rules: use only the facts given and never invent players, scores, leads or numbers; read the score exactly as "
+    "given (if it is level, nobody is leading); describe places with the zone words given, never coordinates or "
+    "percentages of the pitch; write team and player names exactly as given, without translating or respelling them.\n"
+    "Reply with a JSON object with exactly these keys:\n"
+    '  "analyst": at most two short sentences, under 230 characters, tactical, citing at least one metric and the zone;\n'
+    '  "casual": one short, high-energy sentence, under 140 characters; if favourite_club is given, speak as one of its '
+    "supporters (celebrate its moments, groan at the opponent's);\n"
+    '  "player_cam": one sentence under 200 characters about the focus player, in the third person: if they are '
+    "involved, what they did; otherwise where they are relative to the ball, with their touches or sprints.\n"
+    "Write every value in {language}."
 )
 
 NARRATIVE_SYSTEM = {
@@ -56,13 +60,22 @@ def configured():
     return bool(os.getenv("AZURE_OPENAI_API_KEY") and os.getenv("AZURE_OPENAI_ENDPOINT"))
 
 
+def _endpoint():
+    """The resource address. Foundry also shows it with /openai/v1 on the end; the SDK adds that path itself."""
+    ep = os.getenv("AZURE_OPENAI_ENDPOINT", "").strip().rstrip("/")
+    for suffix in ("/openai/v1", "/openai"):
+        if ep.endswith(suffix):
+            ep = ep[: -len(suffix)]
+    return ep + "/"
+
+
 def _azure():
     global _client
     if _client is None:
         from openai import AsyncAzureOpenAI
         _client = AsyncAzureOpenAI(
             api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+            azure_endpoint=_endpoint(),
             api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21"),
             timeout=TIMEOUT_S,
             max_retries=0,
@@ -74,23 +87,37 @@ def _deployment():
     return os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4o-mini")
 
 
-def event_facts(ev, ctx):
-    """The compact, fact-only view of an event that the model sees."""
+def _score_line(ev, ctx, names):
+    h, a = ev["score"]["home"], ev["score"]["away"]
+    situation = "level" if h == a else f"{names[ctx.home] if h > a else names[ctx.away]} lead by {abs(h - a)}"
+    return f"{names[ctx.home]} {h}-{a} {names[ctx.away]} ({situation})"
+
+
+def event_facts(ev, ctx, lang="en"):
+    """The compact, fact-only view of an event that the model sees: names as the viewer sees them,
+    places as zones (not coordinates), the score with who leads, and where the focus player is."""
+    names = TEAM_NAMES.get(lang, TEAM_NAMES["en"])
     m = {k: v for k, v in ev["metrics"].items() if v is not None}
+    loc = ev["location"]
+    zone = _zone(T["en"], ev["team"], ctx.right_team, loc["start_x"], loc["start_y"]) if ev["team"] else None
+    focus = ctx.positions.get(ctx.focus_team, {}).get(ctx.focus_player)
+    involved = ctx.focus_player in (ev["player"], ev["receiver"], ev["opponent"], ev.get("player_off"))
     facts = {
-        "minute": ev["clock"], "team": ev["team"], "player": ev["player"],
+        "minute": ev["clock"], "team": names.get(ev["team"], ev["team"]), "player": ev["player"],
         "event": ev["event_type"], "outcome": ev["outcome"],
         "receiver": ev["receiver"], "opponent": ev["opponent"], "card": ev["card"],
         "set_piece": ev.get("set_piece"), "body_part": ev.get("body_part") if ev.get("body_part") == "HEAD" else None,
         "play_restarts_with": f"{ev['restart']} to {ev['restart_team']}" if ev.get("restart") else None,
         "length_m": ev["length_m"], "metrics": m, "why_flagged": ev["impact_reasons"],
-        "start_xy_pct": [ev["location"]["start_x"], ev["location"]["start_y"]],
-        "score": f"{ctx.home} {ev['score']['home']}-{ev['score']['away']} {ctx.away}",
-        "team_xg": dict(zip((ctx.home, ctx.away), ctx.summary["xg"])),
-        "momentum": f"{ctx.summary['momentum']} (-100 = {ctx.away} dominant, +100 = {ctx.home} dominant)",
-        "attacking_towards_x100": ctx.right_team,
-        "focus_player": ctx.focus_player, "focus_player_stats": ctx.focus_line,
-        "favourite_club": ctx.fav_team,
+        "zone": zone,
+        "score": _score_line(ev, ctx, names),
+        "team_xg": {names[t]: xg for t, xg in zip((ctx.home, ctx.away), ctx.summary["xg"])},
+        "momentum": f"{ctx.summary['momentum']} (-100 = {names[ctx.away]} dominant, +100 = {names[ctx.home]} dominant)",
+        "focus_player": {"name": ctx.focus_player, "team": names.get(ctx.focus_team, ctx.focus_team),
+                         "involved_in_this_moment": involved, "stats": ctx.focus_line,
+                         "metres_from_ball": round(metres(focus[0] - loc["end_x"], focus[1] - loc["end_y"]))
+                         if focus else None},
+        "favourite_club": names.get(ctx.fav_team) if ctx.fav_team else None,
         "game_flow": {k: ctx.summary["flow"][k] for k in ("state", "state_team", "press", "tempo")},
     }
     return {k: v for k, v in facts.items() if v not in (None, [], {})}
@@ -105,10 +132,10 @@ async def persona_commentary(ev, ctx, lang):
             model=_deployment(),
             messages=[
                 {"role": "system", "content": SYSTEM.format(language=LANG_NAMES[lang])},
-                {"role": "user", "content": json.dumps(event_facts(ev, ctx), ensure_ascii=False)},
+                {"role": "user", "content": json.dumps(event_facts(ev, ctx, lang), ensure_ascii=False)},
             ],
             response_format={"type": "json_object"},
-            max_completion_tokens=260,
+            max_completion_tokens=220,
         )
         out = PersonaCommentary.model_validate_json(r.choices[0].message.content or "")
         return out.model_dump()
