@@ -601,15 +601,21 @@ const stepIcon = s => fa(s.agent === "Fact-checker" ? (s.status === "passed" ? "
     : AGENT_ICON[s.agent] || "circle");
 
 /* "Analyst 2.4s · 1 tool → Commentator 1.5s → Fact-checker passed": who did what for this text. */
-function trailHtml(p) {
+/* `compact` (the live card, two rows at most) folds a send-back and its rewrite into "passed after a revision";
+ * the AI Agents tab shows every step. */
+function trailHtml(p, compact = false) {
     if (!p || !p.steps) return "";
-    return p.steps.map(s => {
+    const revised = compact && p.steps.some(s => s.status === "revise");
+    const steps = revised ? p.steps.filter(s => s.status !== "revise" && s.status !== "revised") : p.steps;
+    return steps.map(s => {
         const icon = stepIcon(s);
         const tools = /^(\d+) tool/.exec(s.detail || "");
-        const extra = s.agent === "Fact-checker" ? ` ${STEP_LABEL[s.status] || s.status}` : `${s.status === "revised" ? " (revised)" : ""} ${(s.ms / 1000).toFixed(1)}s${tools && +tools[1] ? ` · ${tools[1]} tool${+tools[1] > 1 ? "s" : ""}` : ""}`;
+        const extra = s.agent === "Fact-checker" ? ` ${STEP_LABEL[s.status] || s.status}${revised && s.status === "passed" ? " after a revision" : ""}` : `${s.status === "revised" ? " (revised)" : ""} ${(s.ms / 1000).toFixed(1)}s${tools && +tools[1] ? ` · ${tools[1]} tool${+tools[1] > 1 ? "s" : ""}` : ""}`;
         return `<span class="at-step at-${s.status}" title="${esc(s.detail || "")}">${icon} ${esc(s.agent)}${extra}</span>`;
     }).join('<span class="at-arrow">→</span>');
 }
+/* Who wrote a text, as the viewer sees it: the agents on Azure, or the instant templates that keep pace with play. */
+const srcLabel = s => s === "AZURE OPENAI" ? "AZURE OPENAI" : "INSTANT";
 const verifiedTag = p => p && (p.status === "passed" || p.status === "revised") ? ' <span class="ai-source verified">✓ fact-checked</span>' : "";
 
 /* While fresh AI commentary is on hold, routine events don't replace it (impact moments still do). */
@@ -622,10 +628,10 @@ function showCommentary(entry, flash = false) {
     $("ai-commentary").innerText = c[MODE_KEY[settings.mode]];
     const lang = { en: "EN", es: "ES", ja: "JA" }[c.lang] || "";
     const behind = entry !== anim.entry ? ` · ${entry.event.clock}` : "";
-    $("ai-source").innerText = `${c.source} · ${MODE_LABEL[settings.mode]} · ${lang}${behind}`;
+    $("ai-source").innerText = `${srcLabel(c.source)} · ${MODE_LABEL[settings.mode]} · ${lang}${behind}`;
     $("ai-source").classList.toggle("from-azure", c.source === "AZURE OPENAI");
-    const trail = c.source === "AZURE OPENAI" ? trailHtml(entry.pipeline) : "";
-    $("agent-trail").hidden = !trail;
+    const trail = c.source === "AZURE OPENAI" ? trailHtml(entry.pipeline, true) : "";
+    $("agent-trail").classList.toggle("empty", !trail);  // the row keeps its height: the panels below stay put
     $("agent-trail").innerHTML = trail;
     const ev = entry.event;
     const badge = $("impact-badge");
@@ -924,7 +930,7 @@ function openReport(entry) {
         : m.restart === "PENALTY" ? ICON.PENALTY : m.outcome === "SAVED" ? ICON.SAVED : ICON.MISS);
     $("report-moments").innerHTML = r.key_moments.map(m => `<li>${icon(m)} ${m.clock} ${esc(m.player)} <span class="text-muted">${TEAM_LABEL[m.team]}</span></li>`).join("");
     const checked = entry.reportSource === "AZURE OPENAI" && entry.reportPipeline && entry.reportPipeline.status !== "rejected" ? " · ✓ fact-checked" : "";
-    $("report-source").innerText = `${entry.reportSource || "LOCAL ENGINE"}${checked} · ${ct(r.kind === "HALF_TIME" ? "next_half" : "next_match")}`;
+    $("report-source").innerText = `${srcLabel(entry.reportSource)}${checked} · ${ct(r.kind === "HALF_TIME" ? "next_half" : "next_match")}`;
     $("report-modal").hidden = false;
 }
 function closeReport() { $("report-modal").hidden = true; reportEntry = null; }
@@ -1223,7 +1229,7 @@ function updateKeyEventStory(entry) {
     const text = keyEventStory(entry);
     const src = entry.report ? entry.reportSource : entry.storySource;
     const checked = src === "AZURE OPENAI" ? verifiedTag(entry.report ? entry.reportPipeline : entry.storyPipeline) : "";
-    p.innerHTML = text ? `${esc(text)} <span class="ai-source ${src === "AZURE OPENAI" ? "from-azure" : ""}">${src || "LOCAL ENGINE"}</span>${checked}` : "";
+    p.innerHTML = text ? `${esc(text)} <span class="ai-source ${src === "AZURE OPENAI" ? "from-azure" : ""}">${srcLabel(src)}</span>${checked}` : "";
 }
 
 function onKeyEventActivate(e) {
@@ -1552,7 +1558,7 @@ function renderImpactList() {
         const ev = e.event;
         return `<li data-seq="${ev.seq}" tabindex="0"><span class="time-tag">${ev.clock}</span>
             <span class="reason">${ev.impact_reasons.map(reasonName).join(" · ")}</span>
-            <span class="src ${e.commentary.source === "AZURE OPENAI" ? "from-azure" : ""}">${e.commentary.source === "AZURE OPENAI" ? "AI" : "local"}</span>
+            <span class="src ${e.commentary.source === "AZURE OPENAI" ? "from-azure" : ""}">${e.commentary.source === "AZURE OPENAI" ? "AI" : "instant"}</span>
             <p>${esc(e.commentary.analyst)}</p></li>`;
     }).join("") || `<li class="text-muted">No impact moments yet.</li>`;
 }
@@ -1706,7 +1712,7 @@ function onAnswer(msg) {
     const qa = document.querySelector(`.qa[data-id="${msg.id}"] .a`);
     if (!qa) return;
     qa.classList.remove("text-muted");
-    qa.innerHTML = `${esc(msg.text)} <span class="ai-source ${msg.source === "AZURE OPENAI" ? "from-azure" : ""}">${msg.source}</span>${msg.source === "AZURE OPENAI" ? verifiedTag(msg.pipeline) : ""}`
+    qa.innerHTML = `${esc(msg.text)} <span class="ai-source ${msg.source === "AZURE OPENAI" ? "from-azure" : ""}">${srcLabel(msg.source)}</span>${msg.source === "AZURE OPENAI" ? verifiedTag(msg.pipeline) : ""}`
         + (msg.pipeline && msg.source === "AZURE OPENAI" ? `<div class="agent-trail">${trailHtml(msg.pipeline)}</div>` : "");
 }
 
@@ -1741,7 +1747,7 @@ function renderRecap(li, rec) {
     const text = ai ? ai.text : rec.local[settings.lang] || Object.values(rec.local)[0] || "";
     const src = ai ? "AZURE OPENAI" : "LOCAL ENGINE";
     li.innerHTML = `<div class="ke-top"><span class="time-tag">${esc(rec.clock)}</span> ${fa("newspaper")} <strong>${esc(tr("k_recap"))}</strong></div>
-        <p class="story">${esc(text)} <span class="ai-source ${ai ? "from-azure" : ""}">${src}</span>${ai ? verifiedTag(ai.pipeline) : ""}</p>`;
+        <p class="story">${esc(text)} <span class="ai-source ${ai ? "from-azure" : ""}">${srcLabel(src)}</span>${ai ? verifiedTag(ai.pipeline) : ""}</p>`;
 }
 
 function requestCatchup(since) {
@@ -1758,7 +1764,7 @@ function onCatchup(msg) {
     const ai = msg.source === "AZURE OPENAI";
     $("catchup-span").innerText = `${msg.start} to ${msg.end}`;
     $("catchup-text").innerText = msg.text;
-    $("catchup-source").innerHTML = `<span class="${ai ? "from-azure" : ""}">${msg.source}</span>${ai ? verifiedTag(msg.pipeline) : ""}`;
+    $("catchup-source").innerHTML = `<span class="${ai ? "from-azure" : ""}">${srcLabel(msg.source)}</span>${ai ? verifiedTag(msg.pipeline) : ""}`;
     $("catchup").hidden = false;
     clearTimeout(catchTimer);
     catchTimer = setTimeout(() => { $("catchup").hidden = true; }, 30000);

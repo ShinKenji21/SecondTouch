@@ -531,6 +531,13 @@ kbd { font-family: inherit; font-size: 0.7rem; font-weight: 800; color: var(--te
 .tt-rows .g-val { font-size: 0.75rem; }
 
 /* ===== Agent desk ===== */
+/* on the live card the trail always takes two rows, so the card never changes height */
+.ai-card .card-header-flex { flex-wrap: nowrap; height: 22px; gap: 8px; }
+.ai-card .card-header-flex h3 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ai-card .impact-badge { flex: none; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-card .agent-trail { height: 46px; overflow: hidden; align-content: flex-start; }
+.ai-card .agent-trail.empty { visibility: hidden; }
+.ai-card .ai-source { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .agent-trail { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 4px; margin-top: 6px; font-size: 0.64rem; font-weight: 700; color: var(--text-muted); }
 .at-step { background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); border-radius: 10px; padding: 1px 7px; white-space: nowrap; }
 .at-passed { color: #A7F3D0; border-color: rgba(16,185,129,0.45); }

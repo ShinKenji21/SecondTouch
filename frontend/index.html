@@ -198,12 +198,12 @@
             <aside class="sidebar">
                 <div class="card ai-card" id="ai-card">
                     <div class="card-header-flex">
-                        <h3><i class="fa-solid fa-brain"></i> <span data-i18n="h_ai">Live AI Match Intelligence</span> <span class="info" data-tip="The current moment, explained for your viewing mode and language. The label below says who wrote it: LOCAL ENGINE (instant templates) or AZURE OPENAI (the model, a moment later). The lightning bolt marks an impact moment.">ⓘ</span></h3>
+                        <h3><i class="fa-solid fa-brain"></i> <span data-i18n="h_ai">Live AI Match Intelligence</span> <span class="info" data-tip="The current moment, explained for your viewing mode and language. The label below says who wrote it: INSTANT (templates that keep pace with live play) or AZURE OPENAI (the AI agents, a moment later, fact-checked). The lightning bolt marks an impact moment.">ⓘ</span></h3>
                         <span class="impact-badge" id="impact-badge" hidden>IMPACT</span>
                     </div>
                     <p class="commentary-text" id="ai-commentary">Press START MATCH to begin the live stream and tactical analysis.</p>
                     <span class="ai-source" id="ai-source">—</span>
-                    <div class="agent-trail" id="agent-trail" hidden></div>
+                    <div class="agent-trail empty" id="agent-trail"></div>
                 </div>
 
                 <!-- ANALYST: both teams compared in one telemetry card -->
@@ -368,7 +368,7 @@
                         <button class="chip" id="ask-story">What has happened so far?</button>
                     </div>
                     <div class="ai-query-response" id="ai-query-response">
-                        <p class="placeholder-text">Answers use the live match data. With Azure OpenAI keys set they come from the model; otherwise from the local engine.</p>
+                        <p class="placeholder-text">Answers use the live match data. With Azure OpenAI keys set they come from the model; otherwise from the instant engine.</p>
                     </div>
                 </div>
 
@@ -442,7 +442,7 @@
                         <li><strong>Header</strong> picks how you watch: viewing mode, language, your club and one metric to pin on screen.</li>
                         <li><strong>Pitch</strong> shows all 22 players live. Pass lines run green (easy) to red (hard), dribbles are dotted, shots carry an xG bubble, and set pieces, VAR and goals get a label.</li>
                         <li><strong>Replay bar</strong>: pause, step, scrub, jump to a goal, change speed, then <em>GO LIVE</em>.</li>
-                        <li><strong>Live AI card</strong> explains the current moment. Its label says who wrote it: the instant <em>local engine</em> or <em>Azure OpenAI</em>.</li>
+                        <li><strong>Live AI card</strong> explains the current moment. Its label says who wrote it: <em>INSTANT</em> (templates that keep pace with play) or <em>Azure OpenAI</em> (the agents, fact-checked).</li>
                         <li><strong>Mode panel</strong> changes with the viewing mode (below).</li>
                         <li><strong>Live Event Log</strong>: every action as it happens. Click one to replay it.</li>
                         <li><strong>Tabs</strong> below the pitch: full stats, tactics, key events with their stories, charts, Talk to AI, the <strong>AI Agents</strong> desk at work, and the data and overlay feed.</li>
