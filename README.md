@@ -109,3 +109,7 @@ All match data is **synthetic**: no real matches, footage, players or licensed f
 ## More detail
 
 [docs/TECHNICAL.md](docs/TECHNICAL.md) covers how SecondTouch meets each part of the brief, every panel on screen, the architecture and data contract, how each metric is calculated, the overlay cue feed, and known limitations.
+
+## License
+
+[MIT](LICENSE): free to use, change and share, provided "as is" without warranty.
