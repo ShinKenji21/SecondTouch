@@ -18,6 +18,8 @@ cd backend
 python app.py
 ```
 
+With Docker instead: `docker build -t secondtouch .` then `docker run -p 8000:8000 secondtouch` (add `--env-file .env` for the AI agents). The image never contains `.env`, and the app runs as a non-root user.
+
 Open http://127.0.0.1:8000 (not the HTML file directly) and press **START MATCH**. The header badge turns green and shows the event-to-render latency; an event arrives every 1.5 s at 1x.
 
 To turn on the AI agents, copy `.env.example` to `.env` and fill in the three `AZURE_OPENAI_*` values from your Microsoft Foundry deployment (see [Microsoft Foundry setup](#microsoft-foundry-setup)). Without them the app runs fully on the local engine and the header shows **AI: local templates**.
