@@ -550,8 +550,9 @@ kbd { font-family: inherit; font-size: 0.7rem; font-weight: 800; color: var(--te
 .agent-flow { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
 .af-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .af-when { width: 130px; flex: none; font-size: 0.7rem; font-weight: 800; color: var(--text-muted); }
-.af-node { display: inline-flex; flex-direction: column; background: rgba(37,99,235,0.12); border: 1px solid rgba(37,99,235,0.45); color: var(--text-main); border-radius: 8px; padding: 4px 10px; font-size: 0.75rem; font-weight: 800; }
-.af-node small { font-size: 0.6rem; font-weight: 600; color: var(--text-muted); }
+/* icon beside the name, the description on its own line underneath */
+.af-node { display: inline-grid; grid-template-columns: auto auto; column-gap: 5px; align-items: center; justify-content: start; background: rgba(37,99,235,0.12); border: 1px solid rgba(37,99,235,0.45); color: var(--text-main); border-radius: 8px; padding: 4px 10px; font-size: 0.75rem; font-weight: 800; }
+.af-node small { grid-column: 1 / -1; font-size: 0.6rem; font-weight: 600; color: var(--text-muted); }
 .af-node.tooling { border-color: rgba(234,179,8,0.55); background: rgba(234,179,8,0.1); }
 .af-node.check { border-color: rgba(16,185,129,0.55); background: rgba(16,185,129,0.1); }
 .af-arrow { color: var(--text-muted); font-weight: 900; }

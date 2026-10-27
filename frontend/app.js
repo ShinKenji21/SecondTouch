@@ -144,12 +144,64 @@ function applyChrome() {
         el.textContent = (CHROME[settings.lang] || {})[el.dataset.i18n] || el.dataset.en;
     }
     $("ai-query-input").placeholder = ct("ask_ph");
+    const pick = { es: 0, ja: 1 }[settings.lang];
+    const SEL = ".card-note:not(#agent-engine), .placeholder-text, #guide .guide-lead, #guide li, #guide dt, #guide dd, #guide h4, "
+        + "#guide-title, #guide-ok, .guide-foot > .text-muted, .af-when, .af-node, .af-tools > .text-muted";
+    for (const el of Array.from(document.querySelectorAll(SEL))) {
+        if (el.dataset.enHtml === undefined) el.dataset.enHtml = el.innerHTML;
+        const t = DESC_T[el.dataset.enHtml.replace(/\s+/g, " ").trim()];
+        el.innerHTML = t && pick !== undefined ? t[pick] : el.dataset.enHtml;
+    }
+    for (const el of Array.from(document.querySelectorAll(".info[data-tip]"))) {
+        if (el.dataset.enTip === undefined) el.dataset.enTip = el.dataset.tip;
+        const t = DESC_T[el.dataset.enTip];
+        el.dataset.tip = t && pick !== undefined ? t[pick] : el.dataset.enTip;
+    }
+    if (activeTab === "agents") renderAgents();
     updateSuggestions();
     if (anim.entry) updateUI(anim.entry);  // the player card and the pitch legend are drawn from code
 }
 
 /* Stat names and short phrases in the panels, keyed by their English text: [Spanish, Japanese]. */
 const STAT_T = {
+    "runs": ["ejecuciones", "回"],
+    "verified first time": ["verificadas a la primera", "一発で検証通過"],
+    "fixed on revision": ["corregidas al revisar", "修正後に通過"],
+    "kept templates": ["se mantuvo la plantilla", "テンプレートを維持"],
+    "average run": ["duración media", "平均処理時間"],
+    "tool calls": ["llamadas a herramientas", "ツール呼び出し"],
+    "Impact moment": ["Momento de impacto", "注目の場面"],
+    "Key-event story": ["Historia de un momento clave", "主な出来事のストーリー"],
+    "Report": ["Informe", "レポート"],
+    "Question": ["Pregunta", "質問"],
+    "Recap": ["Resumen", "まとめ"],
+    "Catch-up": ["Puesta al día", "見逃しダイジェスト"],
+    "verified": ["verificado", "検証済み"],
+    "revised, then verified": ["corregido y verificado", "修正後に検証済み"],
+    "rejected: templates kept": ["rechazado: se mantiene la plantilla", "却下：テンプレートを維持"],
+    "fell back to templates": ["se usó la plantilla", "テンプレートで代替"],
+    "passed": ["aprobado", "合格"],
+    "sent back": ["devuelto", "差し戻し"],
+    "rejected": ["rechazado", "却下"],
+    "revised": ["corregido", "修正"],
+    "timed out": ["tiempo agotado", "タイムアウト"],
+    "error": ["error", "エラー"],
+    " after a revision": [" tras una revisión", "（修正後）"],
+    "Analyst": ["Analista", "アナリスト"],
+    "Commentator": ["Comentarista", "実況"],
+    "Storyteller": ["Narrador", "ストーリーテラー"],
+    "Studio analyst": ["Analista de estudio", "スタジオ解説"],
+    "Match desk": ["Mesa del partido", "マッチデスク"],
+    "Fact-checker": ["Verificador", "ファクトチェッカー"],
+    "Recap editor": ["Editor de resúmenes", "まとめ編集"],
+    "Orchestrator": ["Orquestador", "オーケストレーター"],
+    "{n} runs": ["{n} ejecuciones", "{n}回"],
+    "1 run": ["1 ejecución", "1回"],
+    "Built with <strong>Microsoft Agent Framework</strong> · running on <strong>Microsoft Foundry</strong> ({d}).": ["Creado con <strong>Microsoft Agent Framework</strong> · funcionando en <strong>Microsoft Foundry</strong> ({d}).", "<strong>Microsoft Agent Framework</strong>で構築 · <strong>Microsoft Foundry</strong>（{d}）で稼働中。"],
+    "Built with <strong>Microsoft Agent Framework</strong> on <strong>Microsoft Foundry</strong>. Connects when the match starts.": ["Creado con <strong>Microsoft Agent Framework</strong> en <strong>Microsoft Foundry</strong>. Se conecta al empezar el partido.", "<strong>Microsoft Foundry</strong>上の<strong>Microsoft Agent Framework</strong>で構築。試合開始時に接続します。"],
+    "The agents are off: no Microsoft Foundry keys are set, so everything comes from the instant template engine.": ["Los agentes están apagados: no hay claves de Microsoft Foundry, así que todo sale del motor instantáneo de plantillas.", "エージェントは停止中：Microsoft Foundryのキーが未設定のため、すべて即時テンプレートエンジンが担当します。"],
+    "No runs: the agents need Microsoft Foundry keys.": ["Sin ejecuciones: los agentes necesitan claves de Microsoft Foundry.", "実行なし：エージェントにはMicrosoft Foundryのキーが必要です。"],
+    "Start the match: runs appear here at each impact moment, key event and report.": ["Empieza el partido: las ejecuciones aparecen aquí en cada momento de impacto, momento clave e informe.", "試合を開始すると、注目の場面・主な出来事・レポートごとにここに実行が表示されます。"],
     "Possession": ["Posesión", "ポゼッション"],
     "Shots": ["Disparos", "シュート"],
     "Shots on target": ["Tiros a puerta", "枠内シュート"],
@@ -211,6 +263,347 @@ const STAT_T = {
 };
 const sl = (text, vars = {}) => String((STAT_T[text] || [])[{ es: 0, ja: 1 }[settings.lang]] ?? text)
     .replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+
+/* Descriptions, the Guide, the agent diagram and the help tips, keyed by their English HTML (whitespace
+ * collapsed): [Spanish, Japanese]. applyChrome swaps them in, keeping icons and formatting. */
+const DESC_T = {
+    "Click a column to sort, click a player to follow them in Player Cam. Ratings start at 6.0 and move with each action. Distance is estimated from the simulated positions.": [
+        "Haz clic en una columna para ordenar y en un jugador para seguirlo en Cámara jugador. Las notas empiezan en 6.0 y cambian con cada acción. La distancia se estima a partir de las posiciones simuladas.",
+        "列をクリックで並べ替え、選手をクリックで選手カメラに切り替え。評価は6.0から始まり、プレーごとに変動します。走行距離はシミュレーション上の位置から推定しています。"
+    ],
+    "Where each player has stood on average this match, shown with Brackenford attacking → for both halves.": [
+        "Dónde ha estado de media cada jugador en este partido, con el Brackenford atacando → en ambas partes.",
+        "この試合での各選手の平均ポジション。前後半ともブラッケンフォードが右（→）へ攻撃する向きで表示。"
+    ],
+    "Goals, cards, penalties, direct free kicks, substitutions, big chances, saves, a recap every quarter of an hour, and the half-time and full-time reports, each with the story behind it. Click a moment to replay its build-up.": [
+        "Goles, tarjetas, penaltis, tiros libres directos, cambios, ocasiones claras, paradas, un resumen cada cuarto de hora y los informes del descanso y del final, cada uno con su historia. Haz clic en un momento para ver la jugada previa.",
+        "ゴール、カード、PK、直接FK、交代、決定機、セーブ、15分ごとのまとめ、ハーフタイムと試合終了のレポート。それぞれに背景のストーリー付き。場面をクリックすると、そこに至るまでのプレーをリプレイします。"
+    ],
+    "Cumulative expected goals; dots are goals. Hover for the minute-by-minute value.": [
+        "Goles esperados acumulados; los puntos son goles. Pasa el ratón para ver el valor minuto a minuto.",
+        "ゴール期待値の累計。点はゴール。カーソルを合わせると分ごとの値を表示。"
+    ],
+    "Bars above the line: Brackenford on top. Below: Kestermouth. Built from final-third actions, shots, line breaks and ball wins.": [
+        "Barras por encima de la línea: domina el Brackenford. Por debajo: el Kestermouth. Se calcula con acciones en el último tercio, disparos, pases entre líneas y recuperaciones.",
+        "線より上はブラッケンフォード優勢、下はケスターマス優勢。アタッキングサードでのプレー、シュート、ライン突破、ボール奪取から算出。"
+    ],
+    "The band shows each phase: one team in control (long spells, few turnovers), balanced, or chaotic (frequent turnovers). Lines show the pressure index each team applies to the opponent on the ball.": [
+        "La banda muestra cada fase: un equipo al mando (posesiones largas, pocas pérdidas), equilibrio o caos (pérdidas constantes). Las líneas muestran el índice de presión de cada equipo sobre el rival con balón.",
+        "帯は各時間帯の展開：一方が支配（長い保持、少ないボールロスト）、互角、混戦（頻繁なボールロスト）。線は各チームがボール保持者にかけるプレス強度。"
+    ],
+    "Size = xG. Filled = goal, ring = no goal. Brackenford shown attacking → all match.": [
+        "Tamaño = xG. Relleno = gol, anillo = sin gol. El Brackenford ataca → todo el partido.",
+        "大きさ＝xG。塗りつぶし＝ゴール、輪＝ノーゴール。試合を通してブラッケンフォードが右（→）へ攻撃する向きで表示。"
+    ],
+    "Moments the engine flagged for AI analysis, with the explanation. Click to replay.": [
+        "Momentos que el motor marcó para el análisis de la IA, con su explicación. Haz clic para repetir.",
+        "AI分析の対象としてエンジンが選んだ場面とその解説。クリックでリプレイ。"
+    ],
+    "Half-time and full-time reports appear here when they happen.": [
+        "Los informes del descanso y del final aparecen aquí cuando llegan.",
+        "ハーフタイムと試合終了のレポートがここに表示されます。"
+    ],
+    "A broadcast crew of AI agents, each with one job, coordinated by Microsoft Agent Framework workflows on Microsoft Foundry. They share one live view of the match and read it through tools. Nothing reaches the screen until the fact-checker has matched every number and score claim against the data; a draft that fails goes back once to be fixed, and a second failure keeps the instant template text instead.": [
+        "Un equipo de retransmisión formado por agentes de IA, cada uno con una tarea, coordinados por flujos de Microsoft Agent Framework en Microsoft Foundry. Comparten una vista en directo del partido y la consultan con herramientas. Nada llega a la pantalla hasta que el verificador ha comprobado cada número y cada afirmación sobre el marcador; un borrador que falla vuelve una vez para corregirse, y si falla de nuevo se mantiene el texto instantáneo.",
+        "それぞれ一つの役割を持つAIエージェントの中継チーム。Microsoft Foundry上で、Microsoft Agent Frameworkのワークフローが連携させます。全員が試合のライブデータを共有し、ツールで読み取ります。ファクトチェッカーがすべての数字とスコアに関する記述をデータと照合するまで、何も画面に出ません。不合格の下書きは一度だけ差し戻され、再び不合格なら即時テンプレートの文が残ります。"
+    ],
+    "Every run as it happens: which agent did what, how long it took, which tools it called and what the fact-checker found.": [
+        "Cada ejecución en directo: qué hizo cada agente, cuánto tardó, qué herramientas usó y qué encontró el verificador.",
+        "実行のたびに表示：どのエージェントが何をしたか、かかった時間、呼び出したツール、ファクトチェッカーの判定。"
+    ],
+    "Download this match exactly as it was streamed. For bulk data, run <code>python export_dataset.py --matches 50</code> in the backend folder (events, players and matches as JSONL/CSV).": [
+        "Descarga este partido tal y como se emitió. Para datos masivos, ejecuta <code>python export_dataset.py --matches 50</code> en la carpeta backend (eventos, jugadores y partidos en JSONL/CSV).",
+        "配信されたままの形でこの試合をダウンロード。大量のデータが必要なら、backendフォルダで <code>python export_dataset.py --matches 50</code> を実行（イベント、選手、試合をJSONL/CSVで出力）。"
+    ],
+    "Timed, machine-readable graphics instructions sent with every event, ready for a broadcast graphics engine to render in sync with the match. The speed and distance badges on the pitch are drawn from this feed. Schema: <code>/api/overlay-schema</code>.": [
+        "Instrucciones gráficas con tiempos y legibles por máquina, enviadas con cada evento, listas para que un motor gráfico de televisión las dibuje sincronizadas con el partido. Las insignias de velocidad y distancia del campo salen de este flujo. Esquema: <code>/api/overlay-schema</code>.",
+        "イベントごとに送られる、タイミング付きで機械が読めるグラフィック指示。放送用グラフィックエンジンが試合と同期して描画できます。ピッチ上の速度・距離バッジもこのフィードから描画。スキーマ：<code>/api/overlay-schema</code>"
+    ],
+    "Answers use the live match data. With Azure OpenAI keys set they come from the model; otherwise from the instant engine.": [
+        "Las respuestas usan los datos del partido en directo. Con las claves de Azure OpenAI las escribe el modelo; si no, el motor instantáneo.",
+        "回答はライブの試合データに基づきます。Azure OpenAIのキーが設定されていればモデルが、なければ即時エンジンが回答します。"
+    ],
+    "SecondTouch watches a live football match, turns every action into numbers, picks out the moments that matter and explains <em>why</em> they matter, for three kinds of viewer and in three languages. The match is simulated and the clubs are fictional.": [
+        "SecondTouch sigue un partido de fútbol en directo, convierte cada acción en números, elige los momentos importantes y explica <em>por qué</em> importan, para tres tipos de espectador y en tres idiomas. El partido es simulado y los clubes son ficticios.",
+        "SecondTouchはライブのサッカーの試合を見て、すべてのプレーを数字に変え、重要な場面を選び、<em>なぜ</em>重要なのかを解説します。3種類の視聴者向けに、3つの言語で。試合はシミュレーションで、クラブは架空です。"
+    ],
+    "<strong>Header</strong> picks how you watch: viewing mode, language, your club and one metric to pin on screen.": [
+        "<strong>Cabecera</strong>: elige cómo ver el partido: modo, idioma, tu club y un dato fijo en pantalla.",
+        "<strong>ヘッダー</strong>：見方を選びます。視聴モード、言語、応援クラブ、画面に固定する指標。"
+    ],
+    "<strong>Pitch</strong> shows all 22 players live. Pass lines run green (easy) to red (hard), dribbles are dotted, shots carry an xG bubble, and set pieces, VAR and goals get a label.": [
+        "<strong>Campo</strong>: los 22 jugadores en directo. Los pases van de verde (fácil) a rojo (difícil), los regates son punteados, los disparos llevan su xG y las jugadas a balón parado, el VAR y los goles tienen su rótulo.",
+        "<strong>ピッチ</strong>：22人全員をライブ表示。パスの線は緑（易）から赤（難）、ドリブルは点線、シュートにはxGを表示。セットプレー、VAR、ゴールにはラベルが付きます。"
+    ],
+    "<strong>Replay bar</strong>: pause, step, scrub, jump to a goal, change speed, then <em>GO LIVE</em>.": [
+        "<strong>Barra de repetición</strong>: pausa, avanza paso a paso, desplázate, salta a un gol, cambia la velocidad y vuelve con <em>GO LIVE</em>.",
+        "<strong>リプレイバー</strong>：一時停止、コマ送り、シーク、ゴールへジャンプ、速度変更、そして<em>ライブ</em>に戻る。"
+    ],
+    "<strong>Live AI card</strong> explains the current moment. Its label says who wrote it: <em>INSTANT</em> (templates that keep pace with play) or <em>Azure OpenAI</em> (the agents, fact-checked).": [
+        "<strong>Tarjeta de IA en directo</strong>: explica el momento actual. Su etiqueta dice quién lo escribió: <em>INSTANT</em> (plantillas que siguen el ritmo del juego) o <em>Azure OpenAI</em> (los agentes, verificado).",
+        "<strong>AIライブカード</strong>：今の場面を解説します。ラベルは書き手を示します。<em>INSTANT</em>（試合のテンポに追いつく即時テンプレート）か<em>Azure OpenAI</em>（エージェント、ファクトチェック済み）。"
+    ],
+    "<strong>Mode panel</strong> changes with the viewing mode (below).": [
+        "<strong>Panel del modo</strong>: cambia según el modo de visualización (abajo).",
+        "<strong>モードパネル</strong>：視聴モードに応じて変わります（下記）。"
+    ],
+    "<strong>Live Event Log</strong>: every action as it happens. Click one to replay it.": [
+        "<strong>Registro en directo</strong>: cada acción al momento. Haz clic en una para repetirla.",
+        "<strong>ライブイベントログ</strong>：すべてのプレーをリアルタイムで。クリックでリプレイ。"
+    ],
+    "<strong>Tabs</strong> below the pitch: full stats, tactics, key events with their stories, charts, Talk to AI, the <strong>AI Agents</strong> desk at work, and the data and overlay feed.": [
+        "<strong>Pestañas</strong> bajo el campo: estadísticas completas, táctica, momentos clave con sus historias, gráficos, Pregunta a la IA, la mesa de <strong>Agentes IA</strong> trabajando y el flujo de datos y gráficos.",
+        "ピッチ下の<strong>タブ</strong>：詳細スタッツ、戦術、ストーリー付きの主な出来事、グラフ、AIに質問、働く<strong>AIエージェント</strong>、データとオーバーレイのフィード。"
+    ],
+    "<span class=\"guide-tag\"><i class=\"fa-solid fa-chart-line\"></i> Analyst</span> Numbers first: both teams side by side, the last action's pressure, pass difficulty and ball speed.": [
+        "<span class=\"guide-tag\"><i class=\"fa-solid fa-chart-line\"></i> Analista</span> Primero los números: los dos equipos frente a frente, y la presión, la dificultad del pase y la velocidad del balón de la última acción.",
+        "<span class=\"guide-tag\"><i class=\"fa-solid fa-chart-line\"></i> アナリスト</span> 数字重視：両チームの比較と、直前のプレーのプレッシャー、パス難度、ボール速度。"
+    ],
+    "<span class=\"guide-tag\"><i class=\"fa-solid fa-bolt\"></i> Casual</span> The story at a glance: who's on top, simple bars and the goals. Pick a club and the commentary cheers for it.": [
+        "<span class=\"guide-tag\"><i class=\"fa-solid fa-bolt\"></i> Casual</span> La historia de un vistazo: quién domina, barras sencillas y los goles. Elige un club y el comentario animará por él.",
+        "<span class=\"guide-tag\"><i class=\"fa-solid fa-bolt\"></i> カジュアル</span> 試合の流れがひと目で：どちらが優勢か、シンプルなバー、ゴール。クラブを選ぶと実況がそのクラブを応援します。"
+    ],
+    "<span class=\"guide-tag\"><i class=\"fa-solid fa-crosshairs\"></i> Player Cam</span> Follow one player: their card, estimated fitness, stats against the team and a heat map. Click any player on the pitch.": [
+        "<span class=\"guide-tag\"><i class=\"fa-solid fa-crosshairs\"></i> Cámara jugador</span> Sigue a un jugador: su ficha, forma física estimada, estadísticas frente al equipo y un mapa de calor. Haz clic en cualquier jugador del campo.",
+        "<span class=\"guide-tag\"><i class=\"fa-solid fa-crosshairs\"></i> 選手カメラ</span> 一人の選手を追跡：選手カード、推定コンディション、チーム平均との比較、ヒートマップ。ピッチ上の選手をクリック。"
+    ],
+    "Press <kbd>START MATCH</kbd>, then click a player on the pitch.": [
+        "Pulsa <kbd>EMPEZAR PARTIDO</kbd> y luego haz clic en un jugador del campo.",
+        "<kbd>試合開始</kbd>を押して、ピッチ上の選手をクリック。"
+    ],
+    "Press <kbd>Space</kbd> to pause, <kbd>←</kbd> <kbd>→</kbd> to step, <kbd>L</kbd> to go live.": [
+        "Pulsa <kbd>Espacio</kbd> para pausar, <kbd>←</kbd> <kbd>→</kbd> para avanzar paso a paso y <kbd>L</kbd> para volver al directo.",
+        "<kbd>Space</kbd>で一時停止、<kbd>←</kbd> <kbd>→</kbd>でコマ送り、<kbd>L</kbd>でライブに戻る。"
+    ],
+    "Switch the language to 日本語 or Español: everything is rewritten at once.": [
+        "Cambia el idioma a English o 日本語: todo se reescribe al instante.",
+        "言語をEnglishやEspañolに切り替えると、すべてが即座に書き換わります。"
+    ],
+    "In <em>Talk to AI</em>, ask “Who is the best player so far?”": [
+        "En <em>Pregunta a la IA</em>, pregunta «¿Quién es el mejor jugador hasta ahora?»",
+        "<em>AIに質問</em>で「ここまでのベストプレーヤーは？」と聞いてみる。"
+    ],
+    "xG (expected goals)": [
+        "xG (goles esperados)",
+        "xG（ゴール期待値）"
+    ],
+    "xA (expected assists)": [
+        "xA (asistencias esperadas)",
+        "xA（アシスト期待値）"
+    ],
+    "<i class=\"fa-solid fa-bolt\"></i> Impact moment": [
+        "<i class=\"fa-solid fa-bolt\"></i> Momento de impacto",
+        "<i class=\"fa-solid fa-bolt\"></i> 注目の場面"
+    ],
+    "Pressure index": [
+        "Índice de presión",
+        "プレス強度"
+    ],
+    "Pass difficulty": [
+        "Dificultad del pase",
+        "パス難度"
+    ],
+    "Momentum": [
+        "Dominio",
+        "流れ"
+    ],
+    "Control vs chaos": [
+        "Control o caos",
+        "支配か混戦か"
+    ],
+    "Field tilt": [
+        "Dominio territorial",
+        "敵陣支配率"
+    ],
+    "PPDA": [
+        "PPDA",
+        "PPDA"
+    ],
+    "Est. fitness": [
+        "Forma física est.",
+        "推定コンディション"
+    ],
+    "<i class=\"fa-solid fa-bullhorn\"></i> Pushing forward / <i class=\"fa-solid fa-shield-halved\"></i> Sitting deep": [
+        "<i class=\"fa-solid fa-bullhorn\"></i> Al ataque / <i class=\"fa-solid fa-shield-halved\"></i> Replegado",
+        "<i class=\"fa-solid fa-bullhorn\"></i> 前がかり / <i class=\"fa-solid fa-shield-halved\"></i> 引いて守る"
+    ],
+    "Set pieces": [
+        "Balón parado",
+        "セットプレー"
+    ],
+    "Overlay cues": [
+        "Señales de gráficos",
+        "オーバーレイ指示"
+    ],
+    "<i class=\"fa-solid fa-newspaper\"></i> Recaps and catch-up": [
+        "<i class=\"fa-solid fa-newspaper\"></i> Resúmenes y puesta al día",
+        "<i class=\"fa-solid fa-newspaper\"></i> まとめと見逃しダイジェスト"
+    ],
+    "<i class=\"fa-solid fa-robot\"></i> Agent desk": [
+        "<i class=\"fa-solid fa-robot\"></i> Mesa de agentes",
+        "<i class=\"fa-solid fa-robot\"></i> エージェントデスク"
+    ],
+    "Synthetic data": [
+        "Datos sintéticos",
+        "合成データ"
+    ],
+    "How likely a shot was to go in, 0 to 1, from distance, angle and pressure. 0.30+ is a big chance.": [
+        "Probabilidad de que un disparo acabe en gol, de 0 a 1, según distancia, ángulo y presión. 0.30 o más es una ocasión clara.",
+        "シュートが決まる確率（0〜1）。距離、角度、プレッシャーから算出。0.30以上は決定機。"
+    ],
+    "The xG of the shots a player set up with their pass.": [
+        "El xG de los disparos que un jugador generó con su pase.",
+        "その選手のパスから生まれたシュートのxG。"
+    ],
+    "A moment the engine flags as worth explaining: goals, big chances, line-breaking passes, high-press turnovers, cards, penalties, VAR.": [
+        "Un momento que el motor considera digno de explicar: goles, ocasiones claras, pases entre líneas, robos en presión alta, tarjetas, penaltis, VAR.",
+        "エンジンが解説に値すると判断した場面：ゴール、決定機、ライン突破のパス、ハイプレスでの奪取、カード、PK、VAR。"
+    ],
+    "0-100, how tightly the player on the ball is closed down, from the nearest defender's distance.": [
+        "0-100, cuánto se presiona al jugador con balón, según la distancia del defensor más cercano.",
+        "0〜100。ボール保持者がどれだけ厳しく寄せられているか。最も近い守備者との距離から算出。"
+    ],
+    "0-100 from the pass length, direction, pressure and how tightly the receiver is marked.": [
+        "0-100 según la longitud y dirección del pase, la presión y el marcaje sobre el receptor.",
+        "0〜100。パスの距離、方向、プレッシャー、受け手へのマークの厳しさから算出。"
+    ],
+    "Who is on top right now, from recent final-third actions, shots, line breaks and ball wins.": [
+        "Quién domina ahora, según las acciones recientes en el último tercio, disparos, pases entre líneas y recuperaciones.",
+        "今どちらが優勢か。直近のアタッキングサードでのプレー、シュート、ライン突破、ボール奪取から算出。"
+    ],
+    "Control: one team keeps the ball with few turnovers. Chaos: possession keeps changing hands.": [
+        "Control: un equipo mantiene el balón con pocas pérdidas. Caos: la posesión cambia constantemente.",
+        "支配：一方がボールロスト少なく保持。混戦：ボールが頻繁に行き来する。"
+    ],
+    "Each team's share of the play in the final third: who is pinning the other back.": [
+        "La parte del juego de cada equipo en el último tercio: quién encierra al otro.",
+        "アタッキングサードでのプレーの割合。どちらが相手を押し込んでいるか。"
+    ],
+    "Opponent passes allowed per defensive action. Lower means a more aggressive press.": [
+        "Pases permitidos al rival por acción defensiva. Cuanto más bajo, más agresiva la presión.",
+        "守備アクション1回あたりに許した相手のパス数。低いほどプレスが激しい。"
+    ],
+    "Our estimate, not a measurement: starts at 100 and drops with minutes played and sprints, faster for players with a low stamina rating.": [
+        "Una estimación, no una medición: empieza en 100 y baja con los minutos y los sprints, más rápido en jugadores con poca resistencia.",
+        "測定値ではなく推定値：100から始まり、出場時間とスプリントで低下。スタミナの低い選手ほど早く下がります。"
+    ],
+    "What a team's shape shows late on: a higher line, harder pressing and more direct play, or a team dropping off and slowing the game.": [
+        "Lo que muestra el dibujo de un equipo al final: línea más alta, más presión y juego más directo, o un equipo que se repliega y frena el partido.",
+        "終盤のチームの形が示すもの：ラインを上げて強くプレスし直線的に攻めるか、引いて試合のテンポを落とすか。"
+    ],
+    "<i class=\"fa-solid fa-border-top-left\"></i> corner · <i class=\"fa-solid fa-shoe-prints\"></i> free kick · <i class=\"fa-solid fa-hands-holding\"></i> throw-in · <i class=\"fa-solid fa-arrow-up-long\"></i> goal kick · <i class=\"fa-solid fa-circle-dot\"></i> penalty · <i class=\"fa-solid fa-flag\"></i> offside · <i class=\"fa-solid fa-ban\"></i> VAR · <i class=\"fa-solid fa-grip-lines-vertical\"></i> woodwork · <i class=\"fa-solid fa-kit-medical\"></i> injury": [
+        "<i class=\"fa-solid fa-border-top-left\"></i> córner · <i class=\"fa-solid fa-shoe-prints\"></i> tiro libre · <i class=\"fa-solid fa-hands-holding\"></i> saque de banda · <i class=\"fa-solid fa-arrow-up-long\"></i> saque de puerta · <i class=\"fa-solid fa-circle-dot\"></i> penalti · <i class=\"fa-solid fa-flag\"></i> fuera de juego · <i class=\"fa-solid fa-ban\"></i> VAR · <i class=\"fa-solid fa-grip-lines-vertical\"></i> palo · <i class=\"fa-solid fa-kit-medical\"></i> lesión",
+        "<i class=\"fa-solid fa-border-top-left\"></i> CK · <i class=\"fa-solid fa-shoe-prints\"></i> FK · <i class=\"fa-solid fa-hands-holding\"></i> スローイン · <i class=\"fa-solid fa-arrow-up-long\"></i> ゴールキック · <i class=\"fa-solid fa-circle-dot\"></i> PK · <i class=\"fa-solid fa-flag\"></i> オフサイド · <i class=\"fa-solid fa-ban\"></i> VAR · <i class=\"fa-solid fa-grip-lines-vertical\"></i> ポスト直撃 · <i class=\"fa-solid fa-kit-medical\"></i> 負傷"
+    ],
+    "Every graphic is also sent as a timed, machine-readable instruction a TV graphics engine could draw (Data &amp; Overlays tab).": [
+        "Cada gráfico se envía también como una instrucción con tiempos, legible por máquina, que un motor gráfico de televisión podría dibujar (pestaña Datos y gráficos).",
+        "すべてのグラフィックは、TVのグラフィックエンジンが描画できるタイミング付きの機械可読な指示としても送信されます（データとオーバーレイのタブ）。"
+    ],
+    "A recap every quarter of an hour in Key Events. Leave the tab and come back: a personal “while you were away” catch-up for your mode, club and player.": [
+        "Un resumen cada cuarto de hora en Momentos e historias. Sal de la pestaña y vuelve: una puesta al día personal «mientras no estabas» para tu modo, club y jugador.",
+        "主な出来事に15分ごとのまとめ。タブを離れて戻ると、モード・クラブ・選手に合わせた「見逃した間に」ダイジェストが届きます。"
+    ],
+    "A team of AI agents (Analyst, Commentator, Storyteller, Studio analyst, Match desk) on Microsoft Foundry. A fact-checker verifies every number before anything reaches the screen. Watch them in the AI Agents tab.": [
+        "Un equipo de agentes de IA (Analista, Comentarista, Narrador, Analista de estudio, Mesa del partido) en Microsoft Foundry. Un verificador comprueba cada número antes de que nada llegue a la pantalla. Míralos en la pestaña Agentes IA.",
+        "Microsoft Foundry上のAIエージェントチーム（アナリスト、実況、ストーリーテラー、スタジオ解説、マッチデスク）。画面に出る前にファクトチェッカーがすべての数字を検証します。AIエージェントのタブで動きを確認できます。"
+    ],
+    "Every match is generated. Clubs, players, referee and stadium come from a fictional reference dataset.": [
+        "Cada partido es generado. Clubes, jugadores, árbitro y estadio salen de un conjunto de datos de referencia ficticio.",
+        "試合はすべて生成されたものです。クラブ、選手、審判、スタジアムは架空の参照データに基づきます。"
+    ],
+    "The screen": [
+        "La pantalla",
+        "画面の見方"
+    ],
+    "Three ways to watch": [
+        "Tres formas de verlo",
+        "3つの見方"
+    ],
+    "Try this": [
+        "Prueba esto",
+        "試してみよう"
+    ],
+    "Key terms": [
+        "Términos clave",
+        "用語集"
+    ],
+    "<i class=\"fa-solid fa-book-open\"></i> Key event": [
+        "<i class=\"fa-solid fa-book-open\"></i> Momento clave",
+        "<i class=\"fa-solid fa-book-open\"></i> 主な出来事"
+    ],
+    "<i class=\"fa-solid fa-pause\"></i> Half / full time": [
+        "<i class=\"fa-solid fa-pause\"></i> Descanso / final",
+        "<i class=\"fa-solid fa-pause\"></i> ハーフタイム／試合終了"
+    ],
+    "<i class=\"fa-solid fa-comments\"></i> Viewer question": [
+        "<i class=\"fa-solid fa-comments\"></i> Pregunta del espectador",
+        "<i class=\"fa-solid fa-comments\"></i> 視聴者の質問"
+    ],
+    "<i class=\"fa-solid fa-magnifying-glass\"></i> Analyst<small>reads the moment, calls tools</small>": [
+        "<i class=\"fa-solid fa-magnifying-glass\"></i> Analista<small>lee la jugada, usa herramientas</small>",
+        "<i class=\"fa-solid fa-magnifying-glass\"></i> アナリスト<small>場面を読み、ツールを使う</small>"
+    ],
+    "<i class=\"fa-solid fa-pen-nib\"></i> Commentator<small>3 personas · en/es/ja</small>": [
+        "<i class=\"fa-solid fa-pen-nib\"></i> Comentarista<small>3 perfiles · en/es/ja</small>",
+        "<i class=\"fa-solid fa-pen-nib\"></i> 実況<small>3つのペルソナ · en/es/ja</small>"
+    ],
+    "<i class=\"fa-solid fa-circle-check\"></i> Fact-checker<small>↺ one revision</small>": [
+        "<i class=\"fa-solid fa-circle-check\"></i> Verificador<small>↺ una revisión</small>",
+        "<i class=\"fa-solid fa-circle-check\"></i> ファクトチェッカー<small>↺ 修正は1回</small>"
+    ],
+    "<i class=\"fa-solid fa-book-open\"></i> Storyteller<small>build-up, moment, why</small>": [
+        "<i class=\"fa-solid fa-book-open\"></i> Narrador<small>jugada previa, momento, por qué</small>",
+        "<i class=\"fa-solid fa-book-open\"></i> ストーリーテラー<small>組み立て、場面、その意味</small>"
+    ],
+    "<i class=\"fa-solid fa-circle-check\"></i> Fact-checker": [
+        "<i class=\"fa-solid fa-circle-check\"></i> Verificador",
+        "<i class=\"fa-solid fa-circle-check\"></i> ファクトチェッカー"
+    ],
+    "<i class=\"fa-solid fa-microphone\"></i> Studio analyst<small>the report</small>": [
+        "<i class=\"fa-solid fa-microphone\"></i> Analista de estudio<small>el informe</small>",
+        "<i class=\"fa-solid fa-microphone\"></i> スタジオ解説<small>レポート</small>"
+    ],
+    "<i class=\"fa-solid fa-comments\"></i> Match desk<small>calls tools</small>": [
+        "<i class=\"fa-solid fa-comments\"></i> Mesa del partido<small>usa herramientas</small>",
+        "<i class=\"fa-solid fa-comments\"></i> マッチデスク<small>ツールを使う</small>"
+    ],
+    "Live-stats tools:": [
+        "Herramientas de datos en vivo:",
+        "ライブデータのツール："
+    ],
+    "Hover the <i class=\"fa-solid fa-circle-info\"></i> icons for help on each panel. Reopen this guide any time with <strong>Guide</strong> in the header.": [
+        "Pasa el ratón por los iconos <i class=\"fa-solid fa-circle-info\"></i> para ver la ayuda de cada panel. Vuelve a abrir esta guía cuando quieras con <strong>Guía</strong> en la cabecera.",
+        "<i class=\"fa-solid fa-circle-info\"></i> アイコンにカーソルを合わせると各パネルのヘルプを表示。このガイドはヘッダーの<strong>ガイド</strong>からいつでも開けます。"
+    ],
+    "<img src=\"/static/images/secondtouch-logo.png\" alt=\"\" class=\"guide-logo\"> What am I looking at?": [
+        "<img src=\"/static/images/secondtouch-logo.png\" alt=\"\" class=\"guide-logo\"> ¿Qué estoy viendo?",
+        "<img src=\"/static/images/secondtouch-logo.png\" alt=\"\" class=\"guide-logo\"> この画面の見方"
+    ],
+    "Got it": [
+        "Entendido",
+        "OK"
+    ],
+    "The current moment, explained for your viewing mode and language. The label below says who wrote it: INSTANT (templates that keep pace with live play) or AZURE OPENAI (the AI agents, a moment later, fact-checked). The lightning bolt marks an impact moment.": [
+        "El momento actual, explicado para tu modo y tu idioma. La etiqueta indica quién lo escribió: INSTANT (plantillas que siguen el ritmo del juego) o AZURE OPENAI (los agentes de IA, un momento después, verificado). El rayo marca un momento de impacto.",
+        "今の場面を、選んだモードと言語で解説。下のラベルは書き手を示します：INSTANT（試合のテンポに追いつく即時テンプレート）またはAZURE OPENAI（少し遅れて届く、ファクトチェック済みのAIエージェント）。稲妻マークは注目の場面。"
+    ],
+    "The match in simple terms: the mood of the game, the main numbers for each side, who is on top right now, and the goals. Pick a club in the header and the commentary cheers for it.": [
+        "El partido en pocas palabras: el ambiente del juego, los números principales de cada equipo, quién domina ahora y los goles. Elige un club en la cabecera y el comentario animará por él.",
+        "試合をシンプルに：試合の雰囲気、両チームの主な数字、今どちらが優勢か、ゴール。ヘッダーでクラブを選ぶと実況がそのクラブを応援します。"
+    ],
+    "Our estimate, not a measurement: it starts at 100 and drops with minutes played and sprints, faster for players with a low stamina rating.": [
+        "Una estimación, no una medición: empieza en 100 y baja con los minutos y los sprints, más rápido en jugadores con poca resistencia.",
+        "測定値ではなく推定値：100から始まり、出場時間とスプリントで低下。スタミナの低い選手ほど早く下がります。"
+    ],
+    "Where this player has been. Bars above compare them with their team-mates in the same role; the white tick is the team average. Click any player on the pitch to follow them.": [
+        "Dónde ha estado este jugador. Las barras de arriba lo comparan con sus compañeros del mismo puesto; la marca blanca es la media del equipo. Haz clic en cualquier jugador del campo para seguirlo.",
+        "この選手がプレーした場所。上のバーは同じポジションのチームメイトとの比較で、白い目盛りがチーム平均。ピッチ上の選手をクリックすると追跡できます。"
+    ],
+    "Every action as it happens. ⇄ the ball changed teams · lightning bolt: impact moment · → what play restarts with (corner, throw-in...). Click a line to replay it.": [
+        "Cada acción al momento. ⇄ el balón cambió de equipo · rayo: momento de impacto · → cómo se reanuda el juego (córner, saque de banda...). Haz clic en una línea para repetirla.",
+        "すべてのプレーをリアルタイムで。⇄ ボールの所有が移った · 稲妻：注目の場面 · → 再開方法（CK、スローインなど）。行をクリックでリプレイ。"
+    ]
+};
 
 /* ---------- STATE ---------- */
 const settings = { mode: "PLAYER_CAM", team: HOME, player: "Thornquist", speed: 1, lang: "en", fav_team: "NONE" };
@@ -674,8 +1067,8 @@ function trailHtml(p, compact = false) {
     return steps.map(s => {
         const icon = stepIcon(s);
         const tools = /^(\d+) tool/.exec(s.detail || "");
-        const extra = s.agent === "Fact-checker" ? ` ${STEP_LABEL[s.status] || s.status}${revised && s.status === "passed" ? " after a revision" : ""}` : `${s.status === "revised" ? " (revised)" : ""} ${(s.ms / 1000).toFixed(1)}s${tools && +tools[1] ? ` · ${tools[1]} tool${+tools[1] > 1 ? "s" : ""}` : ""}`;
-        return `<span class="at-step at-${s.status}" title="${esc(s.detail || "")}">${icon} ${esc(s.agent)}${extra}</span>`;
+        const extra = s.agent === "Fact-checker" ? ` ${sl(STEP_LABEL[s.status] || s.status)}${revised && s.status === "passed" ? sl(" after a revision") : ""}` : `${s.status === "revised" ? " (revised)" : ""} ${(s.ms / 1000).toFixed(1)}s${tools && +tools[1] ? ` · ${tools[1]} tool${+tools[1] > 1 ? "s" : ""}` : ""}`;
+        return `<span class="at-step at-${s.status}" title="${esc(s.detail || "")}">${icon} ${esc(sl(s.agent))}${extra}</span>`;
     }).join('<span class="at-arrow">→</span>');
 }
 /* Who wrote a text, as the viewer sees it: the agents on Azure, or the instant templates that keep pace with play. */
@@ -1985,10 +2378,11 @@ function onReport(msg) {
     if (activeTab === "analysis") renderReports();
 }
 
-const RUN_KIND = { commentary: `${fa("bolt")} Impact moment`, story: `${fa("book-open")} Key-event story`, report: `${fa("pause")} Report`,
-                   answer: `${fa("comments")} Question`, recap: `${fa("newspaper")} Recap`, catchup: `${fa("backward")} Catch-up` };
-const RUN_STATUS = { passed: `${fa("circle-check")} verified`, revised: `${fa("rotate-left")} revised, then verified`,
-                     rejected: `${fa("circle-xmark")} rejected: templates kept`, error: `${fa("triangle-exclamation")} fell back to templates` };
+const RUN_KIND = { commentary: ["bolt", "Impact moment"], story: ["book-open", "Key-event story"], report: ["pause", "Report"],
+                   answer: ["comments", "Question"], recap: ["newspaper", "Recap"], catchup: ["backward", "Catch-up"] };
+const RUN_STATUS = { passed: ["circle-check", "verified"], revised: ["rotate-left", "revised, then verified"],
+                     rejected: ["circle-xmark", "rejected: templates kept"], error: ["triangle-exclamation", "fell back to templates"] };
+const iconLabel = (map, key) => map[key] ? `${fa(map[key][0])} ${sl(map[key][1])}` : esc(key);
 
 function onAgentRun(msg) {
     agentRuns.unshift({ kind: msg.kind, clock: msg.clock, seq: msg.seq, p: msg.pipeline });
@@ -2001,22 +2395,22 @@ function renderAgents() {
     const ms = n ? Math.round(agentRuns.reduce((a, r) => a + r.p.ms, 0) / n) : 0;
     const tools = agentRuns.reduce((a, r) => a + (r.p.tools || []).length, 0);
     const stat = (v, l, t) => `<div title="${t}"><strong>${v}</strong><span>${l}</span></div>`;
-    $("agent-stats").innerHTML = stat(n, "runs", "Agent pipeline runs this session")
-        + stat(by("passed"), "verified first time", "The fact-checker passed the first draft")
-        + stat(by("revised"), "fixed on revision", "The fact-checker sent a draft back and the fixed version passed")
-        + stat(by("rejected") + by("error"), "kept templates", "Rejected twice, timed out or failed: the instant template text stayed on screen")
-        + stat(n ? `${(ms / 1000).toFixed(1)}s` : "—", "average run", "From the moment to verified text")
-        + stat(tools, "tool calls", "Times an agent fetched live stats with a tool");
-    $("agent-engine").innerHTML = aiEngine ? `Built with <strong>Microsoft Agent Framework</strong> · running on <strong>Microsoft Foundry</strong> (${esc(aiEngine)}).`
-        : aiEngine === undefined ? "Built with <strong>Microsoft Agent Framework</strong> on <strong>Microsoft Foundry</strong>. Connects when the match starts."
-        : "The agents are off: no Microsoft Foundry keys are set, so everything comes from the instant template engine.";
-    $("agent-count").innerText = `${n} run${n === 1 ? "" : "s"}`;
+    $("agent-stats").innerHTML = stat(n, sl("runs"), "Agent pipeline runs this session")
+        + stat(by("passed"), sl("verified first time"), "The fact-checker passed the first draft")
+        + stat(by("revised"), sl("fixed on revision"), "The fact-checker sent a draft back and the fixed version passed")
+        + stat(by("rejected") + by("error"), sl("kept templates"), "Rejected twice, timed out or failed: the instant template text stayed on screen")
+        + stat(n ? `${(ms / 1000).toFixed(1)}s` : "—", sl("average run"), "From the moment to verified text")
+        + stat(tools, sl("tool calls"), "Times an agent fetched live stats with a tool");
+    $("agent-engine").innerHTML = aiEngine ? sl("Built with <strong>Microsoft Agent Framework</strong> · running on <strong>Microsoft Foundry</strong> ({d}).", { d: esc(aiEngine) })
+        : aiEngine === undefined ? sl("Built with <strong>Microsoft Agent Framework</strong> on <strong>Microsoft Foundry</strong>. Connects when the match starts.")
+        : sl("The agents are off: no Microsoft Foundry keys are set, so everything comes from the instant template engine.");
+    $("agent-count").innerText = n === 1 ? sl("1 run") : sl("{n} runs", { n });
     $("agent-runs").innerHTML = agentRuns.slice(0, 30).map(r => `<li class="run-${r.p.status}">
-        <div class="ar-head"><span class="time-tag">${esc(r.clock)}</span><strong>${RUN_KIND[r.kind] || r.kind}</strong>
-            <span class="ar-status">${RUN_STATUS[r.p.status] || r.p.status}</span><span class="text-muted">${(r.p.ms / 1000).toFixed(1)}s</span></div>
+        <div class="ar-head"><span class="time-tag">${esc(r.clock)}</span><strong>${iconLabel(RUN_KIND, r.kind)}</strong>
+            <span class="ar-status">${iconLabel(RUN_STATUS, r.p.status)}</span><span class="text-muted">${(r.p.ms / 1000).toFixed(1)}s</span></div>
         <div class="agent-trail">${trailHtml(r.p)}</div>
-        ${r.p.steps.filter(s => s.detail && (s.agent !== "Fact-checker" || s.status !== "passed")).map(s => `<div class="ar-detail">${stepIcon(s)} ${esc(s.agent)}: ${esc(s.detail)}</div>`).join("")}
-    </li>`).join("") || `<li class="text-muted">${aiEngine === null ? "No runs: the agents need Microsoft Foundry keys." : "Start the match: runs appear here at each impact moment, key event and report."}</li>`;
+        ${r.p.steps.filter(s => s.detail && (s.agent !== "Fact-checker" || s.status !== "passed")).map(s => `<div class="ar-detail">${stepIcon(s)} ${esc(sl(s.agent))}: ${esc(s.detail)}</div>`).join("")}
+    </li>`).join("") || `<li class="text-muted">${sl(aiEngine === null ? "No runs: the agents need Microsoft Foundry keys." : "Start the match: runs appear here at each impact moment, key event and report.")}</li>`;
 }
 
 function recordLatency(generatedAt) {
