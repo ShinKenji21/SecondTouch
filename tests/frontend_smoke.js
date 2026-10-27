@@ -125,6 +125,12 @@ run("stats panels in Japanese", () => {
     g.setMode("ANALYST");
     if (!stats.includes("ポゼッション") || stats.includes(">Possession<")) throw new Error("match stats stayed in English");
     if (!tele.includes("チームデータ") || / complete /.test(tele)) throw new Error("telemetry stayed in English");
+    vm.runInContext(`settings.lang = "ja"`, g);
+    g.renderTactics();
+    const tac = get("tactics-cards");
+    vm.runInContext(`settings.lang = "en"`, g);
+    g.renderTactics();
+    if (!tac.includes("ボール保持時") || /In possession|Attack channels/.test(tac)) throw new Error("tactics stayed in English");
 });
 
 run("pick a club mid-match", () => vm.runInContext(`settings.fav_team = AWAY; applyFav(); settings.fav_team = "NONE"; applyFav()`, g));

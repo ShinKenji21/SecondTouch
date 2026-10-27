@@ -164,6 +164,31 @@ function applyChrome() {
 
 /* Stat names and short phrases in the panels, keyed by their English text: [Spanish, Japanese]. */
 const STAT_T = {
+    "Defending high: the back line holds {lh}m from goal, squeezing the space behind the press.": ["Defensa alta: la línea de atrás se sitúa a {lh} m de su portería y reduce el espacio a la espalda de la presión.", "高い位置で守備：最終ラインはゴールから{lh}m、プレスの背後のスペースを圧縮。"],
+    "A mid-block: the back line sits {lh}m out and the team stays {len}m from back to front.": ["Bloque medio: la línea de atrás está a {lh} m y el equipo ocupa {len} m de atrás adelante.", "ミドルブロック：最終ラインはゴールから{lh}m、チームの縦幅は{len}m。"],
+    "A low block: the back line drops to {lh}m and protects the box.": ["Bloque bajo: la línea de atrás baja a {lh} m y protege el área.", "ローブロック：最終ラインは{lh}mまで下がり、ペナルティエリアを守る。"],
+    "In possession they stretch the pitch to {w}m wide.": ["Con balón abren el campo hasta {w} m de ancho.", "ボール保持時はピッチを{w}mの幅まで広げる。"],
+    "In possession they stay narrow ({w}m), overloading the middle.": ["Con balón se mantienen estrechos ({w} m) y cargan el centro.", "ボール保持時は狭く（{w}m）、中央に人数をかける。"],
+    "Attacks go mostly through the centre ({v}%).": ["Los ataques van sobre todo por el centro ({v} %).", "攻撃は主に中央から（{v}%）。"],
+    "Attacks lean down the {side} ({v}% of final-third actions).": ["Los ataques se inclinan por la {side} ({v} % de las acciones en el último tercio).", "攻撃は{side}寄り（アタッキングサードでのプレーの{v}%）。"],
+    "left": ["izquierda", "左サイド"],
+    "right": ["derecha", "右サイド"],
+    "Direct: {v}% of recent passes go 15m+ forward.": ["Directo: el {v} % de los pases recientes avanza 15 m o más.", "直線的：直近のパスの{v}%が15m以上前進。"],
+    "Patient build-up: only {v}% of recent passes go 15m+ forward.": ["Salida paciente: solo el {v} % de los pases recientes avanza 15 m o más.", "じっくりビルドアップ：15m以上前進するパスは直近の{v}%だけ。"],
+    "Their press is winning the battle: {a} ball wins in the opponent's half to {b}.": ["Su presión gana la batalla: {a} recuperaciones en campo rival contra {b}.", "プレス合戦で優勢：敵陣でのボール奪取は{a}対{b}。"],
+    "They are being out-pressed: {a} ball wins in the opponent's half to {b}.": ["Les ganan la batalla de la presión: {a} recuperaciones en campo rival contra {b}.", "プレス合戦で劣勢：敵陣でのボール奪取は{a}対{b}。"],
+    "Not enough of the match yet to read the shape.": ["Aún no hay suficiente partido para leer el dibujo.", "まだ形を読み取るには試合が進んでいません。"],
+    "Line height": ["Altura de la línea", "ライン高さ"],
+    "Width": ["Anchura", "横幅"],
+    "Length": ["Profundidad", "縦幅"],
+    "In possession": ["Con balón", "ボール保持時"],
+    "Out of possession": ["Sin balón", "非保持時"],
+    "no data yet": ["aún sin datos", "データなし"],
+    "Attack channels (final-third actions: {n})": ["Zonas de ataque (acciones en el último tercio: {n})", "攻撃のレーン（アタッキングサードでのプレー：{n}）"],
+    "L": ["I", "左"],
+    "C": ["C", "中"],
+    "R": ["D", "右"],
+    "Ball wins in opponent half": ["Recuperaciones en campo rival", "敵陣でのボール奪取"],
     "runs": ["ejecuciones", "回"],
     "verified first time": ["verificadas a la primera", "一発で検証通過"],
     "fixed on revision": ["corregidas al revisar", "修正後に通過"],
@@ -1812,23 +1837,24 @@ function tacticalRead(team, tac, opp) {
     const oop = tac.out_of_possession, inp = tac.in_possession;
     if (oop) {
         const lh = oop.line_height_m;
-        parts.push(lh >= 38 ? `Defending high: the back line holds ${lh}m from goal, squeezing the space behind the press.`
-            : lh >= 30 ? `A mid-block: the back line sits ${lh}m out and the team stays ${oop.length_m}m from back to front.`
-            : `A low block: the back line drops to ${lh}m and protects the box.`);
+        parts.push(lh >= 38 ? sl("Defending high: the back line holds {lh}m from goal, squeezing the space behind the press.", { lh })
+            : lh >= 30 ? sl("A mid-block: the back line sits {lh}m out and the team stays {len}m from back to front.", { lh, len: oop.length_m })
+            : sl("A low block: the back line drops to {lh}m and protects the box.", { lh }));
     }
-    if (inp) parts.push(inp.width_m >= 48 ? `In possession they stretch the pitch to ${inp.width_m}m wide.` : `In possession they stay narrow (${inp.width_m}m), overloading the middle.`);
+    if (inp) parts.push(sl(inp.width_m >= 48 ? "In possession they stretch the pitch to {w}m wide." : "In possession they stay narrow ({w}m), overloading the middle.", { w: inp.width_m }));
     const ch = tac.channels, favCh = Object.keys(ch).reduce((a, b) => ch[a] >= ch[b] ? a : b);
-    if (tac.final_third_actions >= 4) parts.push(favCh === "central" ? `Attacks go mostly through the centre (${ch.central}%).` : `Attacks lean down the ${favCh} (${ch[favCh]}% of final-third actions).`);
-    parts.push(tac.directness >= 40 ? `Direct: ${tac.directness}% of recent passes go 15m+ forward.` : `Patient build-up: only ${tac.directness}% of recent passes go 15m+ forward.`);
+    if (tac.final_third_actions >= 4) parts.push(favCh === "central" ? sl("Attacks go mostly through the centre ({v}%).", { v: ch.central })
+        : sl("Attacks lean down the {side} ({v}% of final-third actions).", { side: sl(favCh), v: ch[favCh] }));
+    parts.push(sl(tac.directness >= 40 ? "Direct: {v}% of recent passes go 15m+ forward." : "Patient build-up: only {v}% of recent passes go 15m+ forward.", { v: tac.directness }));
     if (tac.press_wins + opp.press_wins >= 3) parts.push(tac.press_wins > opp.press_wins
-        ? `Their press is winning the battle: ${tac.press_wins} ball wins in the opponent's half to ${opp.press_wins}.`
-        : `They are being out-pressed: ${tac.press_wins} ball wins in the opponent's half to ${opp.press_wins}.`);
-    return parts.join(" ") || "Not enough of the match yet to read the shape.";
+        ? sl("Their press is winning the battle: {a} ball wins in the opponent's half to {b}.", { a: tac.press_wins, b: opp.press_wins })
+        : sl("They are being out-pressed: {a} ball wins in the opponent's half to {b}.", { a: tac.press_wins, b: opp.press_wins }));
+    return parts.join(settings.lang === "ja" ? "" : " ") || sl("Not enough of the match yet to read the shape.");
 }
 
 function phaseRow(label, p) {
-    if (!p) return `<tr><th>${label}</th><td colspan="3" class="text-muted">no data yet</td></tr>`;
-    return `<tr><th>${label}</th><td>${p.line_height_m}m</td><td>${p.width_m}m</td><td>${p.length_m}m</td></tr>`;
+    if (!p) return `<tr><th>${sl(label)}</th><td colspan="3" class="text-muted">${sl("no data yet")}</td></tr>`;
+    return `<tr><th>${sl(label)}</th><td>${p.line_height_m}m</td><td>${p.width_m}m</td><td>${p.length_m}m</td></tr>`;
 }
 
 function renderTactics() {
@@ -1837,17 +1863,17 @@ function renderTactics() {
     $("tactics-cards").innerHTML = TEAMS.map(team => {
         const tac = T[team], opp = T[other(team)], ch = tac.channels;
         return `<div class="tactical-card ${team === HOME ? "home-border" : "away-border"}">
-            <h5>${TEAM_LABEL[team]} · ${tac.formation}</h5>
+            <h5>${teamName(team)} · ${tac.formation}</h5>
             <p class="tactical-read">${tacticalRead(team, tac, opp)}</p>
-            <table class="shape-table"><thead><tr><th></th><th title="Average distance of the back line from its own goal">Line height</th><th title="Distance between the widest outfield players">Width</th><th title="Distance from the back line to the most advanced player">Length</th></tr></thead>
+            <table class="shape-table"><thead><tr><th></th><th title="Average distance of the back line from its own goal">${sl("Line height")}</th><th title="Distance between the widest outfield players">${sl("Width")}</th><th title="Distance from the back line to the most advanced player">${sl("Length")}</th></tr></thead>
               <tbody>${phaseRow("In possession", tac.in_possession)}${phaseRow("Out of possession", tac.out_of_possession)}</tbody></table>
-            <div class="channel-label">Attack channels (final-third actions: ${tac.final_third_actions})</div>
+            <div class="channel-label">${sl("Attack channels (final-third actions: {n})", { n: tac.final_third_actions })}</div>
             <div class="channel-bar">
-              <div style="width:${ch.left}%" title="Left ${ch.left}%">${ch.left >= 12 ? `L ${ch.left}%` : ""}</div>
-              <div style="width:${ch.central}%" title="Centre ${ch.central}%">${ch.central >= 12 ? `C ${ch.central}%` : ""}</div>
-              <div style="width:${ch.right}%" title="Right ${ch.right}%">${ch.right >= 12 ? `R ${ch.right}%` : ""}</div>
+              <div style="width:${ch.left}%" title="Left ${ch.left}%">${ch.left >= 12 ? `${sl("L")} ${ch.left}%` : ""}</div>
+              <div style="width:${ch.central}%" title="Centre ${ch.central}%">${ch.central >= 12 ? `${sl("C")} ${ch.central}%` : ""}</div>
+              <div style="width:${ch.right}%" title="Right ${ch.right}%">${ch.right >= 12 ? `${sl("R")} ${ch.right}%` : ""}</div>
             </div>
-            <div class="press-row"><span>Ball wins in opponent half <strong>${tac.press_wins}</strong></span>
+            <div class="press-row"><span>${sl("Ball wins in opponent half")} <strong>${tac.press_wins}</strong></span>
               <span title="Opponent passes allowed per defensive action in their own 60%. Lower = more aggressive press.">PPDA <strong>${tac.ppda ?? "–"}</strong></span></div>
         </div>`;
     }).join("");
