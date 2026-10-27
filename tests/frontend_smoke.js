@@ -114,6 +114,19 @@ run("interface in Japanese", () => {
         for (const lang of ["es", "ja"]) if (!vm.runInContext(`CHROME.${lang}`, g)[key]) throw new Error(`${key} missing in ${lang}`);
 });
 
+run("stats panels in Japanese", () => {
+    vm.runInContext(`settings.lang = "ja"`, g);
+    g.renderStats();
+    for (const mode of ["ANALYST", "CASUAL"]) g.setMode(mode);
+    const get = id => String((elements[id] && elements[id].innerHTML) || "");
+    const stats = get("h2h-list"), tele = get("team-telemetry");
+    vm.runInContext(`settings.lang = "en"`, g);
+    g.renderStats();
+    g.setMode("ANALYST");
+    if (!stats.includes("ポゼッション") || stats.includes(">Possession<")) throw new Error("match stats stayed in English");
+    if (!tele.includes("チームデータ") || / complete /.test(tele)) throw new Error("telemetry stayed in English");
+});
+
 run("pick a club mid-match", () => vm.runInContext(`settings.fav_team = AWAY; applyFav(); settings.fav_team = "NONE"; applyFav()`, g));
 
 run("renderAgents", () => g.renderAgents());

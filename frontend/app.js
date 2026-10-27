@@ -148,6 +148,70 @@ function applyChrome() {
     if (anim.entry) updateUI(anim.entry);  // the player card and the pitch legend are drawn from code
 }
 
+/* Stat names and short phrases in the panels, keyed by their English text: [Spanish, Japanese]. */
+const STAT_T = {
+    "Possession": ["Posesión", "ポゼッション"],
+    "Shots": ["Disparos", "シュート"],
+    "Shots on target": ["Tiros a puerta", "枠内シュート"],
+    "Expected goals (xG)": ["Goles esperados (xG)", "ゴール期待値（xG）"],
+    "Big chances": ["Ocasiones claras", "決定機"],
+    "Passes": ["Pases", "パス"],
+    "Pass accuracy": ["Precisión de pase", "パス成功率"],
+    "Avg pass difficulty": ["Dificultad media de pase", "平均パス難度"],
+    "Tackles won": ["Entradas ganadas", "タックル成功"],
+    "Interceptions": ["Intercepciones", "インターセプト"],
+    "Ball wins in opp. half": ["Recuperaciones en campo rival", "敵陣でのボール奪取"],
+    "Distance covered (km)": ["Distancia recorrida (km)", "走行距離（km）"],
+    "Top sprint (km/h)": ["Sprint máximo (km/h)", "最高スプリント（km/h）"],
+    "Expected assists (xA)": ["Asistencias esperadas (xA)", "アシスト期待値（xA）"],
+    "Big chances missed": ["Ocasiones claras falladas", "決定機逸失"],
+    "Woodwork": ["Palos", "ポスト直撃"],
+    "Field tilt": ["Dominio territorial", "敵陣支配率"],
+    "Crosses (completed)": ["Centros (completados)", "クロス（成功）"],
+    "Long balls (completed)": ["Balones largos (completados)", "ロングボール（成功）"],
+    "Progressive passes": ["Pases progresivos", "前進パス"],
+    "Aerial duels won": ["Duelos aéreos ganados", "空中戦勝利"],
+    "Clearances": ["Despejes", "クリア"],
+    "Blocks": ["Bloqueos", "ブロック"],
+    "Saves": ["Paradas", "セーブ"],
+    "Corners": ["Córners", "コーナーキック"],
+    "Free kicks": ["Tiros libres", "フリーキック"],
+    "Throw-ins": ["Saques de banda", "スローイン"],
+    "Goal kicks": ["Saques de puerta", "ゴールキック"],
+    "Penalties": ["Penaltis", "PK"],
+    "Offsides": ["Fueras de juego", "オフサイド"],
+    "Fouls": ["Faltas", "ファウル"],
+    "Yellow cards": ["Tarjetas amarillas", "イエローカード"],
+    "Red cards": ["Tarjetas rojas", "レッドカード"],
+    "Cards": ["Tarjetas", "カード"],
+    "Shots (on target)": ["Disparos (a puerta)", "シュート（枠内）"],
+    "Pressure applied": ["Presión aplicada", "プレス強度"],
+    "Top ball speed": ["Velocidad máx. del balón", "最高ボール速度"],
+    "Distance (km)": ["Distancia (km)", "走行距離（km）"],
+    "Subs used": ["Cambios hechos", "交代枠使用"],
+    "Pass difficulty": ["Dificultad del pase", "パス難度"],
+    "Pressure": ["Presión", "プレッシャー"],
+    "Defender": ["Defensor", "最寄りの守備者"],
+    "Ball speed": ["Velocidad del balón", "ボール速度"],
+    "Shot xG": ["xG del disparo", "シュートxG"],
+    "Forward gain": ["Avance", "前進距離"],
+    "Bypassed": ["Rivales superados", "かわした相手"],
+    "Team telemetry": ["Telemetría de equipos", "チームデータ"],
+    "On screen now": ["En pantalla", "画面の選手"],
+    "no action yet": ["aún sin acciones", "まだプレーなし"],
+    "No goals yet": ["Aún sin goles", "まだゴールなし"],
+    "low": ["baja", "低"],
+    "medium": ["media", "中"],
+    "high": ["alta", "高"],
+    "{t} are calmly keeping the ball.": ["{t} mantiene el balón con calma.", "{t}が落ち着いてボールを保持している。"],
+    "End to end: the ball keeps changing hands.": ["Ida y vuelta: el balón cambia de dueño sin parar.", "攻守が目まぐるしく入れ替わる展開。"],
+    "An even contest at the moment.": ["Un duelo igualado por ahora.", "今のところ互角の展開。"],
+    " Fast and frantic right now.": [" Ritmo frenético ahora mismo.", "今はハイテンポ。"],
+    " The pace has dropped.": [" El ritmo ha bajado.", "ペースが落ちている。"],
+};
+const sl = (text, vars = {}) => String((STAT_T[text] || [])[{ es: 0, ja: 1 }[settings.lang]] ?? text)
+    .replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+
 /* ---------- STATE ---------- */
 const settings = { mode: "PLAYER_CAM", team: HOME, player: "Thornquist", speed: 1, lang: "en", fav_team: "NONE" };
 let pinned = "none";
@@ -747,7 +811,7 @@ function compareRow(label, h, a, fmt = v => v) {
     return `<div class="glance-row">
         <span class="g-val">${fmt(h, 0)}</span>
         <div class="g-bar left"><div style="width:${100 * (h || 0) / max}%; background:${TEAM_COLOR[HOME]}"></div></div>
-        <span class="g-label">${label}</span>
+        <span class="g-label">${sl(label)}</span>
         <div class="g-bar"><div style="width:${100 * (a || 0) / max}%; background:${TEAM_COLOR[AWAY]}"></div></div>
         <span class="g-val">${fmt(a, 1)}</span></div>`;
 }
@@ -760,19 +824,18 @@ function renderTeamTelemetry() {
         .map(t => `<span class="stance-chip" style="border-color:${TEAM_COLOR[t]}" title="What the team's shape shows: a higher line and more direct play, or dropping deeper">${TEAM_SHORT[t]} ${fa(STANCE_ICON[liveStance[t]])} ${STANCE_LABEL[liveStance[t]]}</span>`).join("");
     const last = TEAMS.map(team => {
         const a = lastActionOf(team);
-        const what = a ? `#${player(team, a.player).num} <strong>${esc(a.player)}</strong> · ${a.set_piece ? spName(a.set_piece).toLowerCase()
-            : a.event_type === "SHOT" ? shotKind(a).toLowerCase() : a.event_type === "PASS" ? passKind(a).toLowerCase() : a.event_type.toLowerCase()}${a.outcome ? " " + a.outcome.toLowerCase() : ""} · ${a.clock}` : "no action yet";
+        const what = a ? `#${player(team, a.player).num} <strong>${esc(a.player)}</strong> · ${esc(logLabel(a))} · ${a.clock}` : sl("no action yet");
         return `<div class="tt-last" style="--tc:${TEAM_COLOR[team]}"><span class="tt-team">${TEAM_SHORT[team]}</span>${what}</div>`;
     }).join("");
     const now = ev.team && ev.event_type !== "SUBSTITUTION" && ev.event_type !== "INJURY" ? `
-        <div class="tt-now-head">On screen now: <strong>${esc(ev.player)}</strong>, ${TEAM_LABEL[ev.team]}</div>
+        <div class="tt-now-head">${sl("On screen now")}: <strong>${esc(ev.player)}</strong>, ${teamName(ev.team)}</div>
         <div class="telemetry-grid">
-            <div><span class="tg-label">Pass difficulty</span><span>${m.pass_difficulty != null ? `${m.pass_difficulty}/100` : "—"}</span></div>
-            <div><span class="tg-label">Pressure</span><span>${m.pressure ? `${m.pressure.toLowerCase()} · ${m.pressure_index}` : "—"}</span></div>
-            <div><span class="tg-label">Defender</span><span>${m.nearest_defender_m != null ? `${m.nearest_defender_m} m` : "—"}</span></div>
-            <div><span class="tg-label">Ball speed</span><span>${m.ball_speed_kmh != null ? `${m.ball_speed_kmh} km/h` : "—"}</span></div>
-            <div><span class="tg-label">${m.xg != null ? "Shot xG" : "Forward gain"}</span><span>${m.xg != null ? m.xg.toFixed(2) : m.forward_gain_m != null ? `${m.forward_gain_m} m` : "—"}</span></div>
-            <div><span class="tg-label">Bypassed</span><span>${m.players_bypassed ?? "—"}</span></div>
+            <div><span class="tg-label">${sl("Pass difficulty")}</span><span>${m.pass_difficulty != null ? `${m.pass_difficulty}/100` : "—"}</span></div>
+            <div><span class="tg-label">${sl("Pressure")}</span><span>${m.pressure ? `${sl(m.pressure.toLowerCase())} · ${m.pressure_index}` : "—"}</span></div>
+            <div><span class="tg-label">${sl("Defender")}</span><span>${m.nearest_defender_m != null ? `${m.nearest_defender_m} m` : "—"}</span></div>
+            <div><span class="tg-label">${sl("Ball speed")}</span><span>${m.ball_speed_kmh != null ? `${m.ball_speed_kmh} km/h` : "—"}</span></div>
+            <div><span class="tg-label">${sl(m.xg != null ? "Shot xG" : "Forward gain")}</span><span>${m.xg != null ? m.xg.toFixed(2) : m.forward_gain_m != null ? `${m.forward_gain_m} m` : "—"}</span></div>
+            <div><span class="tg-label">${sl("Bypassed")}</span><span>${m.players_bypassed ?? "—"}</span></div>
         </div>` : "";
     const maxSubs = metadata ? metadata.max_subs : 5;
     const rows = T ? [
@@ -788,15 +851,15 @@ function renderTeamTelemetry() {
         compareRow("Subs used", liveSubs ? liveSubs[HOME] : 0, liveSubs ? liveSubs[AWAY] : 0, v => `${v}/${maxSubs}`),
     ].join("") : "";
     $("team-telemetry").innerHTML = `
-        <div class="card-header-flex"><h3>Team telemetry <span class="info" data-tip="Both teams compared live. Bars grow towards the team that leads each number. 'On screen now' breaks down the action being shown: how hard the pass was, how much pressure was on the ball, and how fast it travelled.">ⓘ</span></h3>${stance}</div>
+        <div class="card-header-flex"><h3>${sl("Team telemetry")} <span class="info" data-tip="Both teams compared live. Bars grow towards the team that leads each number. 'On screen now' breaks down the action being shown: how hard the pass was, how much pressure was on the ball, and how fast it travelled.">ⓘ</span></h3>${stance}</div>
         ${last}${now}<div class="tt-rows">${rows}</div>`;
 }
 
 function moodText(flow) {
-    const tempo = flow.tempo === "HIGH" ? " Fast and frantic right now." : flow.tempo === "SLOW" ? " The pace has dropped." : "";
-    if (flow.state === "CONTROL") return `${TEAM_LABEL[flow.state_team]} are calmly keeping the ball.${tempo}`;
-    if (flow.state === "CHAOS") return `End to end: the ball keeps changing hands.${tempo}`;
-    return `An even contest at the moment.${tempo}`;
+    const tempo = flow.tempo === "HIGH" ? sl(" Fast and frantic right now.") : flow.tempo === "SLOW" ? sl(" The pace has dropped.") : "";
+    if (flow.state === "CONTROL") return sl("{t} are calmly keeping the ball.", { t: teamName(flow.state_team) }) + tempo;
+    if (flow.state === "CHAOS") return sl("End to end: the ball keeps changing hands.") + tempo;
+    return sl("An even contest at the moment.") + tempo;
 }
 
 function renderGlance() {
@@ -818,7 +881,7 @@ function renderGlance() {
         return `<div class="glance-row">
             <span class="g-val">${fmt(h)}</span>
             <div class="g-bar left"><div style="width:${100 * h / max}%; background:${TEAM_COLOR[HOME]}"></div></div>
-            <span class="g-label">${label}</span>
+            <span class="g-label">${sl(label)}</span>
             <div class="g-bar"><div style="width:${100 * a / max}%; background:${TEAM_COLOR[AWAY]}"></div></div>
             <span class="g-val">${fmt(a)}</span></div>`;
     }).join("");
@@ -826,7 +889,7 @@ function renderGlance() {
     const goals = history.filter(h => h.key === matchKey && isGoal(h.event) && history.indexOf(h) <= idx);
     const scorer = ev => ev.outcome === "OWN_GOAL" ? `${esc(ev.opponent)} (o.g.)` : esc(ev.player);
     $("glance-goals").innerHTML = goals.map(h => `<li style="--tc:${TEAM_COLOR[h.event.team]}">${fa("futbol")} ${h.event.clock} ${scorer(h.event)} <span class="text-muted">${TEAM_LABEL[h.event.team]}</span></li>`).join("")
-        || `<li class="text-muted">No goals yet</li>`;
+        || `<li class="text-muted">${sl("No goals yet")}</li>`;
 }
 
 const PC_STATS = {
@@ -1274,7 +1337,7 @@ function renderStats() {
         const hp = tot ? 100 * hv / tot : 50;
         return `<div class="h2h-row">
             <span class="h2h-val ${hv > av ? "lead" : ""}">${fmt(hv)}</span>
-            <div class="h2h-mid"><span class="h2h-label">${label}</span>
+            <div class="h2h-mid"><span class="h2h-label">${sl(label)}</span>
               <div class="h2h-bar"><div class="h2h-home" style="width:${hp}%"></div><div class="h2h-away" style="width:${100 - hp}%"></div></div></div>
             <span class="h2h-val ${av > hv ? "lead" : ""}">${fmt(av)}</span></div>`;
     }).join("");
