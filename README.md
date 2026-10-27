@@ -4,7 +4,7 @@
 
 SecondTouch watches a live (synthetic) football match, turns every action into statistics, picks out the moments that matter and explains *why* they matter: as live commentary, the story behind each key moment, a recap every 15 minutes and a full-time report that tells the story of the match. Fans choose how they watch (analyst, casual fan or following one player), their club and their language (English, Spanish or Japanese).
 
-**Demo video:** _add your YouTube link here_
+**Demo video:** https://youtu.be/HSgYhXXJFk0
 
 ![Built with](https://img.shields.io/badge/Microsoft_Agent_Framework-agents-0078D4) ![Foundry](https://img.shields.io/badge/Microsoft_Foundry-gpt--4.1--mini-0078D4) ![Tests](https://img.shields.io/badge/tests-90_passing-2ea44f)
 
